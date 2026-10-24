@@ -25,6 +25,8 @@ npm run typecheck   # TypeScript, must pass with no errors
 | `src/app/` | Screens. Every file is a route (Expo Router) |
 | `src/app/(tabs)/` | The 5 bottom tabs: Accueil, Recherche, Favoris, Panier, Compte |
 | `src/components/` | Reusable components (AppText, Screen, EmptyState…) |
+| `src/api/` | API contract, mock server and HTTP client. See docs/API.md |
+| `src/data/` | Cache, offline detection, favourites, data hooks for screens |
 | `src/theme/` | Design tokens: colours, type, spacing, radius. Never hard-code these in screens |
 | `assets/` | Logo, app icon, splash |
 | `docs/` | Feature roadmap and decisions |
