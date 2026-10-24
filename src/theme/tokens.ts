@@ -37,6 +37,8 @@ export const colors = {
   border: {
     default: '#E4E6EA',
     input: '#D5D9DE',
+    /** Unselected radio ring: darker than input so the empty circle stays visible (3:1). */
+    radio: '#8A939E',
   },
   status: {
     danger: '#B42318',
