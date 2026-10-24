@@ -11,7 +11,8 @@ type Props = {
 
 /** Dark banner shown under the header when there is no connection. */
 export function OfflineBanner({ savedAt }: Props) {
-  const when = savedAt ? ` à ${savedAt}` : '';
+  // Non-breaking spaces keep a time like "14 h 32" on one line.
+  const when = savedAt ? `\u00A0à\u00A0${savedAt.replace(/ /g, '\u00A0')}` : '';
   return (
     <View style={styles.banner} accessibilityRole="alert" accessibilityLiveRegion="polite">
       <Feather name="wifi-off" size={18} color={colors.text.inverse} />

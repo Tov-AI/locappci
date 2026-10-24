@@ -32,7 +32,7 @@ export function Skeleton({ width = '100%', height, borderRadius = radius.sm, sty
     <Animated.View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={[{ width, height, borderRadius, backgroundColor: colors.surface.neutral, opacity: pulse }, style]}
+      style={[{ width, height, borderRadius, backgroundColor: colors.surface.skeleton, opacity: pulse }, style]}
     />
   );
 }

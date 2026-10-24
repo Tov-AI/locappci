@@ -230,6 +230,6 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', flexWrap: 'wrap' },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   grow: { flex: 1 },
-  photo: { padding: space.md, borderRadius: radius.lg, backgroundColor: colors.brand.navyTint },
+  photo: { alignItems: 'center', padding: space.md, borderRadius: radius.lg, backgroundColor: colors.brand.navyTint },
   bleed: { marginHorizontal: -space.gutter },
 });

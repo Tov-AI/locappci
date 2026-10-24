@@ -33,6 +33,8 @@ export const colors = {
     ground: '#F6F7F5',
     field: '#F1F3F1',
     neutral: '#EEF0F3',
+    /** Loading placeholder: dark enough to see on the grey ground and on white cards. */
+    skeleton: '#DFE3E8',
   },
   border: {
     default: '#E4E6EA',
