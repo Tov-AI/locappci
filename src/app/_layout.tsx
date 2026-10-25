@@ -6,13 +6,14 @@ import {
   useFonts,
 } from '@expo-google-fonts/dm-sans';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { CrashScreen } from '@/components/CrashScreen';
 import { ToastHost } from '@/components/Toast';
 import { loadAccount } from '@/data/account';
 import { loadCart } from '@/data/cart';
@@ -38,6 +39,15 @@ loadCustomer();
 loadAccount();
 loadNotificationAnswer();
 loadOrders();
+
+/** Expo Router shows this when any screen throws while rendering. */
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return (
+    <SafeAreaProvider>
+      <CrashScreen {...props} />
+    </SafeAreaProvider>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({

@@ -41,6 +41,9 @@ export default function DonneesScreen() {
   const [latency, setLatency] = useState<Latency>(mockSettings.latency);
   const [failAll, setFailAll] = useState(mockSettings.failAll);
   const [forced, setForced] = useState(isForcedOffline());
+  const [crash, setCrash] = useState(false);
+  // "Simuler un plantage": throws while drawing, to check the crash screen.
+  if (crash) throw new Error('Plantage simulé depuis l’écran Données (dev).');
   const [nextCheck, setNextCheck] = useState<NextCheck>(mockSettings.nextCheck);
   const cartCount = useCartCount();
 
@@ -130,6 +133,8 @@ export default function DonneesScreen() {
           {cartCount > 0 ? (
             <Button label="Vider le panier" variant="outline" icon="shopping-cart" onPress={clearCart} />
           ) : null}
+
+          <Button label="Simuler un plantage" variant="outline" icon="zap" onPress={() => setCrash(true)} />
 
           <AppText variant="caption" color={colors.text.muted}>
             PROCHAIN CONTRÔLE STOCK / DISPONIBILITÉ (UNE SEULE FOIS)

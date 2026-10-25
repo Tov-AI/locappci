@@ -5,7 +5,7 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { OptionCard } from '@/components/OptionCard';
 import { Skeleton } from '@/components/Skeleton';
 import { setCity } from '@/data/city';
-import { useCities } from '@/data/queries';
+import { useCities, waitingForNetwork } from '@/data/queries';
 import { colors, space } from '@/theme';
 
 type Props = {
@@ -38,7 +38,12 @@ export function CityPickerSheet({ visible, onClose, selected, firstLaunch = fals
         </AppText>
       ) : null}
       <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-        {cities.isPending
+        {waitingForNetwork(cities) || cities.isError ? (
+          // No list yet (first launch offline, or server down): "Toute la Côte d'Ivoire" still works.
+          <AppText variant="meta" color={colors.text.muted}>
+            Liste des communes indisponible sans connexion. Vous pourrez choisir plus tard.
+          </AppText>
+        ) : cities.isPending
           ? [0, 1, 2, 3].map((i) => <Skeleton key={i} height={56} />)
           : (cities.data ?? []).map((c) => (
               <OptionCard

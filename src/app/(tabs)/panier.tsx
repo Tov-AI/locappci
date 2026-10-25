@@ -149,7 +149,7 @@ export default function PanierScreen() {
           {`${count} article${count > 1 ? 's' : ''}`}
         </AppText>
       </View>
-      {!online ? <OfflineBanner /> : null}
+      {!online ? <OfflineBanner message="Hors connexion. Votre panier reste enregistré ; la commande demande du réseau." /> : null}
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         {notice ? (

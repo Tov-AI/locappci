@@ -4,6 +4,12 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-25 | The mock fails when the phone is offline (real or dev switch) | It used to answer anyway, which hid the "offline with nothing saved" case |
+| 2026-10-25 | "Pas de connexion" state when there is no network and nothing saved (`waitingForNetwork`) | Without it, screens showed loading skeletons forever; the page fills itself in when the network returns |
+| 2026-10-25 | Favoris offline: falls back to cards already seen in Accueil/Recherche | Hearts are on the phone; the cards often are too |
+| 2026-10-25 | Rental screen says when availability couldn't load | Free-looking days must not mislead; the live check at "Réserver" still protects |
+| 2026-10-25 | Root error boundary (crash screen with "Réessayer") and a "Page introuvable" route | No white screen or closed app on a bug or an old link; cart and favourites are safe on the phone |
+| 2026-10-25 | Offline banner text depends on the screen | "Annonces enregistrées à …" only when there are saved listings |
 | 2026-10-25 | "Mes commandes" from orders saved on this phone (max 50); the order screen starts from that copy | Works offline and without an account; with login (Feature 14) the gateway list replaces it |
 | 2026-10-25 | Favoris tab built here: saved hearts + `GET /v1/products?ids=` in one request | Compte links to it; one request instead of one per product |
 | 2026-10-25 | "Se déconnecter" clears account, saved details and the order list from the phone; favourites and cart stay | Shared phones are common; favourites and cart aren't personal data |

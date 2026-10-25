@@ -6,11 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ProductSummary } from '@/api';
 import { AppText } from '@/components/AppText';
 import { EmptyState } from '@/components/EmptyState';
+import { NoConnection } from '@/components/NoConnection';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { ProductCard, ProductCardSkeleton } from '@/components/ProductCard';
 import { useFavouriteIds } from '@/data/favourites';
 import { useOnline } from '@/data/online';
-import { useCities, useFavouriteProducts } from '@/data/queries';
+import { useCities, useFavouriteProducts, waitingForNetwork } from '@/data/queries';
 import { colors, space } from '@/theme';
 import { formatTime } from '@/utils/format';
 
@@ -34,6 +35,7 @@ export default function FavorisScreen() {
   const items = (products.data ?? []).filter((p) => saved.has(p.id));
   const data: ProductSummary[] = items.length % 2 === 0 ? items : [...items, { ...items[0], id: SPACER_ID }];
   const loading = ids.length > 0 && products.isPending;
+  const noNetwork = ids.length > 0 && waitingForNetwork(products);
 
   return (
     <SafeAreaView edges={['top']} style={styles.fill}>
@@ -59,6 +61,8 @@ export default function FavorisScreen() {
           actionLabel="Découvrir les annonces"
           onAction={() => router.navigate('/')}
         />
+      ) : noNetwork ? (
+        <NoConnection what="vos favoris" onRetry={() => products.refetch()} />
       ) : loading ? (
         <View style={[styles.content, styles.row]}>
           <ProductCardSkeleton />

@@ -1,8 +1,8 @@
-import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 
 import { getRememberedOrder } from '@/data/orders';
 
-import { api, type AccountRequest, type CartCheckLine, type LoginRequest, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
+import { api, type AccountRequest, type CartCheckLine, type LoginRequest, type Page, type ProductSummary, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
 
 /**
  * Query keys: one name per kind of data, so the cache knows what to refresh.
@@ -20,6 +20,13 @@ export const keys = {
 };
 
 const DAY = 24 * 60 * 60_000;
+
+/**
+ * No data yet and the request is waiting for the network (offline, nothing cached).
+ * Without this check the screen would show a skeleton forever.
+ */
+export const waitingForNetwork = (q: { isPending: boolean; fetchStatus: string }) =>
+  q.isPending && q.fetchStatus === 'paused';
 
 /** Communes rarely change: keep them fresh for a day. */
 export const useCities = () =>
@@ -143,14 +150,27 @@ export const useCreateAccount = () =>
     networkMode: 'online',
   });
 
-/** The favourite products, in the order they were saved. Keeps the last list while it reloads. */
-export const useFavouriteProducts = (ids: string[]) =>
-  useQuery({
+/**
+ * The favourite products, in the order given. While loading (or offline with nothing saved
+ * for this exact list), shows the last list, or else the cards already seen in Accueil/Recherche.
+ */
+export function useFavouriteProducts(ids: string[]) {
+  const queryClient = useQueryClient();
+  return useQuery({
     queryKey: ['favouriteProducts', ids],
     queryFn: async () => (await api.listProducts({ ids, page: 1, pageSize: Math.max(ids.length, 1) })).items,
     enabled: ids.length > 0,
-    placeholderData: (previous) => previous,
+    placeholderData: (previous) => {
+      if (previous) return previous;
+      const seen = new Map<string, ProductSummary>();
+      for (const [, data] of queryClient.getQueriesData<InfiniteData<Page<ProductSummary>>>({ queryKey: ['products'] })) {
+        data?.pages.forEach((page) => page.items.forEach((item) => seen.set(item.id, item)));
+      }
+      const found = ids.map((id) => seen.get(id)).filter((p): p is ProductSummary => !!p);
+      return found.length > 0 ? found : undefined;
+    },
   });
+}
 
 export const useLogin = () =>
   useMutation({ mutationFn: (r: LoginRequest) => api.login(r), networkMode: 'online' });

@@ -9,12 +9,13 @@ import { AppText } from '@/components/AppText';
 import { Chip } from '@/components/Chip';
 import { CityPickerSheet } from '@/components/CityPickerSheet';
 import { EmptyState } from '@/components/EmptyState';
+import { NoConnection } from '@/components/NoConnection';
 import { IconButton } from '@/components/IconButton';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { ProductCard, ProductCardSkeleton } from '@/components/ProductCard';
 import { useCity } from '@/data/city';
 import { useOnline } from '@/data/online';
-import { useCities, useProducts } from '@/data/queries';
+import { useCities, useProducts, waitingForNetwork } from '@/data/queries';
 import { colors, radius, size, space } from '@/theme';
 import { formatTime } from '@/utils/format';
 
@@ -181,7 +182,9 @@ export default function AccueilScreen() {
           )
         }
         ListEmptyComponent={
-          products.isPending ? (
+          waitingForNetwork(products) ? (
+            <NoConnection what="les annonces" onRetry={() => products.refetch()} />
+          ) : products.isPending ? (
             <View style={styles.skeletons}>
               {[0, 1].map((r) => (
                 <View key={r} style={styles.row}>
