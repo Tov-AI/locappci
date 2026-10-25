@@ -16,6 +16,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastHost } from '@/components/Toast';
 import { loadCart } from '@/data/cart';
 import { loadCity } from '@/data/city';
+import { loadCustomer } from '@/data/customer';
 import { loadFavourites } from '@/data/favourites';
 import { startOnlineTracking } from '@/data/online';
 import { loadRecentSearches } from '@/data/recentSearches';
@@ -30,6 +31,7 @@ loadFavourites();
 loadCity();
 loadRecentSearches();
 loadCart();
+loadCustomer();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -62,6 +64,7 @@ export default function RootLayout() {
             <Stack.Screen name="donnees" />
             <Stack.Screen name="produit/[id]" />
             <Stack.Screen name="paiement" />
+            <Stack.Screen name="commande/[id]" />
           </Stack>
           <ToastHost />
         </PersistQueryClientProvider>

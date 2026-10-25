@@ -1,5 +1,7 @@
 import type {
   CartCheckResult,
+  DeliveryOption,
+  Order,
   IsoDate,
   LocappciApi,
   Product,
@@ -145,6 +147,85 @@ export const mockApi: LocappciApi = {
       return { productId, bookedDates: bookedDates(productId) };
     }),
 
+  getDeliveryOptions: (shopIds) =>
+    respond(() => shopIds.map((shopId) => ({ shopId, options: deliveryOptionsFor(shopId) }))),
+
+  createOrder: (req) =>
+    respond(() => {
+      // Same checkout tried again (double tap, retry after a failed payment): same order.
+      const existingId = orderByKey.get(req.idempotencyKey);
+      if (existingId) {
+        const o = orders.get(existingId)!;
+        if (o.status === 'payment_failed') {
+          const retry = { ...o, status: 'pending_payment' as const, paymentMethod: req.paymentMethod };
+          orders.set(o.id, retry);
+          return retry;
+        }
+        return o;
+      }
+
+      const { customer } = req;
+      if (customer.name.trim().length < 2) throw new ApiError('validation', 'Indiquez votre nom.');
+      if (!CI_PHONE.test(customer.phone)) throw new ApiError('validation', 'Numéro de téléphone invalide.');
+      if (req.lines.length === 0) throw new ApiError('validation', 'Votre panier est vide.');
+
+      const results = req.lines.map((l) => checkCartLine(l, 'normal'));
+      if (results.some((r) => !r.ok || r.priceChanged)) {
+        throw new ApiError('cart_changed', 'Votre panier a changé. Vérifiez-le avant de payer.');
+      }
+
+      // One delivery choice per shop in the cart.
+      const shopOf = (productId: string) => products.find((p) => p.id === productId)?.shopId ?? '';
+      const shopIds = [...new Set(req.lines.map((l) => shopOf(l.productId)))];
+      let deliveryTotal = 0;
+      let homeDelivery = false;
+      for (const shopId of shopIds) {
+        const choice = req.deliveries.find((d) => d.shopId === shopId);
+        const option = deliveryOptionsFor(shopId).find((o) => o.id === choice?.optionId);
+        if (!option) throw new ApiError('validation', 'Choisissez une livraison pour chaque boutique.');
+        deliveryTotal += option.price;
+        homeDelivery ||= option.kind === 'home';
+      }
+      if (homeDelivery && customer.address.trim().length < 3) {
+        throw new ApiError('validation', 'Indiquez votre adresse de livraison.');
+      }
+
+      let itemsTotal = 0;
+      let depositTotal = 0;
+      req.lines.forEach((l, i) => {
+        const r = results[i];
+        if ('rental' in l) {
+          itemsTotal += r.price * l.rental.days;
+          depositTotal += r.deposit ?? 0;
+        } else {
+          itemsTotal += r.price * l.quantity;
+        }
+      });
+
+      const order: Order = {
+        id: `ord_${nextOrderNumber}`,
+        number: `LOC-${nextOrderNumber++}`,
+        status: req.paymentMethod === 'cash' ? 'confirmed' : 'pending_payment',
+        paymentMethod: req.paymentMethod,
+        itemsTotal,
+        deliveryTotal,
+        total: itemsTotal + deliveryTotal,
+        depositTotal,
+        paymentUrl: null,
+        createdAt: new Date().toISOString(),
+      };
+      orders.set(order.id, order);
+      orderByKey.set(req.idempotencyKey, order.id);
+      return order;
+    }),
+
+  getOrder: (id) =>
+    respond(() => {
+      const o = orders.get(id);
+      if (!o) throw new ApiError('not_found', 'Commande introuvable.');
+      return o;
+    }),
+
   checkCart: (lines) =>
     respond(() => {
       const forced = mockSettings.nextCheck;
@@ -206,6 +287,38 @@ function checkCartLine(line: Parameters<LocappciApi['checkCart']>[0][number], fo
   if (p.stock.quantity != null && line.quantity > p.stock.quantity) return { ...base, ok: false, problem: 'not_enough_stock' };
   return { ...base, ok: true };
 }
+
+/** Delivery choices: sellers deliver (1 500 FCFA) or hand over in the shop; rental shops hand over only. */
+function deliveryOptionsFor(shopId: string): DeliveryOption[] {
+  const shop = shops.find((s) => s.id === shopId);
+  if (!shop) return [];
+  const commune = cities.find((c) => c.id === shop.cityId)?.name ?? '';
+  const pickup: DeliveryOption = {
+    id: 'pickup',
+    kind: 'pickup',
+    label: shop.role === 'loueur' ? 'Retrait chez le loueur' : 'Retrait en boutique',
+    price: 0,
+    detail: commune,
+  };
+  if (shop.role === 'loueur') return [pickup];
+  return [{ id: 'home', kind: 'home', label: 'À domicile', price: 1500, detail: '24–48\u00A0h' }, pickup];
+}
+
+/** Orders made in the mock, and which idempotency key created which order. */
+const orders = new Map<string, Order>();
+const orderByKey = new Map<string, string>();
+let nextOrderNumber = 24817;
+
+/**
+ * Mock only: what Wave / Orange Money would tell the gateway after the person pays.
+ * The real gateway learns it from the payment provider (Feature 15).
+ */
+export function simulatePayment(orderId: string, outcome: 'paid' | 'payment_failed') {
+  const o = orders.get(orderId);
+  if (o && o.status === 'pending_payment') orders.set(orderId, { ...o, status: outcome });
+}
+
+const CI_PHONE = /^225(01|05|07|21|25|27)\d{8}$/;
 
 /** Booked days of a rental, worked out from today so the sample data never goes out of date. */
 const bookedDates = (productId: string): IsoDate[] =>
