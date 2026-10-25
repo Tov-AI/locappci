@@ -1,6 +1,8 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 
-import { api, type AccountRequest, type CartCheckLine, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
+import { getRememberedOrder } from '@/data/orders';
+
+import { api, type AccountRequest, type CartCheckLine, type LoginRequest, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
 
 /**
  * Query keys: one name per kind of data, so the cache knows what to refresh.
@@ -122,9 +124,17 @@ export const useCreateOrder = () =>
     networkMode: 'online',
   });
 
-/** One order, e.g. on the confirmation screen. */
+/**
+ * One order. Starts from the copy saved on this phone (works offline), then refreshes
+ * from the gateway; if the refresh fails, the saved copy stays on screen.
+ */
 export const useOrder = (id: string) =>
-  useQuery({ queryKey: keys.order(id), queryFn: () => api.getOrder(id) });
+  useQuery({
+    queryKey: keys.order(id),
+    queryFn: () => api.getOrder(id),
+    initialData: () => getRememberedOrder(id),
+    initialDataUpdatedAt: 0, // always refresh once
+  });
 
 /** "Créer mon compte" after an order. */
 export const useCreateAccount = () =>
@@ -132,3 +142,18 @@ export const useCreateAccount = () =>
     mutationFn: (request: AccountRequest) => api.createAccount(request),
     networkMode: 'online',
   });
+
+/** The favourite products, in the order they were saved. Keeps the last list while it reloads. */
+export const useFavouriteProducts = (ids: string[]) =>
+  useQuery({
+    queryKey: ['favouriteProducts', ids],
+    queryFn: async () => (await api.listProducts({ ids, page: 1, pageSize: Math.max(ids.length, 1) })).items,
+    enabled: ids.length > 0,
+    placeholderData: (previous) => previous,
+  });
+
+export const useLogin = () =>
+  useMutation({ mutationFn: (r: LoginRequest) => api.login(r), networkMode: 'online' });
+
+export const useDeleteAccount = () =>
+  useMutation({ mutationFn: (r: LoginRequest) => api.deleteAccount(r), networkMode: 'online' });

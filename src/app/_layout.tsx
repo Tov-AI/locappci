@@ -20,6 +20,7 @@ import { loadCity } from '@/data/city';
 import { loadCustomer } from '@/data/customer';
 import { loadFavourites } from '@/data/favourites';
 import { loadNotificationAnswer } from '@/data/notifications';
+import { loadOrders } from '@/data/orders';
 import { startOnlineTracking } from '@/data/online';
 import { loadRecentSearches } from '@/data/recentSearches';
 import { persistOptions, queryClient } from '@/data/queryClient';
@@ -36,6 +37,7 @@ loadCart();
 loadCustomer();
 loadAccount();
 loadNotificationAnswer();
+loadOrders();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -69,6 +71,8 @@ export default function RootLayout() {
             <Stack.Screen name="produit/[id]" />
             <Stack.Screen name="paiement" />
             <Stack.Screen name="commande/[id]" />
+            <Stack.Screen name="adresses" />
+            <Stack.Screen name="commandes" />
           </Stack>
           <ToastHost />
         </PersistQueryClientProvider>

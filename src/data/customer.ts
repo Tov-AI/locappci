@@ -30,6 +30,14 @@ export function saveCustomer(c: Customer) {
   });
 }
 
+export function clearCustomer() {
+  saved = null;
+  emit();
+  storage.removeItem(storageKeys.customer).catch(() => {
+    // Not removed: harmless, the fields can be cleared by hand.
+  });
+}
+
 const subscribe = (cb: () => void) => {
   listeners.add(cb);
   return () => listeners.delete(cb);

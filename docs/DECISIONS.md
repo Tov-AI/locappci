@@ -4,6 +4,15 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-25 | "Mes commandes" from orders saved on this phone (max 50); the order screen starts from that copy | Works offline and without an account; with login (Feature 14) the gateway list replaces it |
+| 2026-10-25 | Favoris tab built here: saved hearts + `GET /v1/products?ids=` in one request | Compte links to it; one request instead of one per product |
+| 2026-10-25 | "Se déconnecter" clears account, saved details and the order list from the phone; favourites and cart stay | Shared phones are common; favourites and cart aren't personal data |
+| 2026-10-25 | "Supprimer mon compte" in the app, confirmed with the password | Required by Apple and Google store rules |
+| 2026-10-25 | Phone shown masked in Compte ("+225 07 •• •• •• 04") | Readable to the owner, not over a shoulder |
+| 2026-10-25 | Same login error for unknown number and wrong password | Doesn't reveal which numbers have an account |
+| 2026-10-25 | "Ma boutique" (seller tools) not shown yet | v1 or v1.1 is an open client question; no dead buttons |
+| 2026-10-25 | Support WhatsApp number and terms URL in `src/config.ts` | Unknown yet; one place to change; support opens the website until we have a number |
+| 2026-10-25 | Notifications switch in Compte stores yes/no; system prompt with Feature 16 | Lets people change their answer from the soft ask |
 | 2026-10-25 | Confirmation opened with "replace" after payment | "Retour" must never lead back to a paid checkout |
 | 2026-10-25 | Order carries its shops, items and a tracking step | "Suivi" needs one plain sentence per shop (delivery, pickup, rental date) |
 | 2026-10-25 | Account offer only when no account on this phone; password sent once, never stored | Matches the design; safe by default; the real session arrives with Feature 14 |

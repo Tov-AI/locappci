@@ -97,6 +97,8 @@ export type ProductQuery = {
   minPrice?: Fcfa;
   maxPrice?: Fcfa;
   sort?: SortOrder;
+  /** Only these products (e.g. favourites). The order of `ids` is kept. */
+  ids?: string[];
   page?: number; // starts at 1
   pageSize?: number; // default 20
 };
@@ -267,6 +269,9 @@ export type Order = {
 export type AccountRequest = { orderId: string; password: string };
 export type Account = { name: string; phone: string };
 
+/** Sign in on another phone, or again after "Se déconnecter". Session tokens come with Feature 14. */
+export type LoginRequest = { phone: string; password: string };
+
 export type ReportReason = 'scam' | 'forbidden' | 'wrong_info' | 'other';
 
 /** "Signaler cette annonce": the gateway forwards it to the LOCAPPCI team (e.g. by email). */
@@ -292,4 +297,7 @@ export interface LocappciApi {
   createOrder(request: OrderRequest): Promise<Order>;
   getOrder(id: string): Promise<Order>;
   createAccount(request: AccountRequest): Promise<Account>;
+  login(request: LoginRequest): Promise<Account>;
+  /** Store rules (Apple, Google): people must be able to delete their account from the app. */
+  deleteAccount(request: LoginRequest): Promise<void>;
 }

@@ -17,3 +17,9 @@ export function formatCiPhone(normalized: string): string {
   const local = normalized.startsWith('225') ? normalized.slice(3) : normalized;
   return local.replace(/(\d{2})(?=\d)/g, '$1 ');
 }
+
+/** "+225 07 •• •• •• 12": enough to recognise the number, not enough to read it over a shoulder. */
+export function maskPhone(normalized: string): string {
+  const local = normalized.startsWith('225') ? normalized.slice(3) : normalized;
+  return `+225 ${local.slice(0, 2)} •• •• •• ${local.slice(-2)}`;
+}

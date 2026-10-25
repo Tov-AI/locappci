@@ -65,6 +65,7 @@ const normalise = (s: string) =>
 function filterProducts(q: ProductQuery): ProductSummary[] {
   const term = q.search ? normalise(q.search.trim()) : '';
   let list = products
+    .filter((p) => !q.ids || q.ids.includes(p.id))
     .filter((p) => !q.universe || p.universe === q.universe)
     .filter((p) => !q.categoryId || p.categoryId === q.categoryId || categories.find((c) => c.id === p.categoryId)?.parentId === q.categoryId)
     .filter((p) => !term || normalise(`${p.name} ${p.description}`).includes(term))
@@ -81,6 +82,8 @@ function filterProducts(q: ProductQuery): ProductSummary[] {
   if ((q.sort ?? 'nearest') === 'nearest' && q.cityId) {
     list = [...list].sort((a, b) => Number(b.cityId === q.cityId) - Number(a.cityId === q.cityId));
   }
+  // Favourites: keep the order the app asked for.
+  if (q.ids) list = [...list].sort((a, b) => q.ids!.indexOf(a.id) - q.ids!.indexOf(b.id));
   return list;
 }
 
@@ -249,8 +252,23 @@ export const mockApi: LocappciApi = {
         throw new ApiError('validation', 'Un compte existe déjà pour ce numéro. Connectez-vous depuis l’onglet Compte.');
       }
       const account = { name: o.customer.name, phone: o.customer.phone };
-      accounts.set(o.customer.phone, account);
+      accounts.set(o.customer.phone, { ...account, password });
       return account;
+    }),
+
+  login: ({ phone, password }) =>
+    respond((): Account => {
+      const a = accounts.get(phone);
+      // Same message for both cases: never tell a stranger whether a number has an account.
+      if (!a || a.password !== password) throw new ApiError('unauthorized', 'Numéro ou mot de passe incorrect.');
+      return { name: a.name, phone: a.phone };
+    }),
+
+  deleteAccount: ({ phone, password }) =>
+    respond(() => {
+      const a = accounts.get(phone);
+      if (!a || a.password !== password) throw new ApiError('unauthorized', 'Mot de passe incorrect.');
+      accounts.delete(phone);
     }),
 
   getOrder: (id) =>
@@ -352,8 +370,8 @@ export function simulatePayment(orderId: string, outcome: 'paid' | 'payment_fail
   if (o && o.status === 'pending_payment') orders.set(orderId, { ...o, status: outcome });
 }
 
-/** Accounts created in the mock, by phone number. */
-const accounts = new Map<string, Account>();
+/** Accounts created in the mock, by phone number. (The real gateway never keeps plain passwords: WordPress hashes them.) */
+const accounts = new Map<string, Account & { password: string }>();
 
 const CI_PHONE = /^225(01|05|07|21|25|27)\d{8}$/;
 

@@ -62,6 +62,7 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     min_price: query.minPrice,
     max_price: query.maxPrice,
     sort: query.sort,
+    ids: query.ids?.join(','),
     page: query.page,
     page_size: query.pageSize,
   });
@@ -83,6 +84,8 @@ export function createHttpApi(baseUrl: string): LocappciApi {
       }),
     getDeliveryOptions: (shopIds) => get('/v1/delivery-options', { shops: shopIds.join(',') }),
     createOrder: (order) => request('POST', '/v1/orders', undefined, order),
+    login: (req) => request('POST', '/v1/session', undefined, req),
+    deleteAccount: (req) => request('POST', '/v1/accounts/delete', undefined, req),
     createAccount: (req) => request('POST', '/v1/accounts', undefined, req),
     getOrder: (id) => get(`/v1/orders/${encodeURIComponent(id)}`),
     checkCart: (lines) => request('POST', '/v1/cart/check', undefined, { lines }),

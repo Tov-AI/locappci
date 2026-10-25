@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,6 +18,7 @@ import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { saveAccount, useAccount } from '@/data/account';
 import { answerNotifications, shouldAskNotifications, useNotificationAnswer } from '@/data/notifications';
 import { useOnline } from '@/data/online';
+import { rememberOrder } from '@/data/orders';
 import { useCreateAccount, useOrder } from '@/data/queries';
 import { colors, radius, size, space } from '@/theme';
 import { formatFcfa } from '@/utils/format';
@@ -46,6 +47,11 @@ export default function CommandeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const order = useOrder(id);
   const o = order.data;
+
+  // Keep this phone's copy up to date (status, tracking step) for "Mes commandes".
+  useEffect(() => {
+    if (order.data && order.isFetchedAfterMount) rememberOrder(order.data);
+  }, [order.data, order.isFetchedAfterMount]);
   const keepShopping = () => router.dismissTo('/');
 
   if (order.isPending) {
