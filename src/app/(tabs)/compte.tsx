@@ -20,7 +20,10 @@ export default function CompteScreen() {
       />
       {/* Development only: never shown in a store build. */}
       {__DEV__ ? (
-        <Button label="Voir les composants (dev)" variant="outline" icon="grid" onPress={() => router.push('/composants')} />
+        <>
+          <Button label="Voir les composants (dev)" variant="outline" icon="grid" onPress={() => router.push('/composants')} />
+          <Button label="Voir les données (dev)" variant="outline" icon="database" onPress={() => router.push('/donnees')} />
+        </>
       ) : null}
     </Screen>
   );
