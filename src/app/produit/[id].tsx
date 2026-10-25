@@ -3,11 +3,12 @@ import { StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api';
 import { EmptyState } from '@/components/EmptyState';
+import { NoConnection } from '@/components/NoConnection';
 import { IconButton } from '@/components/IconButton';
 import { PhotoHeaderSkeleton } from '@/components/PhotoHeader';
 import { Screen } from '@/components/Screen';
 import { Skeleton } from '@/components/Skeleton';
-import { useProduct } from '@/data/queries';
+import { useProduct, waitingForNetwork } from '@/data/queries';
 import { RentalDetail } from '@/screens/RentalDetail';
 import { SaleDetail } from '@/screens/SaleDetail';
 import { colors, space } from '@/theme';
@@ -22,6 +23,17 @@ export default function ProduitScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const product = useProduct(id);
   const p = product.data;
+
+  if (waitingForNetwork(product)) {
+    return (
+      <Screen>
+        <View style={styles.header}>
+          <IconButton icon="arrow-left" accessibilityLabel="Retour" bordered onPress={goBack} />
+        </View>
+        <NoConnection what="cette annonce" onRetry={() => product.refetch()} />
+      </Screen>
+    );
+  }
 
   if (product.isPending) {
     return (

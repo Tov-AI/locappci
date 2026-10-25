@@ -30,7 +30,7 @@ import { useCity } from '@/data/city';
 import { saveCustomer, useSavedCustomer } from '@/data/customer';
 import { useOnline } from '@/data/online';
 import { rememberOrder } from '@/data/orders';
-import { keys, useCartCheck, useCities, useCreateOrder, useDeliveryOptions } from '@/data/queries';
+import { keys, useCartCheck, useCities, useCreateOrder, useDeliveryOptions, waitingForNetwork } from '@/data/queries';
 import { colors, radius, space } from '@/theme';
 import { formatFcfa } from '@/utils/format';
 import { useGoBack } from '@/utils/navigation';
@@ -253,7 +253,7 @@ export default function PaiementScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.fill}>
       <Header onBack={goBack} />
-      {!online ? <OfflineBanner /> : null}
+      {!online ? <OfflineBanner message="Hors connexion. Vos informations restent saisies ; le paiement demande du réseau." /> : null}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
         <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {notice ? (
@@ -317,7 +317,11 @@ export default function PaiementScreen() {
           </SectionCard>
 
           <SectionCard title="Livraison">
-            {delivery.isPending ? (
+            {waitingForNetwork(delivery) ? (
+              <AppText variant="meta" color={colors.text.muted}>
+                Connexion nécessaire pour afficher les options de livraison.
+              </AppText>
+            ) : delivery.isPending ? (
               <AppText variant="meta" color={colors.text.muted}>
                 Chargement des options…
               </AppText>

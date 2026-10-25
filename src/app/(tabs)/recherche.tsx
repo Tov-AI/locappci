@@ -19,6 +19,7 @@ import { AppText } from '@/components/AppText';
 import { Chip } from '@/components/Chip';
 import { CityPickerSheet } from '@/components/CityPickerSheet';
 import { EmptyState } from '@/components/EmptyState';
+import { NoConnection } from '@/components/NoConnection';
 import {
   countActiveFilters,
   DEFAULT_FILTERS,
@@ -30,7 +31,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { ProductRow, ProductRowSkeleton } from '@/components/ProductRow';
 import { useCity } from '@/data/city';
 import { useOnline } from '@/data/online';
-import { useCategories, useCities, useProducts } from '@/data/queries';
+import { useCategories, useCities, useProducts, waitingForNetwork } from '@/data/queries';
 import { addRecentSearch, clearRecentSearches, useRecentSearches } from '@/data/recentSearches';
 import { colors, fontFamily, radius, space } from '@/theme';
 import { formatTime } from '@/utils/format';
@@ -222,7 +223,9 @@ export default function RechercheScreen() {
           )
         }
         ListEmptyComponent={
-          products.isPending ? (
+          waitingForNetwork(products) ? (
+            <NoConnection what="les résultats" onRetry={() => products.refetch()} />
+          ) : products.isPending ? (
             <View style={styles.list}>
               {[0, 1, 2].map((i) => (
                 <ProductRowSkeleton key={i} />

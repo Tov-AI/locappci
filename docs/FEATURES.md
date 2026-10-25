@@ -15,7 +15,7 @@ One feature at a time, in order. Write your name in **Owner** when you start one
 | 9 | Paiement (mock payment) | In review | Leo | Cash on delivery? (shown until confirmed) |
 | 10 | Confirmation + account offer + notification soft ask | In review | Leo | Guest checkout? |
 | 11 | Compte (+ Favoris tab, Mes commandes, Adresses) | In review | Leo | Support WhatsApp number, terms URL; seller tools v1 or v1.1? |
-| 12 | Loading, empty, error, offline states on every screen | Not started | | No |
+| 12 | Loading, empty, error, offline states on every screen | In review | Leo | No |
 | 13 | Gateway: real WooCommerce data | Blocked | | Plugins, admin access |
 | 14 | Login with WordPress accounts (JWT) | Blocked | | JWT plugin |
 | 15 | Wave / Orange Money hand-off + deep link back | Blocked | | Payment plugin |

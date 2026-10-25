@@ -22,7 +22,7 @@ import { clearToast, showToast } from '@/components/Toast';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { addRentalToCart, useCartLine } from '@/data/cart';
 import { useOnline } from '@/data/online';
-import { keys, useCities, useRentalCalendar, useRentalCheck, useShop } from '@/data/queries';
+import { keys, useCities, useRentalCalendar, useRentalCheck, useShop, waitingForNetwork } from '@/data/queries';
 import { colors, space } from '@/theme';
 import {
   addDays,
@@ -206,11 +206,17 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
                 {`${days === 1 ? `Le ${formatDayShort(start)}` : `Du ${formatDayShort(start)} au ${formatDayShort(addDays(returnDate, -1))}`}. Retour prévu le ${formatDayShort(returnDate)}.`}
               </AppText>
             )}
+            {!calendar.data && (calendar.isError || waitingForNetwork(calendar)) ? (
+              // Booked days unknown: say so, rather than let free-looking days mislead.
+              <AppText variant="meta" color={colors.brand.orangeTextDark}>
+                Disponibilités non chargées : elles seront vérifiées quand vous réserverez.
+              </AppText>
+            ) : null}
           </SectionCard>
 
           <SellerRow
             shop={shop.data}
-            loading={shop.isPending}
+            loading={shop.isPending && shop.fetchStatus !== 'paused'}
             cityName={shop.data ? cityNames.get(shop.data.cityId) : undefined}
           />
 

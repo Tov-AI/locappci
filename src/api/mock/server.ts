@@ -11,6 +11,8 @@ import type {
   ProductSummary,
   StockCheck,
 } from '@/api/contract';
+import { onlineManager } from '@tanstack/react-query';
+
 import { ApiError, networkError } from '@/api/errors';
 import { bookedDayOffsets, categories, cities, products, shops } from '@/api/mock/data';
 import { addDays, today } from '@/utils/dates';
@@ -35,7 +37,8 @@ const delayMs = () => ({ fast: 50, normal: 400, slow: 2500 })[mockSettings.laten
 
 async function respond<T>(make: () => T): Promise<T> {
   await new Promise((r) => setTimeout(r, delayMs()));
-  if (mockSettings.failAll) throw networkError();
+  // Like a real phone: no network (real or the dev "Hors connexion" switch) → the request fails.
+  if (mockSettings.failAll || !onlineManager.isOnline()) throw networkError();
   const result = make();
   // Nothing to return (e.g. a report was received).
   if (result === undefined) return result;

@@ -148,7 +148,7 @@ export function SaleDetail({ product: p, savedAt }: { product: SaleProduct; save
 
           <SellerRow
             shop={shop.data}
-            loading={shop.isPending}
+            loading={shop.isPending && shop.fetchStatus !== 'paused'}
             cityName={shop.data ? cityNames.get(shop.data.cityId) : undefined}
           />
 
