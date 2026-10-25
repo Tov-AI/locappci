@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 
-import { api, type ProductQuery, type ProductReport, type Universe } from '@/api';
+import { api, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
 
 /**
  * Query keys: one name per kind of data, so the cache knows what to refresh.
@@ -12,6 +12,7 @@ export const keys = {
   products: (query: Omit<ProductQuery, 'page'>) => ['products', query] as const,
   product: (id: string) => ['product', id] as const,
   shop: (id: string) => ['shop', id] as const,
+  rentalCalendar: (id: string) => ['rentalCalendar', id] as const,
 };
 
 const DAY = 24 * 60 * 60_000;
@@ -77,5 +78,21 @@ export const useReportProduct = () =>
   useMutation({
     mutationFn: ({ productId, report }: { productId: string; report: ProductReport }) =>
       api.reportProduct(productId, report),
+    networkMode: 'online',
+  });
+
+/** Booked days of a rental item. Short freshness: bookings change during the day. */
+export const useRentalCalendar = (productId: string) =>
+  useQuery({
+    queryKey: keys.rentalCalendar(productId),
+    queryFn: () => api.getRentalCalendar(productId),
+    staleTime: 60_000,
+  });
+
+/** Live availability and price check before "Réserver". Like the stock check: never cached. */
+export const useRentalCheck = () =>
+  useMutation({
+    mutationFn: ({ productId, request }: { productId: string; request: RentalRequest }) =>
+      api.checkRental(productId, request),
     networkMode: 'online',
   });

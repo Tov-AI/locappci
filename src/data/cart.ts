@@ -1,18 +1,19 @@
 import { useSyncExternalStore } from 'react';
 
-import type { Fcfa } from '@/api';
+import type { Fcfa, IsoDate } from '@/api';
 import { storage, storageKeys } from '@/data/storage';
 
 /**
  * The cart, saved on the phone so it survives closing the app and works offline.
- * Only sale products go here (rentals are booked with dates in Feature 7).
- * Prices and stock are checked again live before payment (Feature 9).
+ * Sale products: one line per product, quantity up to the shop's stock.
+ * Rentals: one booking per item (dates + duration); booking it again replaces the dates.
+ * Prices, stock and dates are checked again live before payment (Feature 9).
  */
 
 export type CartItem = {
   productId: string;
   name: string;
-  /** Price confirmed by the last live stock check. */
+  /** Unit price confirmed by the last live check. For a rental: the total for the whole period. */
   price: Fcfa;
   coverUrl: string | null;
   shopId: string;
@@ -20,6 +21,16 @@ export type CartItem = {
   quantity: number;
   /** Units the shop has, if it says; the cart never goes above it. */
   maxQuantity: number | null;
+  /** Present only for rentals. */
+  rental?: RentalBooking;
+};
+
+export type RentalBooking = {
+  startDate: IsoDate;
+  days: number;
+  pricePerDay: Fcfa;
+  /** Refundable deposit, paid on top. */
+  deposit: Fcfa;
 };
 
 /** What happened, and how many units of this product the cart now holds. */
@@ -73,6 +84,26 @@ export function addToCart(item: Omit<CartItem, 'quantity'>): AddResult {
   return { outcome: atMax ? 'at_max' : 'increased', quantity };
 }
 
+/**
+ * Put a rental booking in the cart. An item can only be booked once:
+ * booking it again with other dates replaces the previous booking.
+ */
+export function addRentalToCart(
+  item: Omit<CartItem, 'quantity' | 'maxQuantity' | 'price' | 'rental'> & { rental: RentalBooking },
+): 'added' | 'updated' {
+  const line: CartItem = {
+    ...item,
+    price: item.rental.pricePerDay * item.rental.days,
+    quantity: 1,
+    maxQuantity: 1,
+  };
+  const exists = items.some((i) => i.productId === item.productId);
+  items = exists ? items.map((i) => (i.productId === item.productId ? line : i)) : [...items, line];
+  emit();
+  save();
+  return exists ? 'updated' : 'added';
+}
+
 export function clearCart() {
   items = [];
   emit();
@@ -93,3 +124,7 @@ export const useCartCount = () =>
 /** How many units of one product are already in the cart. */
 export const useCartQuantity = (productId: string) =>
   useSyncExternalStore(subscribe, () => items.find((i) => i.productId === productId)?.quantity ?? 0);
+
+/** The cart line of one product, if any (e.g. the current rental booking). */
+export const useCartLine = (productId: string) =>
+  useSyncExternalStore(subscribe, () => items.find((i) => i.productId === productId));

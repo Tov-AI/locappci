@@ -74,6 +74,13 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     getShop: (id) => get(`/v1/shops/${encodeURIComponent(id)}`),
     checkStock: (productId, shownPrice) =>
       get(`/v1/products/${encodeURIComponent(productId)}/stock`, { shown_price: shownPrice }),
+    getRentalCalendar: (productId) => get(`/v1/products/${encodeURIComponent(productId)}/calendar`),
+    checkRental: (productId, request) =>
+      get(`/v1/products/${encodeURIComponent(productId)}/rental-check`, {
+        start_date: request.startDate,
+        days: request.days,
+        shown_price_per_day: request.shownPricePerDay,
+      }),
     reportProduct: (productId, report) =>
       request('POST', `/v1/products/${encodeURIComponent(productId)}/reports`, undefined, report),
   };

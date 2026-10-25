@@ -125,6 +125,38 @@ export type ApiErrorBody = {
   message: string;
 };
 
+/** Calendar date "YYYY-MM-DD" (Côte d'Ivoire time = GMT). */
+export type IsoDate = string;
+
+/** Days already booked for a rental item, from today on. */
+export type RentalCalendar = {
+  productId: string;
+  bookedDates: IsoDate[];
+};
+
+/** Asked when the person taps "Réserver". */
+export type RentalRequest = {
+  startDate: IsoDate;
+  /** Number of days, between minDays and maxDays. Return is on startDate + days. */
+  days: number;
+  /** Price per day the app displayed, to detect a price change. */
+  shownPricePerDay: Fcfa;
+};
+
+/** Live answer for a rental request. Never cached. */
+export type RentalCheck = {
+  productId: string;
+  available: boolean;
+  /** Requested days that are already booked (empty when available). */
+  conflicts: IsoDate[];
+  pricePerDay: Fcfa;
+  /** Refundable, paid on top of the rental. */
+  deposit: Fcfa;
+  /** pricePerDay × days. */
+  total: Fcfa;
+  priceChanged: boolean;
+};
+
 export type ReportReason = 'scam' | 'forbidden' | 'wrong_info' | 'other';
 
 /** "Signaler cette annonce": the gateway forwards it to the LOCAPPCI team (e.g. by email). */
@@ -143,4 +175,6 @@ export interface LocappciApi {
   getShop(id: string): Promise<Shop>;
   checkStock(productId: string, shownPrice: Fcfa): Promise<StockCheck>;
   reportProduct(productId: string, report: ProductReport): Promise<void>;
+  getRentalCalendar(productId: string): Promise<RentalCalendar>;
+  checkRental(productId: string, request: RentalRequest): Promise<RentalCheck>;
 }

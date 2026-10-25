@@ -4,6 +4,14 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-25 | Rentals: start day (Aujourd'hui / Demain / Autre date) + duration stepper, not a two-tap date range | Matches the design; one tap for the usual case; the calendar shades the whole period |
+| 2026-10-25 | Contract gains `getRentalCalendar` and `checkRental` | Show booked days before choosing; re-check live before "Réserver" (same rule as stock) |
+| 2026-10-25 | Dates as `YYYY-MM-DD` strings, formatted by hand in French | Côte d'Ivoire is GMT all year; avoids time-zone and phone-locale surprises |
+| 2026-10-25 | One booking per rental item in the cart; booking again replaces it ("Modifier la réservation") | Simple to understand; avoids two clashing bookings of the same item |
+| 2026-10-25 | "Réserver" puts the booking in the cart until Paiement exists (Feature 9) | Lets us test the full flow now; Feature 9 will route straight to payment |
+| 2026-10-25 | No "reminder the day before" promise on screen yet | Push notifications are Feature 16 (blocked); we don't promise what the app can't do |
+| 2026-10-25 | Conditions de location built only from product data (duration, price, deposit, ID) | Deposit and late-return rules are still open client questions |
+| 2026-10-25 | Detail screens split into `src/screens/` + shared parts (`PhotoHeader`, `SellerRow`, `WhatsAppButton`, `Description`, `InfoBlock`) | The route file stays small; sale and rental screens share one look |
 | 2026-10-25 | Contract gains `reportProduct` (POST `/v1/products/{id}/reports`) | "Signaler cette annonce" must reach the team; the gateway decides how (email first) |
 | 2026-10-25 | "Ajouter au panier" always runs the live stock check first; the screen trusts its answer at once | Never add a sold-out item or a stale price; offline, adding is refused with a clear message |
 | 2026-10-25 | Cart saved on the phone (`cart.v1`), never above the shop's stock | Survives closing the app and works offline until payment, where everything is checked again |
