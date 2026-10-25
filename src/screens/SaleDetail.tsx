@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { api, type SaleProduct } from '@/api';
@@ -16,7 +16,7 @@ import { PhotoHeader } from '@/components/PhotoHeader';
 import { ProductCard } from '@/components/ProductCard';
 import { ReportSheet } from '@/components/ReportSheet';
 import { SellerRow } from '@/components/SellerRow';
-import { showToast } from '@/components/Toast';
+import { clearToast, showToast } from '@/components/Toast';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { addToCart, useCartQuantity } from '@/data/cart';
 import { useOnline } from '@/data/online';
@@ -40,6 +40,9 @@ export function SaleDetail({ product: p, savedAt }: { product: SaleProduct; save
   const stockCheck = useStockCheck();
   const inCart = useCartQuantity(p.id);
   const [reportOpen, setReportOpen] = useState(false);
+
+  // A message about this product shouldn't follow the person to the next screen.
+  useEffect(() => clearToast, []);
 
   const cityNames = useMemo(() => new Map((cities.data ?? []).map((c) => [c.id, c.name])), [cities.data]);
   const categoryName = categories.data?.find((c) => c.id === p.categoryId)?.name;

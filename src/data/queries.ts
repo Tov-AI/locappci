@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 
-import { api, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
+import { api, type CartCheckLine, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
 
 /**
  * Query keys: one name per kind of data, so the cache knows what to refresh.
@@ -94,5 +94,12 @@ export const useRentalCheck = () =>
   useMutation({
     mutationFn: ({ productId, request }: { productId: string; request: RentalRequest }) =>
       api.checkRental(productId, request),
+    networkMode: 'online',
+  });
+
+/** Live check of the whole cart before payment (stock, dates, prices). Never cached. */
+export const useCartCheck = () =>
+  useMutation({
+    mutationFn: (lines: CartCheckLine[]) => api.checkCart(lines),
     networkMode: 'online',
   });

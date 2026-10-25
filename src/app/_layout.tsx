@@ -61,6 +61,7 @@ export default function RootLayout() {
             <Stack.Screen name="composants" />
             <Stack.Screen name="donnees" />
             <Stack.Screen name="produit/[id]" />
+            <Stack.Screen name="paiement" />
           </Stack>
           <ToastHost />
         </PersistQueryClientProvider>

@@ -1,4 +1,5 @@
 import type {
+  CartCheckResult,
   IsoDate,
   LocappciApi,
   Product,
@@ -144,6 +145,14 @@ export const mockApi: LocappciApi = {
       return { productId, bookedDates: bookedDates(productId) };
     }),
 
+  checkCart: (lines) =>
+    respond(() => {
+      const forced = mockSettings.nextCheck;
+      mockSettings.nextCheck = 'normal';
+      // The simulation applies to the first line only, like a single item changing.
+      return { lines: lines.map((l, i) => checkCartLine(l, i === 0 ? forced : 'normal')) };
+    }),
+
   checkRental: (productId, { startDate, days, shownPricePerDay }) =>
     respond(() => {
       const p = products.find((x) => x.id === productId);
@@ -172,6 +181,31 @@ export const mockApi: LocappciApi = {
       };
     }),
 };
+
+function checkCartLine(line: Parameters<LocappciApi['checkCart']>[0][number], forced: typeof mockSettings.nextCheck): CartCheckResult {
+  const p = products.find((x) => x.id === line.productId);
+  if (!p) return { productId: line.productId, ok: false, problem: 'gone', price: 0, priceChanged: false };
+
+  if ('rental' in line) {
+    if (p.universe !== 'location') return { productId: p.id, ok: false, problem: 'gone', price: 0, priceChanged: false };
+    const { startDate, days, shownPricePerDay } = line.rental;
+    const price = forced === 'price_up' ? p.pricePerDay + 1000 : p.pricePerDay;
+    const base = { productId: p.id, price, priceChanged: price !== shownPricePerDay, deposit: p.deposit };
+    if (startDate < today() || days < p.minDays || days > p.maxDays) return { ...base, ok: false, problem: 'invalid_dates' };
+    const booked = new Set(bookedDates(p.id));
+    const wanted = Array.from({ length: days }, (_, i) => addDays(startDate, i));
+    const conflicts = forced === 'sold_out' ? [startDate] : wanted.filter((d) => booked.has(d));
+    return conflicts.length ? { ...base, ok: false, problem: 'dates_taken', conflicts } : { ...base, ok: true };
+  }
+
+  if (p.universe !== 'vente') return { productId: p.id, ok: false, problem: 'gone', price: 0, priceChanged: false };
+  const price = forced === 'price_up' ? p.price + 1000 : p.price;
+  const status = forced === 'sold_out' ? 'out_of_stock' : p.stock.status;
+  const base = { productId: p.id, price, priceChanged: price !== line.shownPrice, maxQuantity: p.stock.quantity };
+  if (status === 'out_of_stock') return { ...base, ok: false, problem: 'out_of_stock', maxQuantity: 0 };
+  if (p.stock.quantity != null && line.quantity > p.stock.quantity) return { ...base, ok: false, problem: 'not_enough_stock' };
+  return { ...base, ok: true };
+}
 
 /** Booked days of a rental, worked out from today so the sample data never goes out of date. */
 const bookedDates = (productId: string): IsoDate[] =>

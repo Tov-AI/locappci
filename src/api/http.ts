@@ -81,6 +81,7 @@ export function createHttpApi(baseUrl: string): LocappciApi {
         days: request.days,
         shown_price_per_day: request.shownPricePerDay,
       }),
+    checkCart: (lines) => request('POST', '/v1/cart/check', undefined, { lines }),
     reportProduct: (productId, report) =>
       request('POST', `/v1/products/${encodeURIComponent(productId)}/reports`, undefined, report),
   };
