@@ -39,3 +39,15 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## Project: LOCAPPCI
+
+Mobile app for locappci.fr (WordPress + WooCommerce marketplace, Côte d'Ivoire). Users are French-speaking, mostly on Android and mobile data, paying with Wave and Orange Money.
+
+- Read `CONTRIBUTING.md` and `docs/FEATURES.md` before starting work. Build one feature at a time, on its own branch.
+- Design tokens live in `src/theme/tokens.ts`. Never hard-code colours, font sizes or spacing in screens.
+- Use `AppText` for all text and `Screen` as the wrapper for every screen.
+- All interface copy is French.
+- The app never talks to WordPress directly; it talks to the gateway through the API contract (`src/api/`, from feature 3).
+- In environments without access to the Expo API, install with `EXPO_OFFLINE=1 npx expo install <package>`.
+- Record design or architecture decisions in `docs/DECISIONS.md`.
