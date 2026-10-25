@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 
-import { api, type CartCheckLine, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
+import { api, type AccountRequest, type CartCheckLine, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
 
 /**
  * Query keys: one name per kind of data, so the cache knows what to refresh.
@@ -125,3 +125,10 @@ export const useCreateOrder = () =>
 /** One order, e.g. on the confirmation screen. */
 export const useOrder = (id: string) =>
   useQuery({ queryKey: keys.order(id), queryFn: () => api.getOrder(id) });
+
+/** "Créer mon compte" after an order. */
+export const useCreateAccount = () =>
+  useMutation({
+    mutationFn: (request: AccountRequest) => api.createAccount(request),
+    networkMode: 'online',
+  });

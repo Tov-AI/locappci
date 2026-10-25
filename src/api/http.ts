@@ -83,6 +83,7 @@ export function createHttpApi(baseUrl: string): LocappciApi {
       }),
     getDeliveryOptions: (shopIds) => get('/v1/delivery-options', { shops: shopIds.join(',') }),
     createOrder: (order) => request('POST', '/v1/orders', undefined, order),
+    createAccount: (req) => request('POST', '/v1/accounts', undefined, req),
     getOrder: (id) => get(`/v1/orders/${encodeURIComponent(id)}`),
     checkCart: (lines) => request('POST', '/v1/cart/check', undefined, { lines }),
     reportProduct: (productId, report) =>

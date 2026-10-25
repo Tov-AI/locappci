@@ -1,12 +1,13 @@
 /**
- * "18 500 FCFA": a normal space every three digits, as the handoff requires.
+ * "18 500 FCFA": a space every three digits, as the handoff requires.
+ * All spaces are non-breaking, so an amount never splits across two lines ("11 / 400 FCFA").
  * Built by hand rather than with toLocaleString, because the phone's locale data
  * varies between Android versions and can produce narrow or odd spaces.
  * The final space is non-breaking so "FCFA" never wraps onto its own line.
  */
 export function formatFcfa(amount: number): string {
   const digits = Math.round(amount).toString();
-  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0');
   return `${grouped} FCFA`;
 }
 

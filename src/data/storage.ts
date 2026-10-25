@@ -19,4 +19,6 @@ export const storageKeys = {
   recentSearches: 'locappci.recentSearches.v1',
   cart: 'locappci.cart.v1',
   customer: 'locappci.customer.v1',
+  account: 'locappci.account.v1',
+  notifications: 'locappci.notifications.v1',
 } as const;

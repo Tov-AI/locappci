@@ -4,6 +4,12 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-25 | Confirmation opened with "replace" after payment | "Retour" must never lead back to a paid checkout |
+| 2026-10-25 | Order carries its shops, items and a tracking step | "Suivi" needs one plain sentence per shop (delivery, pickup, rental date) |
+| 2026-10-25 | Account offer only when no account on this phone; password sent once, never stored | Matches the design; safe by default; the real session arrives with Feature 14 |
+| 2026-10-25 | Notification soft ask stores the answer; the system prompt comes with Feature 16; "Plus tard" = 7 days | Asking in our words first gets more "yes"; push needs a development build and admin access |
+| 2026-10-25 | One shop: "Vendeur" WhatsApp button in the bar; several shops: a small link under each shop | Big buttons for 3 shops pushed everything down |
+| 2026-10-25 | Amounts, "N jours" and « » use non-breaking spaces | "11 / 400 FCFA" split across lines on a 360 phone |
 | 2026-10-25 | Guest checkout: name, phone, address; no account | Design says "Pas besoin de compte"; accounts come after payment (Feature 10/14) |
 | 2026-10-25 | "Nom et prénom" added to the design's fields | WooCommerce orders and sellers need a name to hand over the item |
 | 2026-10-25 | Phone accepted in any common form, stored as `225` + 10 digits, shown "07 00 00 00 00" | People type "+225…", "00225…" or local; one clean format for the gateway and WhatsApp |
