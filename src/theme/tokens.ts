@@ -50,6 +50,8 @@ export const colors = {
     danger: '#B42318',
   },
   overlay: 'rgba(22, 25, 29, 0.45)',
+  /** Dark see-through pill on photos: white text on it stays readable on any picture. */
+  scrim: 'rgba(22, 25, 29, 0.72)',
 } as const;
 
 /** DM Sans families, one per weight (loaded in src/app/_layout.tsx). */

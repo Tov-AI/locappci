@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import type { ColorValue } from 'react-native';
 
+import { useCartCount } from '@/data/cart';
 import { colors, fontFamily, size } from '@/theme';
 
 type IconName = ComponentProps<typeof Feather>['name'];
@@ -18,6 +19,7 @@ const icon =
  * navy when active, muted grey when not.
  */
 export default function TabsLayout() {
+  const cartCount = useCartCount();
   return (
     <Tabs
       screenOptions={{
@@ -50,7 +52,13 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="panier"
-        options={{ title: 'Panier', tabBarIcon: icon('shopping-cart'), tabBarAccessibilityLabel: 'Panier' }}
+        options={{
+          title: 'Panier',
+          tabBarIcon: icon('shopping-cart'),
+          // Orange count, "9+" above 9, hidden when empty.
+          tabBarBadge: cartCount > 0 ? (cartCount > 9 ? '9+' : cartCount) : undefined,
+          tabBarAccessibilityLabel: cartCount > 0 ? `Panier, ${cartCount} article${cartCount > 1 ? 's' : ''}` : 'Panier',
+        }}
       />
       <Tabs.Screen
         name="compte"

@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 
-import { api, type ProductQuery, type Universe } from '@/api';
+import { api, type ProductQuery, type ProductReport, type Universe } from '@/api';
 
 /**
  * Query keys: one name per kind of data, so the cache knows what to refresh.
@@ -59,4 +59,23 @@ export const useProductCount = (query: Omit<ProductQuery, 'page' | 'pageSize'>, 
     queryFn: async () => (await api.listProducts({ ...query, page: 1, pageSize: 1 })).total,
     enabled,
     placeholderData: (previous) => previous,
+  });
+
+/** Up to 6 other products from the same category, for "Articles similaires". */
+export const useSimilarProducts = (productId: string, universe: Universe | undefined, categoryId: string | undefined) =>
+  useQuery({
+    queryKey: ['similar', productId],
+    queryFn: async () => {
+      const page = await api.listProducts({ universe, categoryId, page: 1, pageSize: 7 });
+      return page.items.filter((p) => p.id !== productId).slice(0, 6);
+    },
+    enabled: !!categoryId,
+  });
+
+/** "Signaler cette annonce". Needs the network: never queued silently. */
+export const useReportProduct = () =>
+  useMutation({
+    mutationFn: ({ productId, report }: { productId: string; report: ProductReport }) =>
+      api.reportProduct(productId, report),
+    networkMode: 'online',
   });

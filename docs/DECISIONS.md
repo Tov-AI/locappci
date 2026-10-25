@@ -4,6 +4,13 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-25 | Contract gains `reportProduct` (POST `/v1/products/{id}/reports`) | "Signaler cette annonce" must reach the team; the gateway decides how (email first) |
+| 2026-10-25 | "Ajouter au panier" always runs the live stock check first; the screen trusts its answer at once | Never add a sold-out item or a stale price; offline, adding is refused with a clear message |
+| 2026-10-25 | Cart saved on the phone (`cart.v1`), never above the shop's stock | Survives closing the app and works offline until payment, where everything is checked again |
+| 2026-10-25 | One global toast (`showToast`) instead of alerts | Confirms an action without blocking the screen; offers "Voir le panier" |
+| 2026-10-25 | WhatsApp via `https://wa.me/` link, button hidden when the shop has no number | Works with WhatsApp and WhatsApp Business without extra setup in Expo Go |
+| 2026-10-25 | Photos fall back to a tinted placeholder with an icon behind | Missing or slow photos (common on mobile data) never leave a blank hole |
+| 2026-10-25 | Mock "next stock check" switch on the Données screen | Lets us test "sold out meanwhile" and "price changed" on the phone |
 | 2026-10-25 | `ProductSummary` gains `categoryId` (contract v2, cache buster bumped) | "Affiner par catégorie" suggests categories found in the results, not a fixed list |
 | 2026-10-25 | Search runs 300 ms after typing stops; recent searches saved on the phone (max 6) | Fewer requests on mobile data; quick repeat searches |
 | 2026-10-25 | Filtres sheet edits a draft; live count on the button | Closing without applying never changes results; users see the outcome before applying |
