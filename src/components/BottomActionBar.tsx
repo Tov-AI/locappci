@@ -12,13 +12,16 @@ type Props = {
   total?: string;
   /** The buttons. Wrap the main one with flex: 1 to fill the width. */
   children: ReactNode;
+  /** On a tab screen the tab bar already sits below: no extra space for the home indicator. */
+  aboveTabBar?: boolean;
 };
 
 /** Fixed white bar at the bottom of detail and checkout screens, above the home indicator. */
-export function BottomActionBar({ summary, total, children }: Props) {
+export function BottomActionBar({ summary, total, children, aboveTabBar = false }: Props) {
   const insets = useSafeAreaInsets();
+  const bottom = aboveTabBar ? space.md : Math.max(insets.bottom, space.md) + space.sm;
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.md) + space.sm }]}>
+    <View style={[styles.bar, { paddingBottom: bottom }]}>
       {summary || total ? (
         <View style={styles.summary}>
           <AppText variant="secondary" color={colors.text.body}>

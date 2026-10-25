@@ -157,6 +157,37 @@ export type RentalCheck = {
   priceChanged: boolean;
 };
 
+/** One cart line sent for the check before payment. */
+export type CartCheckLine =
+  | { productId: string; quantity: number; shownPrice: Fcfa }
+  | { productId: string; rental: RentalRequest };
+
+/** What can be wrong with a line. */
+export type CartProblem =
+  | 'gone' // product removed from the site
+  | 'out_of_stock'
+  | 'not_enough_stock' // fewer units than asked: see maxQuantity
+  | 'dates_taken' // see conflicts
+  | 'invalid_dates'; // start in the past or duration out of limits
+
+export type CartCheckResult = {
+  productId: string;
+  /** True when the line can be paid as it is (a price change alone keeps it true). */
+  ok: boolean;
+  problem?: CartProblem;
+  /** Current unit price (sale) or price per day (rental). */
+  price: Fcfa;
+  priceChanged: boolean;
+  /** Sale: units available (null = no limit). */
+  maxQuantity?: number | null;
+  /** Rental: current deposit and clashing days. */
+  deposit?: Fcfa;
+  conflicts?: IsoDate[];
+};
+
+/** One request for the whole cart: fewer round trips on mobile data. Never cached. */
+export type CartCheck = { lines: CartCheckResult[] };
+
 export type ReportReason = 'scam' | 'forbidden' | 'wrong_info' | 'other';
 
 /** "Signaler cette annonce": the gateway forwards it to the LOCAPPCI team (e.g. by email). */
@@ -177,4 +208,5 @@ export interface LocappciApi {
   reportProduct(productId: string, report: ProductReport): Promise<void>;
   getRentalCalendar(productId: string): Promise<RentalCalendar>;
   checkRental(productId: string, request: RentalRequest): Promise<RentalCheck>;
+  checkCart(lines: CartCheckLine[]): Promise<CartCheck>;
 }

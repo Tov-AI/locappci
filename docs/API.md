@@ -26,6 +26,7 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 | GET | `/v1/products/{id}/stock` | `shown_price` (the price the app displayed) | `StockCheck` |
 | GET | `/v1/products/{id}/calendar` | — | `RentalCalendar` (booked days from today, `YYYY-MM-DD`) |
 | GET | `/v1/products/{id}/rental-check` | `start_date` (`YYYY-MM-DD`), `days`, `shown_price_per_day` | `RentalCheck` |
+| POST | `/v1/cart/check` | — · JSON body `{ "lines": CartCheckLine[] }` | `CartCheck` |
 | POST | `/v1/products/{id}/reports` | — · JSON body `ProductReport`: `{ "reason": "scam" \| "forbidden" \| "wrong_info" \| "other", "details"?: string (max 500) }` | `204 No Content` |
 
 ### Behaviour the app relies on
@@ -38,6 +39,7 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - **Reports** ("Signaler cette annonce") are forwarded to the LOCAPPCI team, for example by email to the site admin. Return `404 not_found` if the product no longer exists, `422 validation` if `details` is over 500 characters. Rate-limit per device to stop spam.
 - **Rental dates** are calendar days in Côte d'Ivoire time (GMT). A rental of `days` days starting `start_date` occupies `start_date` … `start_date + days − 1`; the item comes back on `start_date + days`.
 - **Rental check** is never cached. `422 validation` if `start_date` is in the past or `days` is outside `minDays`–`maxDays` (French message, shown as is). `available` is `false` with the clashing days in `conflicts` when any day is already booked. `total` = `pricePerDay × days`; the deposit is separate.
+- **Cart check** (before payment, one request for the whole cart): one result per line, same order. `ok` is `false` with a `problem`: `gone`, `out_of_stock`, `not_enough_stock` (with `maxQuantity`), `dates_taken` (with `conflicts`) or `invalid_dates`. A price change alone keeps `ok: true` with `priceChanged: true`; the app shows the new price and asks the person to confirm. Never cached.
 - **`Shop.whatsapp`** is digits only in international format (`225…`). The app opens `https://wa.me/<number>` with a pre-filled message; `null` hides the WhatsApp button.
 - **`SaleProduct.stock.quantity`** is the number of units the shop has (or `null` if unknown). The cart never goes above it.
 

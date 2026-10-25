@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { api, type RentalCalendar, type RentalProduct } from '@/api';
@@ -18,7 +18,7 @@ import { ReportSheet } from '@/components/ReportSheet';
 import { SectionCard } from '@/components/SectionCard';
 import { SellerRow } from '@/components/SellerRow';
 import { Stepper } from '@/components/Stepper';
-import { showToast } from '@/components/Toast';
+import { clearToast, showToast } from '@/components/Toast';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { addRentalToCart, useCartLine } from '@/data/cart';
 import { useOnline } from '@/data/online';
@@ -64,6 +64,9 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+
+  // A message about this product shouldn't follow the person to the next screen.
+  useEffect(() => clearToast, []);
 
   const choice: StartChoice = start === today() ? 'today' : start === addDays(today(), 1) ? 'tomorrow' : 'other';
   const bookedDates = useMemo(() => calendar.data?.bookedDates ?? [], [calendar.data]);

@@ -4,6 +4,13 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-25 | Contract gains `checkCart` (POST `/v1/cart/check`): the whole cart in one request | One round trip on mobile data instead of one per item; Paiement (Feature 9) reuses it |
+| 2026-10-25 | "Commander" stops when something changed: blocking problems in red, price/quantity updates in orange; a second tap goes on | People never pay a price they haven't seen |
+| 2026-10-25 | Cart lines grouped by shop | Each shop delivers or hands over its own items (marketplace) |
+| 2026-10-25 | Deposits shown apart from the total ("Cautions à prévoir en plus") | How deposits are paid is still a client question; we don't hide or merge them |
+| 2026-10-25 | On Panier, messages and "Annuler" are shown in the page, not as toasts | Tab bar + action bar leave no room for a toast without covering "Commander" |
+| 2026-10-25 | Product toasts are cleared when leaving the product screen | A message about one product shouldn't cover the next screen |
+| 2026-10-25 | Temporary `/paiement` screen after a successful check | Proves the flow end to end; Feature 9 replaces it |
 | 2026-10-25 | Rentals: start day (Aujourd'hui / Demain / Autre date) + duration stepper, not a two-tap date range | Matches the design; one tap for the usual case; the calendar shades the whole period |
 | 2026-10-25 | Contract gains `getRentalCalendar` and `checkRental` | Show booked days before choosing; re-check live before "Réserver" (same rule as stock) |
 | 2026-10-25 | Dates as `YYYY-MM-DD` strings, formatted by hand in French | Côte d'Ivoire is GMT all year; avoids time-zone and phone-locale surprises |

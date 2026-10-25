@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-import type { Fcfa, IsoDate } from '@/api';
+import type { CartCheckLine, CartCheckResult, Fcfa, IsoDate } from '@/api';
 import { storage, storageKeys } from '@/data/storage';
 
 /**
@@ -104,6 +104,75 @@ export function addRentalToCart(
   return exists ? 'updated' : 'added';
 }
 
+/** Change the quantity of a sale line (1 … maxQuantity). */
+export function setQuantity(productId: string, quantity: number) {
+  items = items.map((i) => {
+    if (i.productId !== productId || i.rental) return i;
+    const max = i.maxQuantity ?? Infinity;
+    return { ...i, quantity: Math.max(1, Math.min(quantity, max)) };
+  });
+  emit();
+  save();
+}
+
+/** Remove a line; returns it with its position so "Annuler" can put it back. */
+export function removeLine(productId: string): { line: CartItem; index: number } | undefined {
+  const index = items.findIndex((i) => i.productId === productId);
+  if (index < 0) return undefined;
+  const line = items[index];
+  items = items.filter((i) => i.productId !== productId);
+  emit();
+  save();
+  return { line, index };
+}
+
+/** Undo a removal, at the same place in the list. */
+export function restoreLine({ line, index }: { line: CartItem; index: number }) {
+  if (items.some((i) => i.productId === line.productId)) return;
+  const next = [...items];
+  next.splice(Math.min(index, next.length), 0, line);
+  items = next;
+  emit();
+  save();
+}
+
+/** What we send to the gateway to check the whole cart before payment. */
+export function toCheckLines(lines: CartItem[]): CartCheckLine[] {
+  return lines.map((i) =>
+    i.rental
+      ? {
+          productId: i.productId,
+          rental: { startDate: i.rental.startDate, days: i.rental.days, shownPricePerDay: i.rental.pricePerDay },
+        }
+      : { productId: i.productId, quantity: i.quantity, shownPrice: i.price },
+  );
+}
+
+/**
+ * Apply the live answer: new prices and deposits, new stock limits,
+ * quantity lowered when the shop has fewer units. Problems are not stored here:
+ * the cart screen shows them until the next check.
+ */
+export function applyCartCheck(results: CartCheckResult[]) {
+  const byId = new Map(results.map((r) => [r.productId, r]));
+  items = items.map((i) => {
+    const r = byId.get(i.productId);
+    if (!r || r.problem === 'gone') return i;
+    if (i.rental) {
+      const rental = { ...i.rental, pricePerDay: r.price, deposit: r.deposit ?? i.rental.deposit };
+      return { ...i, rental, price: rental.pricePerDay * rental.days };
+    }
+    const maxQuantity = r.maxQuantity === undefined ? i.maxQuantity : r.maxQuantity;
+    const quantity =
+      r.problem === 'not_enough_stock' && maxQuantity != null && maxQuantity > 0
+        ? Math.min(i.quantity, maxQuantity)
+        : i.quantity;
+    return { ...i, price: r.price, maxQuantity, quantity };
+  });
+  emit();
+  save();
+}
+
 export function clearCart() {
   items = [];
   emit();
@@ -128,3 +197,38 @@ export const useCartQuantity = (productId: string) =>
 /** The cart line of one product, if any (e.g. the current rental booking). */
 export const useCartLine = (productId: string) =>
   useSyncExternalStore(subscribe, () => items.find((i) => i.productId === productId));
+
+/** Current lines, outside React (e.g. right after a check). */
+export const getCartItems = () => items;
+
+/** Changes when the person edits the line (quantity, dates): an old warning then no longer applies. */
+export const lineSignature = (i: CartItem) =>
+  i.rental ? `${i.rental.startDate}|${i.rental.days}` : String(i.quantity);
+
+export type CartTotals = {
+  /** Units of sale products. */
+  saleUnits: number;
+  saleTotal: number;
+  rentalCount: number;
+  rentalTotal: number;
+  /** Refundable deposits, not included in total. */
+  depositTotal: number;
+  /** Paid now, before delivery fees. */
+  total: number;
+};
+
+export function cartTotals(lines: CartItem[]): CartTotals {
+  const t = { saleUnits: 0, saleTotal: 0, rentalCount: 0, rentalTotal: 0, depositTotal: 0, total: 0 };
+  for (const i of lines) {
+    if (i.rental) {
+      t.rentalCount += 1;
+      t.rentalTotal += i.price;
+      t.depositTotal += i.rental.deposit;
+    } else {
+      t.saleUnits += i.quantity;
+      t.saleTotal += i.price * i.quantity;
+    }
+  }
+  t.total = t.saleTotal + t.rentalTotal;
+  return t;
+}

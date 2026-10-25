@@ -30,6 +30,13 @@ export function showToast(text: string, action?: ToastMessage['action']) {
   emit();
 }
 
+/** Remove the current message at once, e.g. when leaving the screen it was about. */
+export function clearToast() {
+  if (!current) return;
+  current = null;
+  emit();
+}
+
 function hideToast(id: number) {
   if (current?.id !== id) return; // A newer message replaced it.
   current = null;
