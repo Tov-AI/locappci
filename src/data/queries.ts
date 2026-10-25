@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 
-import { api, type CartCheckLine, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
+import { api, type CartCheckLine, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
 
 /**
  * Query keys: one name per kind of data, so the cache knows what to refresh.
@@ -13,6 +13,8 @@ export const keys = {
   product: (id: string) => ['product', id] as const,
   shop: (id: string) => ['shop', id] as const,
   rentalCalendar: (id: string) => ['rentalCalendar', id] as const,
+  deliveryOptions: (shopIds: string[]) => ['deliveryOptions', [...shopIds].sort()] as const,
+  order: (id: string) => ['order', id] as const,
 };
 
 const DAY = 24 * 60 * 60_000;
@@ -103,3 +105,23 @@ export const useCartCheck = () =>
     mutationFn: (lines: CartCheckLine[]) => api.checkCart(lines),
     networkMode: 'online',
   });
+
+/** Delivery choices for the shops in the cart. */
+export const useDeliveryOptions = (shopIds: string[]) =>
+  useQuery({
+    queryKey: keys.deliveryOptions(shopIds),
+    queryFn: () => api.getDeliveryOptions(shopIds),
+    enabled: shopIds.length > 0,
+    staleTime: 10 * 60_000,
+  });
+
+/** Creates the order. Safe to retry thanks to the idempotency key in the request. */
+export const useCreateOrder = () =>
+  useMutation({
+    mutationFn: (request: OrderRequest) => api.createOrder(request),
+    networkMode: 'online',
+  });
+
+/** One order, e.g. on the confirmation screen. */
+export const useOrder = (id: string) =>
+  useQuery({ queryKey: keys.order(id), queryFn: () => api.getOrder(id) });

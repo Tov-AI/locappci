@@ -4,6 +4,16 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-25 | Guest checkout: name, phone, address; no account | Design says "Pas besoin de compte"; accounts come after payment (Feature 10/14) |
+| 2026-10-25 | "Nom et prénom" added to the design's fields | WooCommerce orders and sellers need a name to hand over the item |
+| 2026-10-25 | Phone accepted in any common form, stored as `225` + 10 digits, shown "07 00 00 00 00" | People type "+225…", "00225…" or local; one clean format for the gateway and WhatsApp |
+| 2026-10-25 | Contact details saved on the phone after checkout | Faster next order; nothing leaves the phone except in the order itself |
+| 2026-10-25 | Address required only for home delivery, and must be more than the commune | Riders need a district or landmark; pickup needs no address |
+| 2026-10-25 | One delivery choice per shop; rental shops: pickup only | Marketplace: each shop hands over its own items; rentals are checked together at pickup |
+| 2026-10-25 | Orders carry an idempotency key | Weak mobile networks: a retry or double tap must never create (or charge) two orders |
+| 2026-10-25 | "Payer" re-checks the cart before creating the order; the gateway checks again (`cart_changed`) | Price and stock can change between Panier and Paiement |
+| 2026-10-25 | Wave / Orange Money simulated by a sheet in the mock | Real hand-off needs the payment plugin (Feature 15, blocked); success, refusal and abandon can be tested now |
+| 2026-10-25 | Temporary `/commande/[id]` screen | Proves the end of the flow; Feature 10 builds the full Confirmation |
 | 2026-10-25 | Tab bar: 12 pt side padding and a minimum 12 pt bottom gap | On the OPPO A79 (full-screen gestures) the phone reports no bottom inset, so "Accueil" and "Compte" sat in the rounded corners and looked cut |
 | 2026-10-25 | Contract gains `checkCart` (POST `/v1/cart/check`): the whole cart in one request | One round trip on mobile data instead of one per item; Paiement (Feature 9) reuses it |
 | 2026-10-25 | "Commander" stops when something changed: blocking problems in red, price/quantity updates in orange; a second tap goes on | People never pay a price they haven't seen |

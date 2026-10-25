@@ -12,7 +12,7 @@ One feature at a time, in order. Write your name in **Owner** when you start one
 | 6 | Produit (sale detail) | In review | Leo | No |
 | 7 | Location détail (dates, duration, deposit) | In review | Leo | Deposit rules (shown from product data until confirmed) |
 | 8 | Panier + cart state | In review | Leo | No |
-| 9 | Paiement (mock payment) | Not started | | Cash on delivery? |
+| 9 | Paiement (mock payment) | In review | Leo | Cash on delivery? (shown until confirmed) |
 | 10 | Confirmation + account offer + notification soft ask | Not started | | Guest checkout? |
 | 11 | Compte | Not started | | No |
 | 12 | Loading, empty, error, offline states on every screen | Not started | | No |

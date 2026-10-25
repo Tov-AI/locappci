@@ -121,7 +121,8 @@ export type StockCheck = {
 
 /** Standard error body returned by the gateway. Messages are user-safe French. */
 export type ApiErrorBody = {
-  code: 'not_found' | 'unavailable' | 'validation' | 'unauthorized' | 'server_error';
+  /** `cart_changed`: stock, dates or prices changed since the cart check; check again. */
+  code: 'not_found' | 'unavailable' | 'validation' | 'unauthorized' | 'server_error' | 'cart_changed';
   message: string;
 };
 
@@ -188,6 +189,65 @@ export type CartCheckResult = {
 /** One request for the whole cart: fewer round trips on mobile data. Never cached. */
 export type CartCheck = { lines: CartCheckResult[] };
 
+export type DeliveryOption = {
+  id: string;
+  kind: 'home' | 'pickup';
+  /** "À domicile", "Retrait en boutique", "Retrait chez le loueur". */
+  label: string;
+  price: Fcfa;
+  /** Short, shown under the price: "24–48 h", "Yopougon". */
+  detail: string;
+};
+
+/** Delivery choices of one shop (each shop delivers or hands over its own items). */
+export type ShopDelivery = { shopId: string; options: DeliveryOption[] };
+
+export type PaymentMethod = 'wave' | 'orange_money' | 'cash';
+
+export type Customer = {
+  name: string;
+  /** Digits only, with country code: "2250700000000". */
+  phone: string;
+  /** Commune, district, landmark. Required for home delivery. */
+  address: string;
+};
+
+export type OrderRequest = {
+  /**
+   * Same key for retries of the same checkout: the gateway returns the existing order
+   * instead of creating a second one (double tap, lost connection, payment retry).
+   */
+  idempotencyKey: string;
+  customer: Customer;
+  lines: CartCheckLine[];
+  deliveries: { shopId: string; optionId: string }[];
+  paymentMethod: PaymentMethod;
+};
+
+export type OrderStatus =
+  | 'pending_payment' // waiting for Wave / Orange Money
+  | 'paid'
+  | 'confirmed' // cash on delivery: accepted, paid later
+  | 'payment_failed'
+  | 'cancelled';
+
+export type Order = {
+  id: string;
+  /** Shown to people: "LOC-24817". */
+  number: string;
+  status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  itemsTotal: Fcfa;
+  deliveryTotal: Fcfa;
+  /** itemsTotal + deliveryTotal: what is paid now (or on delivery for cash). */
+  total: Fcfa;
+  /** Refundable deposits, handed over at pickup; not in total. */
+  depositTotal: Fcfa;
+  /** Wave / Orange Money page to open, or null (cash, or the mock). */
+  paymentUrl: string | null;
+  createdAt: IsoDateTime;
+};
+
 export type ReportReason = 'scam' | 'forbidden' | 'wrong_info' | 'other';
 
 /** "Signaler cette annonce": the gateway forwards it to the LOCAPPCI team (e.g. by email). */
@@ -209,4 +269,7 @@ export interface LocappciApi {
   getRentalCalendar(productId: string): Promise<RentalCalendar>;
   checkRental(productId: string, request: RentalRequest): Promise<RentalCheck>;
   checkCart(lines: CartCheckLine[]): Promise<CartCheck>;
+  getDeliveryOptions(shopIds: string[]): Promise<ShopDelivery[]>;
+  createOrder(request: OrderRequest): Promise<Order>;
+  getOrder(id: string): Promise<Order>;
 }

@@ -18,4 +18,5 @@ export const storageKeys = {
   city: 'locappci.city.v1',
   recentSearches: 'locappci.recentSearches.v1',
   cart: 'locappci.cart.v1',
+  customer: 'locappci.customer.v1',
 } as const;
