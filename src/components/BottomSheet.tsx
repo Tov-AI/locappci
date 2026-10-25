@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/AppText';
@@ -21,6 +21,7 @@ const DURATION = 220;
 /**
  * Panel that slides up from the bottom over a dark overlay.
  * Closes on overlay tap and on the Android back button.
+ * Moves up above the keyboard when a text field inside it is focused.
  */
 export function BottomSheet({ visible, onClose, title, headerAction, children, footer }: Props) {
   const insets = useSafeAreaInsets();
@@ -54,6 +55,10 @@ export function BottomSheet({ visible, onClose, title, headerAction, children, f
         />
       </Animated.View>
 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboard}
+        pointerEvents="box-none">
       <Animated.View
         accessibilityViewIsModal
         style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, space.md) + space.sm, transform: [{ translateY }] }]}>
@@ -73,17 +78,15 @@ export function BottomSheet({ visible, onClose, title, headerAction, children, f
         <View style={styles.body}>{children}</View>
         {footer}
       </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.overlay },
+  keyboard: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: colors.surface.card,
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,

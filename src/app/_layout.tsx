@@ -16,6 +16,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { loadCity } from '@/data/city';
 import { loadFavourites } from '@/data/favourites';
 import { startOnlineTracking } from '@/data/online';
+import { loadRecentSearches } from '@/data/recentSearches';
 import { persistOptions, queryClient } from '@/data/queryClient';
 
 // Keep the splash screen up until the brand font is ready, so text never flashes in the wrong font.
@@ -25,6 +26,7 @@ SplashScreen.preventAutoHideAsync();
 startOnlineTracking();
 loadFavourites();
 loadCity();
+loadRecentSearches();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({

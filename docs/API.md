@@ -45,6 +45,7 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
       "universe": "location",
       "name": "Groupe électrogène 5 kVA",
       "coverUrl": "https://locappci.fr/wp-content/uploads/…/groupe.webp",
+      "categoryId": "energie",
       "price": 15000,
       "cityId": "marcory",
       "shopName": "Marcory Bâtiment Loc",

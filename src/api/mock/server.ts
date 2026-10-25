@@ -36,6 +36,7 @@ function toSummary(p: Product): ProductSummary {
     universe: p.universe,
     name: p.name,
     coverUrl: p.images[0] ?? null,
+    categoryId: p.categoryId,
     price: p.universe === 'vente' ? p.price : p.pricePerDay,
     cityId: p.cityId,
     shopName: shopName(p.shopId),
@@ -57,6 +58,10 @@ function filterProducts(q: ProductQuery): ProductSummary[] {
     .filter((s) => q.maxPrice == null || s.price <= q.maxPrice);
 
   if (q.sort === 'price_asc') list = [...list].sort((a, b) => a.price - b.price);
+  if (q.sort === 'newest') {
+    const updated = new Map(products.map((p) => [p.id, p.updatedAt]));
+    list = [...list].sort((a, b) => (updated.get(b.id) ?? '').localeCompare(updated.get(a.id) ?? ''));
+  }
   // "nearest": items in the chosen commune first, then the others.
   if ((q.sort ?? 'nearest') === 'nearest' && q.cityId) {
     list = [...list].sort((a, b) => Number(b.cityId === q.cityId) - Number(a.cityId === q.cityId));

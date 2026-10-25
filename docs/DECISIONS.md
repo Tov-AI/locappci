@@ -4,6 +4,10 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-25 | `ProductSummary` gains `categoryId` (contract v2, cache buster bumped) | "Affiner par catégorie" suggests categories found in the results, not a fixed list |
+| 2026-10-25 | Search runs 300 ms after typing stops; recent searches saved on the phone (max 6) | Fewer requests on mobile data; quick repeat searches |
+| 2026-10-25 | Filtres sheet edits a draft; live count on the button | Closing without applying never changes results; users see the outcome before applying |
+| 2026-10-25 | Bottom sheet wrapped in KeyboardAvoidingView | The keyboard must not cover the price fields |
 | 2026-10-25 | Commune choice saved on the phone; asked once at first launch with "Passer" | Lists are local; no tutorial slides (NN/g research in the design brief) |
 | 2026-10-25 | Accueil search bar is a button that opens Recherche | Keeps the keyboard and search logic in one place (feature 5) |
 | 2026-10-25 | Temporary `/produit/[id]` screen | Lets cards be tapped and tested now; features 6 and 7 replace it |

@@ -16,4 +16,5 @@ export const storageKeys = {
   queryCache: 'locappci.queryCache.v1',
   favourites: 'locappci.favourites.v1',
   city: 'locappci.city.v1',
+  recentSearches: 'locappci.recentSearches.v1',
 } as const;

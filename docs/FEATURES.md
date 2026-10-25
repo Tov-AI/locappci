@@ -8,7 +8,7 @@ One feature at a time, in order. Write your name in **Owner** when you start one
 | 2 | Core components: buttons, cards, chips, option card, bottom bar, sheet, badge, offline banner | In review | Leo | No |
 | 3 | API contract + mock data + cache (TanStack Query, AsyncStorage) | In review | Leo | No |
 | 4 | Accueil: universe cards, product grid, city chip | In review | Leo | No |
-| 5 | Recherche + Filtres sheet | Not started | | No |
+| 5 | Recherche + Filtres sheet | In review | Leo | No |
 | 6 | Produit (sale detail) | Not started | | No |
 | 7 | Location détail (dates, duration, deposit) | Not started | | Deposit rules |
 | 8 | Panier + cart state | Not started | | No |

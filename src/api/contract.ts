@@ -78,6 +78,8 @@ export type ProductSummary = {
   universe: Universe;
   name: string;
   coverUrl: string | null;
+  /** Lets the app suggest "Affiner par catégorie" from the results. */
+  categoryId: string;
   /** Sale price, or price per day for rentals. */
   price: Fcfa;
   cityId: string;
