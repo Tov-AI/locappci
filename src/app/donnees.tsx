@@ -132,11 +132,11 @@ export default function DonneesScreen() {
           ) : null}
 
           <AppText variant="caption" color={colors.text.muted}>
-            PROCHAIN CONTRÔLE DE STOCK (UNE SEULE FOIS)
+            PROCHAIN CONTRÔLE STOCK / DISPONIBILITÉ (UNE SEULE FOIS)
           </AppText>
           <View style={styles.chips}>
             <Chip label="Normal" active={nextCheck === 'normal'} onPress={() => chooseNextCheck('normal')} />
-            <Chip label="Épuisé entre-temps" active={nextCheck === 'sold_out'} onPress={() => chooseNextCheck('sold_out')} />
+            <Chip label="Épuisé / dates prises" active={nextCheck === 'sold_out'} onPress={() => chooseNextCheck('sold_out')} />
             <Chip label="Prix + 1 000" active={nextCheck === 'price_up'} onPress={() => chooseNextCheck('price_up')} />
           </View>
         </SectionCard>

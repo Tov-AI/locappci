@@ -122,3 +122,14 @@ export const products: Product[] = [
     pricePerDay: 12000, deposit: 40000, minDays: 1, maxDays: 30,
   },
 ];
+
+/**
+ * Booked days per rental item, counted from today (0 = today, 1 = tomorrow…).
+ * The bétonnière is booked tomorrow on purpose: the default choice shows the "already booked" message.
+ */
+export const bookedDayOffsets: Record<string, number[]> = {
+  'r-groupe-5kva': [3, 4, 5],
+  'r-betonniere': [1, 2],
+  'r-bache': [6, 7, 13],
+  'r-chaises': [0],
+};

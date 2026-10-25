@@ -13,6 +13,11 @@ type Props = {
   leading?: ReactNode;
   /** Hide the radio ring (used in compact grids like delivery choices). */
   hideRadio?: boolean;
+  /**
+   * Short choice in a row of 2–4 equal cards ("Aujourd'hui | Demain | Autre date"):
+   * no radio, label centred on one line, shrinks slightly rather than breaking a word.
+   */
+  compact?: boolean;
   style?: ViewStyle;
 };
 
@@ -20,7 +25,16 @@ type Props = {
  * Single choice in a group (payment, delivery, dates, filters).
  * Selected: 2 pt navy border + light navy fill + filled radio.
  */
-export function OptionCard({ label, hint, selected, onSelect, leading, hideRadio = false, style }: Props) {
+export function OptionCard({
+  label,
+  hint,
+  selected,
+  onSelect,
+  leading,
+  hideRadio = false,
+  compact = false,
+  style,
+}: Props) {
   return (
     <Pressable
       accessibilityRole="radio"
@@ -30,19 +44,27 @@ export function OptionCard({ label, hint, selected, onSelect, leading, hideRadio
       style={({ pressed }) => [
         styles.base,
         selected ? styles.selected : styles.idle,
+        compact && (selected ? styles.compactSelected : styles.compactIdle),
         pressed && !selected && styles.pressed,
         style,
       ]}>
       {leading}
-      <View style={styles.texts}>
-        <AppText variant="secondaryStrong">{label}</AppText>
+      <View style={[styles.texts, compact && styles.textsCompact]}>
+        <AppText
+          variant="secondaryStrong"
+          numberOfLines={compact ? 1 : undefined}
+          adjustsFontSizeToFit={compact}
+          minimumFontScale={0.75}
+          style={compact ? styles.labelCompact : undefined}>
+          {label}
+        </AppText>
         {hint ? (
           <AppText variant="caption" color={colors.text.muted}>
             {hint}
           </AppText>
         ) : null}
       </View>
-      {hideRadio ? null : (
+      {hideRadio || compact ? null : (
         <View style={[styles.ring, selected && styles.ringOn]}>
           {selected ? <View style={styles.dot} /> : null}
         </View>
@@ -76,6 +98,12 @@ const styles = StyleSheet.create({
   selected: { borderWidth: 2, borderColor: colors.brand.navy, backgroundColor: colors.brand.navySelected },
   pressed: { backgroundColor: colors.surface.field },
   texts: { flex: 1, gap: 2 },
+  textsCompact: { alignItems: 'center' },
+  labelCompact: { textAlign: 'center' },
+  // The selected border is 1 pt thicker: take 1 pt off the padding so the label doesn't move.
+  // Small side padding: three cards must fit "Aujourd’hui" on a 360-wide phone.
+  compactIdle: { minHeight: 48, paddingHorizontal: space.xs + 1, paddingVertical: 9 },
+  compactSelected: { minHeight: 48, paddingHorizontal: space.xs, paddingVertical: 8 },
   ring: {
     width: 20,
     height: 20,

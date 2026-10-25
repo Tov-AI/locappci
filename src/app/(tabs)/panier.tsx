@@ -4,6 +4,7 @@ import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { useCartItems } from '@/data/cart';
 import { colors, space } from '@/theme';
+import { formatDays, formatDayShort } from '@/utils/dates';
 import { formatFcfa } from '@/utils/format';
 
 /** Temporary: lists what Produit added. The full Panier screen arrives with Feature 8. */
@@ -27,7 +28,15 @@ export default function PanierScreen() {
             <SectionCard key={i.productId}>
               <AppText variant="secondaryStrong">{i.name}</AppText>
               <AppText variant="meta" color={colors.text.muted}>
-                {[`${i.quantity} × ${formatFcfa(i.price)}`, i.shopName].filter(Boolean).join(' · ')}
+                {i.rental
+                  ? [
+                      `Location ${formatDays(i.rental.days)} dès le ${formatDayShort(i.rental.startDate)}`,
+                      `${formatFcfa(i.price)} + caution ${formatFcfa(i.rental.deposit)}`,
+                      i.shopName,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : [`${i.quantity} × ${formatFcfa(i.price)}`, i.shopName].filter(Boolean).join(' · ')}
               </AppText>
             </SectionCard>
           ))}

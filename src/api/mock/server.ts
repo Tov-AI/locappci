@@ -1,4 +1,5 @@
 import type {
+  IsoDate,
   LocappciApi,
   Product,
   ProductQuery,
@@ -6,7 +7,8 @@ import type {
   StockCheck,
 } from '@/api/contract';
 import { ApiError, networkError } from '@/api/errors';
-import { categories, cities, products, shops } from '@/api/mock/data';
+import { bookedDayOffsets, categories, cities, products, shops } from '@/api/mock/data';
+import { addDays, today } from '@/utils/dates';
 
 /**
  * Developer switches to test loading, error and offline behaviour on a real phone.
@@ -18,8 +20,8 @@ export const mockSettings = {
   /** Every request fails as if the network were down. */
   failAll: false,
   /**
-   * Answer of the NEXT live stock check only, then back to 'normal'.
-   * Lets us test "sold out meanwhile" and "price changed" on the phone.
+   * Answer of the NEXT live stock check or rental check only, then back to 'normal'.
+   * Lets us test "sold out / dates taken meanwhile" and "price changed" on the phone.
    */
   nextCheck: 'normal' as 'normal' | 'sold_out' | 'price_up',
 };
@@ -134,7 +136,46 @@ export const mockApi: LocappciApi = {
       }
       reports.push({ productId, ...report, at: new Date().toISOString() });
     }),
+
+  getRentalCalendar: (productId) =>
+    respond(() => {
+      const p = products.find((x) => x.id === productId);
+      if (!p || p.universe !== 'location') throw new ApiError('not_found', "Cette annonce n'est plus disponible.");
+      return { productId, bookedDates: bookedDates(productId) };
+    }),
+
+  checkRental: (productId, { startDate, days, shownPricePerDay }) =>
+    respond(() => {
+      const p = products.find((x) => x.id === productId);
+      if (!p || p.universe !== 'location') throw new ApiError('not_found', "Cette annonce n'est plus disponible.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || startDate < today()) {
+        throw new ApiError('validation', 'Choisissez une date à partir d’aujourd’hui.');
+      }
+      if (!Number.isInteger(days) || days < p.minDays || days > p.maxDays) {
+        throw new ApiError('validation', `Durée possible : ${p.minDays} à ${p.maxDays} jours.`);
+      }
+      const forced = mockSettings.nextCheck;
+      mockSettings.nextCheck = 'normal';
+      const pricePerDay = forced === 'price_up' ? p.pricePerDay + 1000 : p.pricePerDay;
+      const wanted = Array.from({ length: days }, (_, i) => addDays(startDate, i));
+      const booked = new Set(bookedDates(productId));
+      // 'sold_out' simulates someone booking the first day a moment ago.
+      const conflicts = forced === 'sold_out' ? [startDate] : wanted.filter((d) => booked.has(d));
+      return {
+        productId,
+        available: conflicts.length === 0,
+        conflicts,
+        pricePerDay,
+        deposit: p.deposit,
+        total: pricePerDay * days,
+        priceChanged: pricePerDay !== shownPricePerDay,
+      };
+    }),
 };
+
+/** Booked days of a rental, worked out from today so the sample data never goes out of date. */
+const bookedDates = (productId: string): IsoDate[] =>
+  (bookedDayOffsets[productId] ?? []).map((n) => addDays(today(), n));
 
 /** Reports received by the mock, so we can check them in tests. */
 export const reports: { productId: string; reason: string; details?: string; at: string }[] = [];

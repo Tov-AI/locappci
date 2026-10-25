@@ -10,7 +10,7 @@ One feature at a time, in order. Write your name in **Owner** when you start one
 | 4 | Accueil: universe cards, product grid, city chip | In review | Leo | No |
 | 5 | Recherche + Filtres sheet | In review | Leo | No |
 | 6 | Produit (sale detail) | In review | Leo | No |
-| 7 | Location détail (dates, duration, deposit) | Not started | | Deposit rules |
+| 7 | Location détail (dates, duration, deposit) | In review | Leo | Deposit rules (shown from product data until confirmed) |
 | 8 | Panier + cart state | Not started | | No |
 | 9 | Paiement (mock payment) | Not started | | Cash on delivery? |
 | 10 | Confirmation + account offer + notification soft ask | Not started | | Guest checkout? |

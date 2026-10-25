@@ -120,7 +120,7 @@ export function FiltersSheet({ visible, onClose, value, onApply, search, cityId,
             <OptionCard
               key={text}
               label={text}
-              hideRadio
+              compact
               selected={draft.universe === u}
               onSelect={() => setDraft((d) => ({ ...d, universe: u }))}
               style={styles.third}
@@ -174,7 +174,7 @@ export function FiltersSheet({ visible, onClose, value, onApply, search, cityId,
 const styles = StyleSheet.create({
   group: { gap: space.sm },
   three: { flexDirection: 'row', gap: space.sm },
-  third: { flex: 1, justifyContent: 'center' },
+  third: { flex: 1 },
   two: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
   half: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
