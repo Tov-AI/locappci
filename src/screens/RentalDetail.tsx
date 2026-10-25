@@ -161,21 +161,21 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
             <View style={styles.choices} accessibilityRole="radiogroup">
               <OptionCard
                 label="Aujourd’hui"
-                hideRadio
+                compact
                 selected={choice === 'today'}
                 onSelect={() => setStart(today())}
                 style={styles.choice}
               />
               <OptionCard
                 label="Demain"
-                hideRadio
+                compact
                 selected={choice === 'tomorrow'}
                 onSelect={() => setStart(addDays(today(), 1))}
                 style={styles.choice}
               />
               <OptionCard
                 label={choice === 'other' ? formatDayCompact(start) : 'Autre date'}
-                hideRadio
+                compact
                 selected={choice === 'other'}
                 onSelect={() => setCalendarOpen(true)}
                 style={styles.choice}
@@ -266,6 +266,6 @@ const styles = StyleSheet.create({
   body: { padding: space.gutter, gap: space.xl },
   titleBlock: { gap: space.xs },
   choices: { flexDirection: 'row', gap: space.sm },
-  choice: { flex: 1, justifyContent: 'center', paddingHorizontal: space.sm },
+  choice: { flex: 1 },
   duration: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });
