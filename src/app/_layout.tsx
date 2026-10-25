@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { loadCity } from '@/data/city';
 import { loadFavourites } from '@/data/favourites';
 import { startOnlineTracking } from '@/data/online';
 import { persistOptions, queryClient } from '@/data/queryClient';
@@ -23,6 +24,7 @@ SplashScreen.preventAutoHideAsync();
 // Start once, outside React: follow the network and read saved favourites.
 startOnlineTracking();
 loadFavourites();
+loadCity();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -53,6 +55,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="composants" />
             <Stack.Screen name="donnees" />
+            <Stack.Screen name="produit/[id]" />
           </Stack>
         </PersistQueryClientProvider>
       </SafeAreaProvider>

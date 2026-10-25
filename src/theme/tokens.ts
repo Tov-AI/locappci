@@ -11,6 +11,10 @@ export const colors = {
     navyTint: '#E9EDF7',
     navySelected: '#EDF1F9',
     onNavyMuted: '#CBD5EE',
+    /** Placeholder icon on navy-tint photo areas. */
+    navyMuted: '#8D9AC0',
+    /** Translucent white tile on a navy card. */
+    onNavyTile: 'rgba(255, 255, 255, 0.16)',
     orange: '#F86200',
     orangeTint: '#FEEDE1',
     orangeText: '#A33F00',
