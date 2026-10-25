@@ -48,3 +48,15 @@ export const useStockCheck = () =>
       api.checkStock(productId, shownPrice),
     networkMode: 'online',
   });
+
+/**
+ * Number of results for a set of filters, without downloading the products.
+ * Used by "Afficher N résultats" in the Filtres sheet.
+ */
+export const useProductCount = (query: Omit<ProductQuery, 'page' | 'pageSize'>, enabled = true) =>
+  useQuery({
+    queryKey: ['productCount', query],
+    queryFn: async () => (await api.listProducts({ ...query, page: 1, pageSize: 1 })).total,
+    enabled,
+    placeholderData: (previous) => previous,
+  });

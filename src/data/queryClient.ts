@@ -36,5 +36,5 @@ export const persistOptions = {
   persister: queryPersister,
   maxAge: 24 * HOUR,
   // Change this when the contract changes shape, so old cached data is thrown away.
-  buster: 'contract-v1',
+  buster: 'contract-v2', // v2: ProductSummary gained categoryId
 };

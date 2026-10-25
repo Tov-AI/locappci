@@ -59,7 +59,7 @@ export default function AccueilScreen() {
   const cityLabel = chosen ? `${chosen.name}, ${chosen.region}` : "Toute la Côte d'Ivoire";
 
   const openUniverse = (universe: Universe) =>
-    router.push({ pathname: '/recherche', params: { universe } });
+    router.push({ pathname: '/recherche', params: { universe, t: String(Date.now()) } });
 
   const openProduct = (item: ProductSummary) =>
     router.push({ pathname: '/produit/[id]', params: { id: item.id } });
@@ -101,7 +101,7 @@ export default function AccueilScreen() {
         <Pressable
           accessibilityRole="link"
           hitSlop={12}
-          onPress={() => router.push({ pathname: '/recherche', params: { sort: 'nearest' } })}>
+          onPress={() => router.push({ pathname: '/recherche', params: { sort: 'nearest', t: String(Date.now()) } })}>
           <AppText variant="secondaryStrong" color={colors.brand.navy}>
             Tout voir
           </AppText>
@@ -149,7 +149,7 @@ export default function AccueilScreen() {
         <Pressable
           accessibilityRole="search"
           accessibilityLabel="Rechercher un produit ou un matériel"
-          onPress={() => router.push('/recherche')}
+          onPress={() => router.push({ pathname: '/recherche', params: { focus: '1', t: String(Date.now()) } })}
           style={({ pressed }) => [styles.search, pressed && styles.searchPressed]}>
           <Feather name="search" size={18} color={colors.text.muted} />
           <AppText variant="body" color={colors.text.placeholder}>
