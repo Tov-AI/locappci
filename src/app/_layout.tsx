@@ -14,10 +14,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ToastHost } from '@/components/Toast';
+import { loadAccount } from '@/data/account';
 import { loadCart } from '@/data/cart';
 import { loadCity } from '@/data/city';
 import { loadCustomer } from '@/data/customer';
 import { loadFavourites } from '@/data/favourites';
+import { loadNotificationAnswer } from '@/data/notifications';
 import { startOnlineTracking } from '@/data/online';
 import { loadRecentSearches } from '@/data/recentSearches';
 import { persistOptions, queryClient } from '@/data/queryClient';
@@ -32,6 +34,8 @@ loadCity();
 loadRecentSearches();
 loadCart();
 loadCustomer();
+loadAccount();
+loadNotificationAnswer();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({

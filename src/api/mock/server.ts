@@ -1,5 +1,7 @@
 import type {
+  Account,
   CartCheckResult,
+  OrderShop,
   DeliveryOption,
   Order,
   IsoDate,
@@ -179,12 +181,28 @@ export const mockApi: LocappciApi = {
       const shopIds = [...new Set(req.lines.map((l) => shopOf(l.productId)))];
       let deliveryTotal = 0;
       let homeDelivery = false;
+      const orderShops: OrderShop[] = [];
       for (const shopId of shopIds) {
         const choice = req.deliveries.find((d) => d.shopId === shopId);
         const option = deliveryOptionsFor(shopId).find((o) => o.id === choice?.optionId);
         if (!option) throw new ApiError('validation', 'Choisissez une livraison pour chaque boutique.');
         deliveryTotal += option.price;
         homeDelivery ||= option.kind === 'home';
+        const shop = shops.find((s) => s.id === shopId)!;
+        orderShops.push({
+          shopId,
+          shopName: shop.name,
+          whatsapp: shop.whatsapp,
+          delivery: { kind: option.kind, label: option.label, detail: option.detail },
+          lines: req.lines
+            .filter((l) => shopOf(l.productId) === shopId)
+            .map((l) => {
+              const p = products.find((x) => x.id === l.productId)!;
+              return 'rental' in l && p.universe === 'location'
+                ? { name: p.name, quantity: 1, rental: { startDate: l.rental.startDate, days: l.rental.days, deposit: p.deposit } }
+                : { name: p.name, quantity: 'quantity' in l ? l.quantity : 1 };
+            }),
+        });
       }
       if (homeDelivery && customer.address.trim().length < 3) {
         throw new ApiError('validation', 'Indiquez votre adresse de livraison.');
@@ -213,10 +231,26 @@ export const mockApi: LocappciApi = {
         depositTotal,
         paymentUrl: null,
         createdAt: new Date().toISOString(),
+        step: 'confirmed',
+        customer,
+        shops: orderShops,
       };
       orders.set(order.id, order);
       orderByKey.set(req.idempotencyKey, order.id);
       return order;
+    }),
+
+  createAccount: ({ orderId, password }) =>
+    respond((): Account => {
+      const o = orders.get(orderId);
+      if (!o) throw new ApiError('not_found', 'Commande introuvable.');
+      if (password.length < 8) throw new ApiError('validation', 'Le mot de passe doit faire au moins 8 caractères.');
+      if (accounts.has(o.customer.phone)) {
+        throw new ApiError('validation', 'Un compte existe déjà pour ce numéro. Connectez-vous depuis l’onglet Compte.');
+      }
+      const account = { name: o.customer.name, phone: o.customer.phone };
+      accounts.set(o.customer.phone, account);
+      return account;
     }),
 
   getOrder: (id) =>
@@ -317,6 +351,9 @@ export function simulatePayment(orderId: string, outcome: 'paid' | 'payment_fail
   const o = orders.get(orderId);
   if (o && o.status === 'pending_payment') orders.set(orderId, { ...o, status: outcome });
 }
+
+/** Accounts created in the mock, by phone number. */
+const accounts = new Map<string, Account>();
 
 const CI_PHONE = /^225(01|05|07|21|25|27)\d{8}$/;
 

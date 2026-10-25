@@ -13,12 +13,12 @@ One feature at a time, in order. Write your name in **Owner** when you start one
 | 7 | Location détail (dates, duration, deposit) | In review | Leo | Deposit rules (shown from product data until confirmed) |
 | 8 | Panier + cart state | In review | Leo | No |
 | 9 | Paiement (mock payment) | In review | Leo | Cash on delivery? (shown until confirmed) |
-| 10 | Confirmation + account offer + notification soft ask | Not started | | Guest checkout? |
+| 10 | Confirmation + account offer + notification soft ask | In review | Leo | Guest checkout? |
 | 11 | Compte | Not started | | No |
 | 12 | Loading, empty, error, offline states on every screen | Not started | | No |
 | 13 | Gateway: real WooCommerce data | Blocked | | Plugins, admin access |
 | 14 | Login with WordPress accounts (JWT) | Blocked | | JWT plugin |
 | 15 | Wave / Orange Money hand-off + deep link back | Blocked | | Payment plugin |
-| 16 | Push notifications (webhooks → Expo Push) | Blocked | | Admin access |
+| 16 | Push notifications (webhooks → Expo Push). Must ask the system permission of people who said "Oui, me prévenir" (Feature 10) before launch | Blocked | | Admin access |
 
 Status values: Not started · In progress · In review · Done · Blocked.

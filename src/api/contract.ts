@@ -231,6 +231,18 @@ export type OrderStatus =
   | 'payment_failed'
   | 'cancelled';
 
+/** Where the order is, as shown in "Suivi". */
+export type OrderStep = 'confirmed' | 'preparing' | 'delivered';
+
+/** What one shop has to hand over, for the confirmation and tracking text. */
+export type OrderShop = {
+  shopId: string;
+  shopName: string;
+  whatsapp: string | null;
+  delivery: { kind: 'home' | 'pickup'; label: string; detail: string };
+  lines: { name: string; quantity: number; rental?: { startDate: IsoDate; days: number; deposit: Fcfa } }[];
+};
+
 export type Order = {
   id: string;
   /** Shown to people: "LOC-24817". */
@@ -246,7 +258,14 @@ export type Order = {
   /** Wave / Orange Money page to open, or null (cash, or the mock). */
   paymentUrl: string | null;
   createdAt: IsoDateTime;
+  step: OrderStep;
+  customer: Customer;
+  shops: OrderShop[];
 };
+
+/** "Gardez le suivi": turns the guest order into an account (name and phone from the order). */
+export type AccountRequest = { orderId: string; password: string };
+export type Account = { name: string; phone: string };
 
 export type ReportReason = 'scam' | 'forbidden' | 'wrong_info' | 'other';
 
@@ -272,4 +291,5 @@ export interface LocappciApi {
   getDeliveryOptions(shopIds: string[]): Promise<ShopDelivery[]>;
   createOrder(request: OrderRequest): Promise<Order>;
   getOrder(id: string): Promise<Order>;
+  createAccount(request: AccountRequest): Promise<Account>;
 }

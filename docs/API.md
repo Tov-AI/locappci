@@ -30,6 +30,7 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 | GET | `/v1/delivery-options` | `shops` (comma-separated shop ids) | `ShopDelivery[]` |
 | POST | `/v1/orders` | — · JSON body `OrderRequest` | `Order` |
 | GET | `/v1/orders/{id}` | — | `Order` |
+| POST | `/v1/accounts` | — · JSON body `{ "orderId", "password" }` (min 8 characters) | `Account` (`name`, `phone`) |
 | POST | `/v1/products/{id}/reports` | — · JSON body `ProductReport`: `{ "reason": "scam" \| "forbidden" \| "wrong_info" \| "other", "details"?: string (max 500) }` | `204 No Content` |
 
 ### Behaviour the app relies on
@@ -46,6 +47,8 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - **Orders are idempotent**: the same `idempotencyKey` must return the same order, never a second one (double tap, lost connection, retry after a refused payment). After `payment_failed`, a retry with the same key puts the order back to `pending_payment` (the payment method may change).
 - **`POST /v1/orders`** re-checks stock, dates and prices; if anything changed it returns `409` with code `cart_changed` and creates nothing. It validates the Ivorian phone (`225` + 10 digits starting 01, 05, 07, 21, 25, 27), one delivery choice per shop, and an address when any choice is home delivery.
 - **Statuses**: cash → `confirmed` at once; Wave / Orange Money → `pending_payment` with a `paymentUrl` to open, then `paid` or `payment_failed` once the provider tells the gateway (Feature 15). The app reads the result with `GET /v1/orders/{id}`.
+- **`Order.shops`** tells each shop's items and delivery choice; **`Order.step`** (`confirmed` → `preparing` → `delivered`) drives "Suivi". The gateway maps WooCommerce statuses to these steps.
+- **Account from an order** creates a WordPress customer with the order's name and phone and the given password (sent over HTTPS, never stored by the app). `422 validation` if the phone already has an account. Login and session tokens come with Feature 14.
 - **Deposits** are not in `total`: they are handed over at pickup (pending client confirmation).
 - **`Shop.whatsapp`** is digits only in international format (`225…`). The app opens `https://wa.me/<number>` with a pre-filled message; `null` hides the WhatsApp button.
 - **`SaleProduct.stock.quantity`** is the number of units the shop has (or `null` if unknown). The cart never goes above it.

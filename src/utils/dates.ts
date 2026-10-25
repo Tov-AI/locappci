@@ -54,8 +54,8 @@ export function formatMonth(year: number, month: number): string {
   return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${year}`;
 }
 
-/** "1 jour", "3 jours" */
-export const formatDays = (n: number) => `${n} jour${n > 1 ? 's' : ''}`;
+/** "1 jour", "3 jours" (non-breaking space: "1" never ends a line). */
+export const formatDays = (n: number) => `${n}\u00A0jour${n > 1 ? 's' : ''}`;
 
 const SHORT_DAYS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
 
