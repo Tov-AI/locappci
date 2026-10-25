@@ -4,6 +4,7 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-25 | Tab bar: 12 pt side padding and a minimum 12 pt bottom gap | On the OPPO A79 (full-screen gestures) the phone reports no bottom inset, so "Accueil" and "Compte" sat in the rounded corners and looked cut |
 | 2026-10-25 | Contract gains `checkCart` (POST `/v1/cart/check`): the whole cart in one request | One round trip on mobile data instead of one per item; Paiement (Feature 9) reuses it |
 | 2026-10-25 | "Commander" stops when something changed: blocking problems in red, price/quantity updates in orange; a second tap goes on | People never pay a price they haven't seen |
 | 2026-10-25 | Cart lines grouped by shop | Each shop delivers or hands over its own items (marketplace) |
