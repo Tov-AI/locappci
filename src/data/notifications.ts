@@ -6,10 +6,11 @@ import { storage, storageKeys } from '@/data/storage';
  * "Être prévenu dès que votre commande est expédiée ?" — our own question, asked before the
  * phone's system prompt (a "soft ask"). People who say yes get the real Android/iOS
  * permission prompt once push notifications are switched on (Feature 16).
- * "Plus tard" hides the question for 7 days.
+ * "Plus tard" hides the question for 7 days. The switch in Compte sets 'yes' or 'no'.
  */
 
-type Answer = { answer: 'yes' | 'later'; at: number };
+/** 'no' = switched off in Compte → Notifications: never ask again. */
+type Answer = { answer: 'yes' | 'later' | 'no'; at: number };
 
 const LATER_MS = 7 * 24 * 60 * 60_000;
 

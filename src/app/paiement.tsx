@@ -29,6 +29,7 @@ import { applyCartCheck, cartTotals, clearCart, getCartItems, toCheckLines, useC
 import { useCity } from '@/data/city';
 import { saveCustomer, useSavedCustomer } from '@/data/customer';
 import { useOnline } from '@/data/online';
+import { rememberOrder } from '@/data/orders';
 import { keys, useCartCheck, useCities, useCreateOrder, useDeliveryOptions } from '@/data/queries';
 import { colors, radius, space } from '@/theme';
 import { formatFcfa } from '@/utils/format';
@@ -142,6 +143,7 @@ export default function PaiementScreen() {
 
   const finish = (order: Order) => {
     queryClient.setQueryData(keys.order(order.id), order);
+    rememberOrder(order);
     clearCart();
     setPending(null);
     // Replace: "Retour" from the confirmation must not come back to a paid checkout.

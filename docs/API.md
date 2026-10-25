@@ -31,6 +31,8 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 | POST | `/v1/orders` | — · JSON body `OrderRequest` | `Order` |
 | GET | `/v1/orders/{id}` | — | `Order` |
 | POST | `/v1/accounts` | — · JSON body `{ "orderId", "password" }` (min 8 characters) | `Account` (`name`, `phone`) |
+| POST | `/v1/session` | — · JSON body `{ "phone", "password" }` | `Account` (session token added in Feature 14) |
+| POST | `/v1/accounts/delete` | — · JSON body `{ "phone", "password" }` | `204 No Content` |
 | POST | `/v1/products/{id}/reports` | — · JSON body `ProductReport`: `{ "reason": "scam" \| "forbidden" \| "wrong_info" \| "other", "details"?: string (max 500) }` | `204 No Content` |
 
 ### Behaviour the app relies on
@@ -49,6 +51,9 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - **Statuses**: cash → `confirmed` at once; Wave / Orange Money → `pending_payment` with a `paymentUrl` to open, then `paid` or `payment_failed` once the provider tells the gateway (Feature 15). The app reads the result with `GET /v1/orders/{id}`.
 - **`Order.shops`** tells each shop's items and delivery choice; **`Order.step`** (`confirmed` → `preparing` → `delivered`) drives "Suivi". The gateway maps WooCommerce statuses to these steps.
 - **Account from an order** creates a WordPress customer with the order's name and phone and the given password (sent over HTTPS, never stored by the app). `422 validation` if the phone already has an account. Login and session tokens come with Feature 14.
+- **`GET /v1/products?ids=a,b,c`** returns only those products, in that order (favourites). Unknown ids are skipped.
+- **Login errors** use one message for "unknown number" and "wrong password" (`401 unauthorized`), so nobody can test which numbers have an account. Rate-limit attempts.
+- **Account deletion** (required by Apple and Google): removes the WordPress customer and personal data; orders already placed stay with the shops for delivery and invoices.
 - **Deposits** are not in `total`: they are handed over at pickup (pending client confirmation).
 - **`Shop.whatsapp`** is digits only in international format (`225…`). The app opens `https://wa.me/<number>` with a pre-filled message; `null` hides the WhatsApp button.
 - **`SaleProduct.stock.quantity`** is the number of units the shop has (or `null` if unknown). The cart never goes above it.
