@@ -32,11 +32,11 @@ export function ProductRow({ item, cityName, onPress }: Props) {
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
       <View style={[styles.thumb, { backgroundColor: rental ? colors.brand.orangeTint : colors.brand.navyTint }]}>
+        {/* Stays visible if the photo is missing or fails to load. */}
+        <Feather name="image" size={26} color={rental ? colors.brand.orangeBorder : colors.brand.navyMuted} />
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : (
-          <Feather name="image" size={26} color={rental ? colors.brand.orangeBorder : colors.brand.navyMuted} />
-        )}
+        ) : null}
       </View>
 
       <View style={styles.texts}>

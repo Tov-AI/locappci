@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { usingMock, type ProductSummary, type Universe } from '@/api';
@@ -16,6 +16,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { Skeleton } from '@/components/Skeleton';
+import { clearCart, useCartCount } from '@/data/cart';
 import { clearFavourites, useFavourite, useFavouriteIds } from '@/data/favourites';
 import { isForcedOffline, setForcedOffline, useOnline } from '@/data/online';
 import { useCities, useProducts } from '@/data/queries';
@@ -24,6 +25,7 @@ import { colors, radius, space } from '@/theme';
 import { formatFcfa, formatTime } from '@/utils/format';
 
 type Latency = typeof mockSettings.latency;
+type NextCheck = typeof mockSettings.nextCheck;
 
 /**
  * Developer screen for Feature 3: products come from the mock API through the cache.
@@ -39,6 +41,15 @@ export default function DonneesScreen() {
   const [latency, setLatency] = useState<Latency>(mockSettings.latency);
   const [failAll, setFailAll] = useState(mockSettings.failAll);
   const [forced, setForced] = useState(isForcedOffline());
+  const [nextCheck, setNextCheck] = useState<NextCheck>(mockSettings.nextCheck);
+  const cartCount = useCartCount();
+
+  // The stock-check switch turns itself off after one use: re-read it when coming back here.
+  useFocusEffect(useCallback(() => setNextCheck(mockSettings.nextCheck), []));
+  const chooseNextCheck = (c: NextCheck) => {
+    mockSettings.nextCheck = c;
+    setNextCheck(c);
+  };
 
   const products = useProducts({ universe, cityId: 'cocody' });
   const cities = useCities();
@@ -93,6 +104,7 @@ export default function DonneesScreen() {
           />
           <Line label="Activité" value={products.isFetching ? 'Actualisation…' : 'Au repos'} />
           <Line label="Favoris enregistrés" value={String(favourites.size)} />
+          <Line label="Articles au panier" value={String(cartCount)} />
         </SectionCard>
 
         <SectionCard title="Simulations">
@@ -115,6 +127,18 @@ export default function DonneesScreen() {
           {favourites.size > 0 ? (
             <Button label="Effacer les favoris" variant="outline" icon="heart" onPress={clearFavourites} />
           ) : null}
+          {cartCount > 0 ? (
+            <Button label="Vider le panier" variant="outline" icon="shopping-cart" onPress={clearCart} />
+          ) : null}
+
+          <AppText variant="caption" color={colors.text.muted}>
+            PROCHAIN CONTRÔLE DE STOCK (UNE SEULE FOIS)
+          </AppText>
+          <View style={styles.chips}>
+            <Chip label="Normal" active={nextCheck === 'normal'} onPress={() => chooseNextCheck('normal')} />
+            <Chip label="Épuisé entre-temps" active={nextCheck === 'sold_out'} onPress={() => chooseNextCheck('sold_out')} />
+            <Chip label="Prix + 1 000" active={nextCheck === 'price_up'} onPress={() => chooseNextCheck('price_up')} />
+          </View>
         </SectionCard>
 
         <View style={styles.chips}>

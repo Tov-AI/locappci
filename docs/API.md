@@ -24,6 +24,7 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 | GET | `/v1/products/{id}` | — | `Product` (sale or rental, told apart by `universe`) |
 | GET | `/v1/shops/{id}` | — | `Shop` |
 | GET | `/v1/products/{id}/stock` | `shown_price` (the price the app displayed) | `StockCheck` |
+| POST | `/v1/products/{id}/reports` | — · JSON body `ProductReport`: `{ "reason": "scam" \| "forbidden" \| "wrong_info" \| "other", "details"?: string (max 500) }` | `204 No Content` |
 
 ### Behaviour the app relies on
 
@@ -32,6 +33,9 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - **`category`** matches the category and its sub-categories.
 - **Stock check** is never cached by the gateway. `priceChanged` is `true` when the current price differs from `shown_price`.
 - **Pagination:** `hasMore` is `true` when another page exists; the app loads it on scroll.
+- **Reports** ("Signaler cette annonce") are forwarded to the LOCAPPCI team, for example by email to the site admin. Return `404 not_found` if the product no longer exists, `422 validation` if `details` is over 500 characters. Rate-limit per device to stop spam.
+- **`Shop.whatsapp`** is digits only in international format (`225…`). The app opens `https://wa.me/<number>` with a pre-filled message; `null` hides the WhatsApp button.
+- **`SaleProduct.stock.quantity`** is the number of units the shop has (or `null` if unknown). The cart never goes above it.
 
 ## Example
 

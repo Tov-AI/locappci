@@ -125,7 +125,16 @@ export type ApiErrorBody = {
   message: string;
 };
 
-/** Everything the app can ask the gateway for in Feature 3. More endpoints arrive with later features. */
+export type ReportReason = 'scam' | 'forbidden' | 'wrong_info' | 'other';
+
+/** "Signaler cette annonce": the gateway forwards it to the LOCAPPCI team (e.g. by email). */
+export type ProductReport = {
+  reason: ReportReason;
+  /** Optional free text, at most 500 characters. */
+  details?: string;
+};
+
+/** Everything the app can ask the gateway for. More endpoints arrive with later features. */
 export interface LocappciApi {
   listCities(): Promise<City[]>;
   listCategories(universe?: Universe): Promise<Category[]>;
@@ -133,4 +142,5 @@ export interface LocappciApi {
   getProduct(id: string): Promise<Product>;
   getShop(id: string): Promise<Shop>;
   checkStock(productId: string, shownPrice: Fcfa): Promise<StockCheck>;
+  reportProduct(productId: string, report: ProductReport): Promise<void>;
 }

@@ -8,7 +8,12 @@ const TIMEOUT_MS = 10_000;
  * Not used until EXPO_PUBLIC_API_URL is set (see src/api/index.ts).
  */
 export function createHttpApi(baseUrl: string): LocappciApi {
-  async function get<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
+  async function request<T>(
+    method: 'GET' | 'POST',
+    path: string,
+    params?: Record<string, string | number | undefined>,
+    body?: unknown,
+  ): Promise<T> {
     const url = new URL(path, baseUrl);
     Object.entries(params ?? {}).forEach(([k, v]) => {
       if (v !== undefined && v !== '') url.searchParams.set(k, String(v));
@@ -19,7 +24,13 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     let res: Response;
     try {
       res = await fetch(url.toString(), {
-        headers: { Accept: 'application/json', 'Accept-Language': 'fr' },
+        method,
+        headers: {
+          Accept: 'application/json',
+          'Accept-Language': 'fr',
+          ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
     } catch {
@@ -35,8 +46,13 @@ export function createHttpApi(baseUrl: string): LocappciApi {
         body?.message ?? 'Un problème est survenu. Réessayez dans un instant.',
       );
     }
+    // 204 No Content (e.g. a report): nothing to read.
+    if (res.status === 204) return undefined as T;
     return (await res.json()) as T;
   }
+
+  const get = <T,>(path: string, params?: Record<string, string | number | undefined>) =>
+    request<T>('GET', path, params);
 
   const q = (query: ProductQuery) => ({
     universe: query.universe,
@@ -58,5 +74,7 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     getShop: (id) => get(`/v1/shops/${encodeURIComponent(id)}`),
     checkStock: (productId, shownPrice) =>
       get(`/v1/products/${encodeURIComponent(productId)}/stock`, { shown_price: shownPrice }),
+    reportProduct: (productId, report) =>
+      request('POST', `/v1/products/${encodeURIComponent(productId)}/reports`, undefined, report),
   };
 }

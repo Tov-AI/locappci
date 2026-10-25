@@ -17,6 +17,11 @@ export const mockSettings = {
   latency: 'normal' as 'fast' | 'normal' | 'slow',
   /** Every request fails as if the network were down. */
   failAll: false,
+  /**
+   * Answer of the NEXT live stock check only, then back to 'normal'.
+   * Lets us test "sold out meanwhile" and "price changed" on the phone.
+   */
+  nextCheck: 'normal' as 'normal' | 'sold_out' | 'price_up',
 };
 
 const delayMs = () => ({ fast: 50, normal: 400, slow: 2500 })[mockSettings.latency];
@@ -24,8 +29,11 @@ const delayMs = () => ({ fast: 50, normal: 400, slow: 2500 })[mockSettings.laten
 async function respond<T>(make: () => T): Promise<T> {
   await new Promise((r) => setTimeout(r, delayMs()));
   if (mockSettings.failAll) throw networkError();
+  const result = make();
+  // Nothing to return (e.g. a report was received).
+  if (result === undefined) return result;
   // Return a copy so screens can never change the "server" data by accident.
-  return JSON.parse(JSON.stringify(make())) as T;
+  return JSON.parse(JSON.stringify(result)) as T;
 }
 
 const shopName = (id: string) => shops.find((s) => s.id === id)?.name ?? '';
@@ -108,8 +116,25 @@ export const mockApi: LocappciApi = {
     respond((): StockCheck => {
       const p = products.find((x) => x.id === productId);
       if (!p) throw new ApiError('not_found', "Cette annonce n'est plus disponible.");
-      const price = p.universe === 'vente' ? p.price : p.pricePerDay;
-      const status = p.universe === 'vente' ? p.stock.status : 'in_stock';
+      const forced = mockSettings.nextCheck;
+      mockSettings.nextCheck = 'normal';
+      const realPrice = p.universe === 'vente' ? p.price : p.pricePerDay;
+      const price = forced === 'price_up' ? realPrice + 1000 : realPrice;
+      const status = forced === 'sold_out' ? 'out_of_stock' : p.universe === 'vente' ? p.stock.status : 'in_stock';
       return { productId, available: status !== 'out_of_stock', status, price, priceChanged: price !== shownPrice };
     }),
+
+  reportProduct: (productId, report) =>
+    respond(() => {
+      if (!products.some((x) => x.id === productId)) {
+        throw new ApiError('not_found', "Cette annonce n'est plus disponible.");
+      }
+      if ((report.details?.length ?? 0) > 500) {
+        throw new ApiError('validation', 'Le message ne doit pas dépasser 500 caractères.');
+      }
+      reports.push({ productId, ...report, at: new Date().toISOString() });
+    }),
 };
+
+/** Reports received by the mock, so we can check them in tests. */
+export const reports: { productId: string; reason: string; details?: string; at: string }[] = [];

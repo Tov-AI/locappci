@@ -13,6 +13,8 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ToastHost } from '@/components/Toast';
+import { loadCart } from '@/data/cart';
 import { loadCity } from '@/data/city';
 import { loadFavourites } from '@/data/favourites';
 import { startOnlineTracking } from '@/data/online';
@@ -22,11 +24,12 @@ import { persistOptions, queryClient } from '@/data/queryClient';
 // Keep the splash screen up until the brand font is ready, so text never flashes in the wrong font.
 SplashScreen.preventAutoHideAsync();
 
-// Start once, outside React: follow the network and read saved favourites.
+// Start once, outside React: follow the network and read what the phone saved.
 startOnlineTracking();
 loadFavourites();
 loadCity();
 loadRecentSearches();
+loadCart();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -59,6 +62,7 @@ export default function RootLayout() {
             <Stack.Screen name="donnees" />
             <Stack.Screen name="produit/[id]" />
           </Stack>
+          <ToastHost />
         </PersistQueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

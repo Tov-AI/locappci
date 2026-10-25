@@ -36,11 +36,11 @@ export function ProductCard({ item, cityName, onPress }: Props) {
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={[styles.photo, { backgroundColor: rental ? colors.brand.orangeTint : colors.brand.navyTint }]}>
+        {/* Stays visible if the photo is missing or fails to load. */}
+        <Feather name="image" size={36} color={rental ? colors.brand.orangeBorder : colors.brand.navyMuted} />
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : (
-          <Feather name="image" size={36} color={rental ? colors.brand.orangeBorder : colors.brand.navyMuted} />
-        )}
+        ) : null}
         {rental ? <Tag label="Location" style={styles.tag} /> : null}
         {soldOut ? <Tag label="Épuisé" tone="neutral" style={styles.tag} /> : null}
         <FavouriteButton saved={saved} onToggle={toggle} small style={styles.heart} />

@@ -35,13 +35,18 @@ export const shops: Shop[] = [
 ];
 
 const web = (slug: string) => `https://locappci.fr/produit/${slug}/`;
+/** Plain brand-coloured placeholder pictures ("Photo 1"…), only to test the photo carousel. */
+const photo = (n: number) => `https://placehold.co/800x600/E9EDF7/002366/png?text=Photo+${n}`;
 const at = '2026-10-24T09:00:00Z';
 
 export const products: Product[] = [
   {
     id: 'p-ventilateur-16', universe: 'vente', name: 'Ventilateur sur pied 16"',
-    description: 'Ventilateur 3 vitesses, hauteur réglable, oscillation. Livraison possible à Abidjan ou retrait en boutique.',
-    images: [], categoryId: 'ventilation', shopId: 'kone-electro', cityId: 'yopougon', webUrl: web('ventilateur-16'), updatedAt: at,
+    description:
+      'Ventilateur sur pied 16 pouces (40 cm), 3 vitesses, hauteur réglable de 1,10 m à 1,30 m et oscillation automatique pour rafraîchir toute la pièce. ' +
+      'Moteur silencieux en cuivre, 45 W, adapté à un usage quotidien. Grille amovible pour le nettoyage. ' +
+      'Garantie boutique 6 mois. Livraison possible partout à Abidjan ou retrait en boutique à Yopougon.',
+    images: [photo(1), photo(2), photo(3)], categoryId: 'ventilation', shopId: 'kone-electro', cityId: 'yopougon', webUrl: web('ventilateur-16'), updatedAt: at,
     price: 18500, stock: { status: 'in_stock', quantity: 4 },
   },
   {
@@ -53,7 +58,7 @@ export const products: Product[] = [
   {
     id: 'p-climatiseur', universe: 'vente', name: 'Climatiseur mobile 9000 BTU',
     description: 'Avec télécommande et kit fenêtre.',
-    images: [], categoryId: 'ventilation', shopId: 'kone-electro', cityId: 'yopougon', webUrl: web('climatiseur'), updatedAt: at,
+    images: [photo(1)], categoryId: 'ventilation', shopId: 'kone-electro', cityId: 'yopougon', webUrl: web('climatiseur'), updatedAt: at,
     price: 185000, stock: { status: 'low_stock', quantity: 2 },
   },
   {
