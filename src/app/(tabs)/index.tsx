@@ -21,6 +21,16 @@ import { formatTime } from '@/utils/format';
 const COMING_SOON = ['Services', 'Immobilier', 'Emploi', '+ 4 univers'];
 
 /**
+ * With an odd number of products, the last card would stretch across the whole row.
+ * An invisible spacer fills the empty half so every card keeps the same width.
+ */
+const SPACER_ID = '__spacer__';
+function padToEvenRow(items: ProductSummary[]): ProductSummary[] {
+  if (items.length % 2 === 0) return items;
+  return [...items, { ...items[0], id: SPACER_ID }];
+}
+
+/**
  * Accueil: get the user into Vente or Location in one tap.
  * Loads from the phone's cache first, then refreshes in the background.
  */
@@ -153,19 +163,23 @@ export default function AccueilScreen() {
       ) : null}
 
       <FlatList
-        data={products.isPending || showError ? [] : items}
+        data={products.isPending || showError ? [] : padToEvenRow(items)}
         keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.content}
         ListHeaderComponent={header}
-        renderItem={({ item }) => (
-          <ProductCard
-            item={item}
-            cityName={cityNames.get(item.cityId) ?? ''}
-            onPress={() => openProduct(item)}
-          />
-        )}
+        renderItem={({ item }) =>
+          item.id === SPACER_ID ? (
+            <View style={styles.spacer} />
+          ) : (
+            <ProductCard
+              item={item}
+              cityName={cityNames.get(item.cityId) ?? ''}
+              onPress={() => openProduct(item)}
+            />
+          )
+        }
         ListEmptyComponent={
           products.isPending ? (
             <View style={styles.skeletons}>
@@ -297,4 +311,5 @@ const styles = StyleSheet.create({
   row: { gap: space.md },
   skeletons: { gap: space.md },
   more: { paddingVertical: space.lg },
+  spacer: { flex: 1 },
 });
