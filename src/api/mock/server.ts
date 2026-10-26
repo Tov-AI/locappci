@@ -155,8 +155,22 @@ export const mockApi: LocappciApi = {
       return { productId, bookedDates: bookedDates(productId) };
     }),
 
-  getDeliveryOptions: (shopIds) =>
-    respond(() => shopIds.map((shopId) => ({ shopId, options: deliveryOptionsFor(shopId) }))),
+  getDeliveryOptions: (shopIds, cityId) =>
+    respond(() => shopIds.map((shopId) => ({ shopId, options: deliveryOptionsFor(shopId, cityId) }))),
+
+  submitPaymentReference: (orderId, reference) =>
+    respond(() => {
+      const o = orders.get(orderId);
+      if (!o) throw new ApiError('not_found', 'Commande introuvable.');
+      const ref = reference.trim().replace(/\s+/g, '');
+      if (!REFERENCE.test(ref)) {
+        throw new ApiError('validation', 'Référence invalide : recopiez l’identifiant de la transaction reçu par SMS.');
+      }
+      if (o.status === 'paid' || o.status === 'cancelled') return o;
+      const next: Order = { ...o, status: 'awaiting_confirmation', paymentReference: ref };
+      orders.set(o.id, next);
+      return next;
+    }),
 
   createOrder: (req) =>
     respond(() => {
@@ -190,7 +204,7 @@ export const mockApi: LocappciApi = {
       const orderShops: OrderShop[] = [];
       for (const shopId of shopIds) {
         const choice = req.deliveries.find((d) => d.shopId === shopId);
-        const option = deliveryOptionsFor(shopId).find((o) => o.id === choice?.optionId);
+        const option = deliveryOptionsFor(shopId, req.deliveryCityId).find((o) => o.id === choice?.optionId);
         if (!option) throw new ApiError('validation', 'Choisissez une livraison pour chaque boutique.');
         deliveryTotal += option.price;
         homeDelivery ||= option.kind === 'home';
@@ -236,6 +250,8 @@ export const mockApi: LocappciApi = {
         total: itemsTotal + deliveryTotal,
         depositTotal,
         paymentUrl: null,
+        transferTo: req.paymentMethod === 'cash' ? null : TRANSFER_TO,
+        paymentReference: null,
         createdAt: new Date().toISOString(),
         step: 'confirmed',
         customer,
@@ -343,8 +359,35 @@ function checkCartLine(line: Parameters<LocappciApi['checkCart']>[0][number], fo
   return { ...base, ok: true };
 }
 
-/** Delivery choices: sellers deliver (1 500 FCFA) or hand over in the shop; rental shops hand over only. */
-function deliveryOptionsFor(shopId: string): DeliveryOption[] {
+/** Rough centre of each commune (latitude, longitude), only to price delivery by distance in the mock. */
+const COMMUNE_POINTS: Record<string, [number, number]> = {
+  cocody: [5.354, -3.99],
+  yopougon: [5.336, -4.088],
+  marcory: [5.302, -3.983],
+  plateau: [5.323, -4.023],
+  treichville: [5.3, -4.01],
+  abobo: [5.418, -4.02],
+  bingerville: [5.355, -3.885],
+};
+
+/** Road kilometres between two communes: straight line × 1.3, at least 3 km (same commune). */
+export function roadKm(from: string, to: string | undefined): number {
+  const a = COMMUNE_POINTS[from];
+  const b = to ? COMMUNE_POINTS[to] : undefined;
+  if (!a || !b) return 3;
+  const kmLat = (a[0] - b[0]) * 111;
+  const kmLng = (a[1] - b[1]) * 111 * Math.cos((a[0] * Math.PI) / 180);
+  return Math.max(3, Math.round(Math.hypot(kmLat, kmLng) * 1.3));
+}
+
+/**
+ * Sample tariff until the client gives the real one ("calculé selon la distance"):
+ * 1 000 FCFA + 150 FCFA per km, rounded up to 100.
+ */
+export const deliveryPrice = (km: number) => Math.ceil((1000 + 150 * km) / 100) * 100;
+
+/** Delivery choices: sellers deliver (price by distance) or hand over in the shop; rental shops hand over only. */
+function deliveryOptionsFor(shopId: string, cityId?: string): DeliveryOption[] {
   const shop = shops.find((s) => s.id === shopId);
   if (!shop) return [];
   const commune = cities.find((c) => c.id === shop.cityId)?.name ?? '';
@@ -356,8 +399,15 @@ function deliveryOptionsFor(shopId: string): DeliveryOption[] {
     detail: commune,
   };
   if (shop.role === 'loueur') return [pickup];
-  return [{ id: 'home', kind: 'home', label: 'À domicile', price: 1500, detail: '24–48\u00A0h' }, pickup];
+  const km = roadKm(shop.cityId, cityId);
+  return [
+    { id: 'home', kind: 'home', label: 'À domicile', price: deliveryPrice(km), detail: `≈\u00A0${km}\u00A0km · 24–48\u00A0h` },
+    pickup,
+  ];
 }
+
+/** The LOCAPPCI Wave / Orange Money number that receives transfers (sample; the gateway reads the real one from its settings). */
+const TRANSFER_TO = { number: '2250700000099', name: 'LOCAPPCI (exemple)' };
 
 /** Orders made in the mock, and which idempotency key created which order. */
 const orders = new Map<string, Order>();
@@ -370,8 +420,24 @@ let nextOrderNumber = 24817;
  */
 export function simulatePayment(orderId: string, outcome: 'paid' | 'payment_failed') {
   const o = orders.get(orderId);
-  if (o && o.status === 'pending_payment') orders.set(orderId, { ...o, status: outcome });
+  if (o && (o.status === 'pending_payment' || o.status === 'awaiting_confirmation')) {
+    orders.set(orderId, { ...o, status: outcome });
+  }
 }
+
+/** Mock only (Données dev screen): the team checks every transfer waiting for confirmation. */
+export function confirmAwaitingTransfers(outcome: 'paid' | 'payment_failed') {
+  let n = 0;
+  for (const o of orders.values()) {
+    if (o.status === 'awaiting_confirmation') {
+      orders.set(o.id, { ...o, status: outcome });
+      n++;
+    }
+  }
+  return n;
+}
+
+const REFERENCE = /^[A-Za-z0-9._-]{6,40}$/;
 
 /** Accounts created in the mock, by phone number. (The real gateway never keeps plain passwords: WordPress hashes them.) */
 const accounts = new Map<string, Account & { password: string }>();

@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { usingMock, type ProductSummary, type Universe } from '@/api';
-import { mockSettings } from '@/api/mock/server';
+import { confirmAwaitingTransfers, mockSettings } from '@/api/mock/server';
 import { AppText } from '@/components/AppText';
 import { Tag } from '@/components/Badge';
 import { Button } from '@/components/Button';
@@ -16,6 +16,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { Skeleton } from '@/components/Skeleton';
+import { showToast } from '@/components/Toast';
 import { clearCart, useCartCount } from '@/data/cart';
 import { clearFavourites, useFavourite, useFavouriteIds } from '@/data/favourites';
 import { isForcedOffline, setForcedOffline, useOnline } from '@/data/online';
@@ -135,6 +136,26 @@ export default function DonneesScreen() {
           ) : null}
 
           <Button label="Simuler un plantage" variant="outline" icon="zap" onPress={() => setCrash(true)} />
+
+          <AppText variant="caption" color={colors.text.muted}>
+            TRANSFERTS WAVE / ORANGE MONEY EN ATTENTE (L’ÉQUIPE LOCAPPCI)
+          </AppText>
+          <View style={styles.row}>
+            <Button
+              label="Valider"
+              variant="outline"
+              icon="check"
+              onPress={() => showToast(`${confirmAwaitingTransfers('paid')} transfert(s) validé(s).`)}
+              style={styles.grow}
+            />
+            <Button
+              label="Refuser"
+              variant="outline"
+              icon="x"
+              onPress={() => showToast(`${confirmAwaitingTransfers('payment_failed')} transfert(s) refusé(s).`)}
+              style={styles.grow}
+            />
+          </View>
 
           <AppText variant="caption" color={colors.text.muted}>
             PROCHAIN CONTRÔLE STOCK / DISPONIBILITÉ (UNE SEULE FOIS)

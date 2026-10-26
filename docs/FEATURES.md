@@ -21,4 +21,6 @@ One feature at a time, in order. Write your name in **Owner** when you start one
 | 15 | Wave / Orange Money hand-off + deep link back | Blocked | | Payment plugin |
 | 16 | Push notifications (webhooks → Expo Push). Must ask the system permission of people who said "Oui, me prévenir" (Feature 10) before launch | Blocked | | Admin access |
 
+**Client answers, round 1 (2026-10-26):** hosting Hostinger; plugins WooCommerce, WCFM Multivendor, WooCommerce Booking & Rental (RnB), Simple JWT Login, WP Job Manager (Emploi), TeraWallet; no Wave/OM merchant account (payments to standard accounts) → transfer + reference in v1; delivery paid by the customer, priced by distance; no cash on delivery; deposit online or cash at pickup, broken item charged, late return penalty; shop WhatsApp numbers shown (agreed); support WhatsApp +44 7748 039794. Gateway = WordPress plugin on the same site. Still to come: LOCAPPCI Wave/OM numbers that receive transfers, delivery tariff, penalty amounts, the other universes.
+
 Status values: Not started · In progress · In review · Done · Blocked.

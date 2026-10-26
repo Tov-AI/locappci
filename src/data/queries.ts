@@ -15,7 +15,8 @@ export const keys = {
   product: (id: string) => ['product', id] as const,
   shop: (id: string) => ['shop', id] as const,
   rentalCalendar: (id: string) => ['rentalCalendar', id] as const,
-  deliveryOptions: (shopIds: string[]) => ['deliveryOptions', [...shopIds].sort()] as const,
+  deliveryOptions: (shopIds: string[], cityId?: string) =>
+    ['deliveryOptions', [...shopIds].sort(), cityId ?? 'none'] as const,
   order: (id: string) => ['order', id] as const,
 };
 
@@ -115,13 +116,14 @@ export const useCartCheck = () =>
     networkMode: 'online',
   });
 
-/** Delivery choices for the shops in the cart. */
-export const useDeliveryOptions = (shopIds: string[]) =>
+/** Delivery choices for the shops in the cart, priced for the commune `cityId`. Keeps the last prices while the commune changes. */
+export const useDeliveryOptions = (shopIds: string[], cityId?: string) =>
   useQuery({
-    queryKey: keys.deliveryOptions(shopIds),
-    queryFn: () => api.getDeliveryOptions(shopIds),
+    queryKey: keys.deliveryOptions(shopIds, cityId),
+    queryFn: () => api.getDeliveryOptions(shopIds, cityId),
     enabled: shopIds.length > 0,
     staleTime: 10 * 60_000,
+    placeholderData: (previous) => previous,
   });
 
 /** Creates the order. Safe to retry thanks to the idempotency key in the request. */
@@ -141,6 +143,8 @@ export const useOrder = (id: string) =>
     queryFn: () => api.getOrder(id),
     initialData: () => getRememberedOrder(id),
     initialDataUpdatedAt: 0, // always refresh once
+    // A status can change any minute (transfer checked, order shipped): always ask again on open.
+    staleTime: 0,
   });
 
 /** "Créer mon compte" after an order. */

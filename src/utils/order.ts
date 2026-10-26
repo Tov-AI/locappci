@@ -16,7 +16,9 @@ export function trackingText(s: OrderShop, o: Order): string {
     const what = units === 1 ? `«\u00A0${sale[0].name}\u00A0»` : `vos ${units} articles`;
     if (s.delivery.kind === 'home') {
       const commune = o.customer.address.split(',')[0].trim();
-      parts.push(`${s.shopName} prépare ${what}. Livraison prévue sous ${s.delivery.detail.replace('–', ' à ')}${commune ? ` à ${commune}` : ''}.`);
+      // detail looks like "≈ 29 km · 24–48 h": keep only the delay.
+      const delay = (s.delivery.detail.split('·').pop() ?? '').trim().replace('–', ' à ');
+      parts.push(`${s.shopName} prépare ${what}. Livraison prévue sous ${delay}${commune ? ` à ${commune}` : ''}.`);
     } else {
       parts.push(`${s.shopName} prépare ${what}. Retrait en boutique à ${s.delivery.detail} : la boutique vous appelle au ${formatCiPhone(o.customer.phone)} quand c’est prêt.`);
     }

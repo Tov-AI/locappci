@@ -27,7 +27,8 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 | GET | `/v1/products/{id}/calendar` | — | `RentalCalendar` (booked days from today, `YYYY-MM-DD`) |
 | GET | `/v1/products/{id}/rental-check` | `start_date` (`YYYY-MM-DD`), `days`, `shown_price_per_day` | `RentalCheck` |
 | POST | `/v1/cart/check` | — · JSON body `{ "lines": CartCheckLine[] }` | `CartCheck` |
-| GET | `/v1/delivery-options` | `shops` (comma-separated shop ids) | `ShopDelivery[]` |
+| GET | `/v1/delivery-options` | `shops` (comma-separated shop ids), `city` (delivery commune) | `ShopDelivery[]` |
+| POST | `/v1/orders/{id}/payment-reference` | — · JSON body `{ "reference" }` | `Order` (status `awaiting_confirmation`) |
 | POST | `/v1/orders` | — · JSON body `OrderRequest` | `Order` |
 | GET | `/v1/orders/{id}` | — | `Order` |
 | POST | `/v1/accounts` | — · JSON body `{ "orderId", "password" }` (min 8 characters) | `Account` (`name`, `phone`) |
@@ -54,6 +55,9 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - **`GET /v1/products?ids=a,b,c`** returns only those products, in that order (favourites). Unknown ids are skipped.
 - **Login errors** use one message for "unknown number" and "wrong password" (`401 unauthorized`), so nobody can test which numbers have an account. Rate-limit attempts.
 - **Account deletion** (required by Apple and Google): removes the WordPress customer and personal data; orders already placed stay with the shops for delivery and invoices.
+- **Payment v1 (no merchant accounts yet)**: Wave / Orange Money orders come back `pending_payment` with `transferTo` (the LOCAPPCI number and name, from the gateway settings). The customer transfers `total`, then sends the transaction reference → `awaiting_confirmation`. The team checks it in WordPress and sets `paid` (or `payment_failed`). With merchant accounts later, `paymentUrl` replaces `transferTo` (Feature 15).
+- **Delivery price** depends on the distance between the shop and the delivery commune (`city`); `detail` shows "≈ 14 km · 24–48 h". The real tariff is to confirm with the client.
+- **No cash on delivery** in v1 (client's answer); `cash` stays in the contract for later.
 - **Deposits** are not in `total`: they are handed over at pickup (pending client confirmation).
 - **`Shop.whatsapp`** is digits only in international format (`225…`). The app opens `https://wa.me/<number>` with a pre-filled message; `null` hides the WhatsApp button.
 - **`SaleProduct.stock.quantity`** is the number of units the shop has (or `null` if unknown). The cart never goes above it.

@@ -204,6 +204,7 @@ export type DeliveryOption = {
 /** Delivery choices of one shop (each shop delivers or hands over its own items). */
 export type ShopDelivery = { shopId: string; options: DeliveryOption[] };
 
+/** 'cash' stays in the contract for later; the client said no cash on delivery for v1. */
 export type PaymentMethod = 'wave' | 'orange_money' | 'cash';
 
 export type Customer = {
@@ -223,11 +224,14 @@ export type OrderRequest = {
   customer: Customer;
   lines: CartCheckLine[];
   deliveries: { shopId: string; optionId: string }[];
+  /** Commune to deliver to: home delivery is priced by distance from each shop. */
+  deliveryCityId?: string;
   paymentMethod: PaymentMethod;
 };
 
 export type OrderStatus =
   | 'pending_payment' // waiting for Wave / Orange Money
+  | 'awaiting_confirmation' // transfer reference sent; the team checks it
   | 'paid'
   | 'confirmed' // cash on delivery: accepted, paid later
   | 'payment_failed'
@@ -257,8 +261,15 @@ export type Order = {
   total: Fcfa;
   /** Refundable deposits, handed over at pickup; not in total. */
   depositTotal: Fcfa;
-  /** Wave / Orange Money page to open, or null (cash, or the mock). */
+  /** Wave / Orange Money page to open (merchant accounts, later), or null. */
   paymentUrl: string | null;
+  /**
+   * v1 without merchant accounts: send the amount to this number by transfer,
+   * then give the transaction reference. null when paymentUrl is used instead.
+   */
+  transferTo: { number: string; name: string } | null;
+  /** Reference typed by the customer after the transfer. */
+  paymentReference: string | null;
   createdAt: IsoDateTime;
   step: OrderStep;
   customer: Customer;
@@ -293,7 +304,10 @@ export interface LocappciApi {
   getRentalCalendar(productId: string): Promise<RentalCalendar>;
   checkRental(productId: string, request: RentalRequest): Promise<RentalCheck>;
   checkCart(lines: CartCheckLine[]): Promise<CartCheck>;
-  getDeliveryOptions(shopIds: string[]): Promise<ShopDelivery[]>;
+  /** `cityId`: where to deliver, for the distance-based price. */
+  getDeliveryOptions(shopIds: string[], cityId?: string): Promise<ShopDelivery[]>;
+  /** "J'ai payé": sends the Wave / Orange Money transaction reference. */
+  submitPaymentReference(orderId: string, reference: string): Promise<Order>;
   createOrder(request: OrderRequest): Promise<Order>;
   getOrder(id: string): Promise<Order>;
   createAccount(request: AccountRequest): Promise<Account>;

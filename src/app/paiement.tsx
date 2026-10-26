@@ -13,8 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api, ApiError, usingMock, type Order, type PaymentMethod } from '@/api';
-import { simulatePayment } from '@/api/mock/server';
+import { api, ApiError, type Order, type PaymentMethod } from '@/api';
 import { AppText } from '@/components/AppText';
 import { BottomActionBar } from '@/components/BottomActionBar';
 import { Button } from '@/components/Button';
@@ -22,7 +21,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { IconButton } from '@/components/IconButton';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { InitialTile, OptionCard } from '@/components/OptionCard';
-import { PaymentSimulationSheet, type SimulatedOutcome } from '@/components/PaymentSimulationSheet';
+import { TransferSheet } from '@/components/TransferSheet';
 import { SectionCard } from '@/components/SectionCard';
 import { TextField } from '@/components/TextField';
 import { applyCartCheck, cartTotals, clearCart, getCartItems, toCheckLines, useCartItems } from '@/data/cart';
@@ -37,9 +36,9 @@ import { useGoBack } from '@/utils/navigation';
 import { formatCiPhone, normalizeCiPhone } from '@/utils/phone';
 
 const METHODS: { id: PaymentMethod; initial: string; label: string; hint: string }[] = [
-  { id: 'wave', initial: 'W', label: 'Wave', hint: 'Paiement sécurisé, sans frais pour vous' },
-  { id: 'orange_money', initial: 'OM', label: 'Orange Money', hint: 'Code de confirmation par SMS' },
-  { id: 'cash', initial: '₣', label: 'Paiement à la livraison', hint: 'En espèces, après vérification' },
+  // No cash on delivery (client's answer). Transfer to the LOCAPPCI number until merchant accounts exist.
+  { id: 'wave', initial: 'W', label: 'Wave', hint: 'Transfert vers LOCAPPCI, puis la référence' },
+  { id: 'orange_money', initial: 'OM', label: 'Orange Money', hint: 'Transfert vers LOCAPPCI, puis la référence' },
 ];
 
 const PAY_LABEL: Record<PaymentMethod, string> = {
@@ -65,8 +64,9 @@ const newKey = () => `${Date.now().toString(36)}-${Math.random().toString(36).sl
 
 /**
  * Paiement (Feature 9): contact details (no account), delivery per shop, payment method.
- * "Payer" re-checks the cart, creates the order (idempotent), then hands over to
- * Wave / Orange Money. Until Feature 15, the mock shows a simulation sheet instead.
+ * "Payer" re-checks the cart, creates the order (idempotent), then shows how to pay:
+ * v1 = transfer to the LOCAPPCI Wave / Orange Money number + transaction reference;
+ * with merchant accounts later (Feature 15) = the provider's payment page.
  */
 export default function PaiementScreen() {
   const router = useRouter();
@@ -84,17 +84,23 @@ export default function PaiementScreen() {
   const cityNames = useMemo(() => (cities.data ?? []).map((c) => c.name), [cities.data]);
   const shopIds = useMemo(() => [...new Set(items.map((i) => i.shopId))], [items]);
   const shopNames = useMemo(() => new Map(items.map((i) => [i.shopId, i.shopName])), [items]);
-  const delivery = useDeliveryOptions(shopIds);
+  const [address, setAddress] = useState(savedCustomer?.address ?? '');
+  // Delivery is priced by distance: deliver to the commune named in the address, else the chosen one.
+  const deliveryCityId = useMemo(() => {
+    const text = address.trim().toLowerCase();
+    const named = (cities.data ?? []).find((c) => text.startsWith(c.name.toLowerCase()));
+    return named?.id ?? (city || undefined);
+  }, [address, cities.data, city]);
+  const delivery = useDeliveryOptions(shopIds, deliveryCityId);
 
   const [name, setName] = useState(savedCustomer?.name ?? '');
   const [phone, setPhone] = useState(savedCustomer ? formatCiPhone(savedCustomer.phone) : '');
-  const [address, setAddress] = useState(savedCustomer?.address ?? '');
   const [method, setMethod] = useState<PaymentMethod>('wave');
   const [choices, setChoices] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Errors>({});
   const [notice, setNotice] = useState<Notice | null>(null);
   const [pending, setPending] = useState<Order | null>(null);
-  const [simulating, setSimulating] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [working, setWorking] = useState(false);
 
   // Saved details may load a moment after the screen opens: fill empty fields once.
@@ -163,17 +169,17 @@ export default function PaiementScreen() {
     }
   };
 
-  const onSimulated = async (outcome: SimulatedOutcome) => {
-    setSimulating(false);
-    if (!pending) return;
-    if (outcome === 'cancelled') {
-      showNotice({ text: 'Paiement non terminé. Votre commande vous attend : appuyez à nouveau sur le bouton pour payer.' });
-      return;
+  /** "J'ai payé" in the transfer sheet. Returns an error message to show in the sheet, if any. */
+  const submitReference = async (reference: string) => {
+    if (!pending) return undefined;
+    try {
+      const order = await api.submitPaymentReference(pending.id, reference);
+      setTransferOpen(false);
+      finish(order);
+      return undefined;
+    } catch (e) {
+      return e instanceof Error ? e.message : 'Envoi impossible. Réessayez.';
     }
-    simulatePayment(pending.id, outcome);
-    setWorking(true);
-    await afterPaymentAttempt(pending);
-    setWorking(false);
   };
 
   const pay = async () => {
@@ -208,6 +214,7 @@ export default function PaiementScreen() {
         customer,
         lines: toCheckLines(getCartItems()),
         deliveries: Object.entries(choices).map(([shopId, optionId]) => ({ shopId, optionId })),
+        deliveryCityId,
         paymentMethod: method,
       });
 
@@ -218,9 +225,12 @@ export default function PaiementScreen() {
         setPending(order);
         await Linking.openURL(order.paymentUrl);
         showNotice({ text: 'Une fois le paiement validé, revenez ici et appuyez sur « J’ai payé ».' });
-      } else if (usingMock) {
+      } else if (order.status === 'awaiting_confirmation') {
+        // Reference already sent for this order (retry after closing the app, say).
+        finish(order);
+      } else if (order.transferTo) {
         setPending(order);
-        setSimulating(true);
+        setTransferOpen(true);
       }
     } catch (e) {
       if (e instanceof ApiError && e.code === 'cart_changed') {
@@ -418,12 +428,15 @@ export default function PaiementScreen() {
         </BottomActionBar>
       </KeyboardAvoidingView>
 
-      {usingMock && pending ? (
-        <PaymentSimulationSheet
-          visible={simulating}
-          method={pending.paymentMethod}
-          amount={pending.total}
-          onResult={onSimulated}
+      {pending?.transferTo ? (
+        <TransferSheet
+          visible={transferOpen}
+          onClose={() => {
+            setTransferOpen(false);
+            showNotice({ text: 'Paiement non terminé. Votre commande vous attend : appuyez à nouveau sur le bouton pour payer.' });
+          }}
+          order={pending}
+          onSubmit={submitReference}
         />
       ) : null}
     </SafeAreaView>

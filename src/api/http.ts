@@ -82,7 +82,9 @@ export function createHttpApi(baseUrl: string): LocappciApi {
         days: request.days,
         shown_price_per_day: request.shownPricePerDay,
       }),
-    getDeliveryOptions: (shopIds) => get('/v1/delivery-options', { shops: shopIds.join(',') }),
+    getDeliveryOptions: (shopIds, cityId) => get('/v1/delivery-options', { shops: shopIds.join(','), city: cityId }),
+    submitPaymentReference: (orderId, reference) =>
+      request('POST', `/v1/orders/${encodeURIComponent(orderId)}/payment-reference`, undefined, { reference }),
     createOrder: (order) => request('POST', '/v1/orders', undefined, order),
     login: (req) => request('POST', '/v1/session', undefined, req),
     deleteAccount: (req) => request('POST', '/v1/accounts/delete', undefined, req),
