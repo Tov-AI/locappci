@@ -24,6 +24,8 @@ import { colors, radius, size, space } from '@/theme';
 import { formatFcfa } from '@/utils/format';
 import { trackingText } from '@/utils/order';
 
+const PROVIDER: Record<PaymentMethod, string> = { wave: 'Wave', orange_money: 'Orange Money', cash: 'espèces' };
+
 const PAID_WITH: Record<PaymentMethod, string> = {
   wave: 'payée avec Wave',
   orange_money: 'payée avec Orange Money',
@@ -84,6 +86,16 @@ export default function CommandeScreen() {
   }
 
   const settled = o.status === 'paid' || o.status === 'confirmed';
+  const checking = o.status === 'awaiting_confirmation';
+  const refused = o.status === 'payment_failed';
+  const title = settled
+    ? 'Commande confirmée'
+    : checking
+      ? 'Commande enregistrée'
+      : refused
+        ? 'Transfert non validé'
+        : 'Paiement en attente';
+  const paymentText = checking ? `transfert ${PROVIDER[o.paymentMethod]} en vérification` : PAID_WITH[o.paymentMethod];
   // One shop with WhatsApp: the "Vendeur" button writes to it. Several shops: each line has its own link.
   const singleShop = o.shops.length === 1 ? o.shops[0] : undefined;
 
@@ -96,15 +108,32 @@ export default function CommandeScreen() {
               <Feather name={settled ? 'check' : 'clock'} size={32} color={colors.text.inverse} />
             </View>
             <AppText variant="display" accessibilityRole="header" style={styles.centerText}>
-              {settled ? 'Commande confirmée' : 'Paiement en attente'}
+              {title}
             </AppText>
             <AppText variant="secondary" color={colors.text.muted} style={styles.centerText}>
-              {`N° ${o.number} · ${PAID_WITH[o.paymentMethod]} · ${formatFcfa(o.total)}`}
+              {`N° ${o.number} · ${paymentText} · ${formatFcfa(o.total)}`}
             </AppText>
           </View>
 
+          {checking ? (
+            <View style={styles.checkingBox} accessibilityRole="alert">
+              <Feather name="clock" size={20} color={colors.brand.orangeText} />
+              <AppText variant="meta" color={colors.brand.orangeTextDark} style={styles.flex}>
+                {`LOCAPPCI vérifie votre transfert${o.paymentReference ? ` (réf. ${o.paymentReference})` : ''}. La boutique prépare votre commande dès la confirmation. Suivez l’état dans Compte → Mes commandes.`}
+              </AppText>
+            </View>
+          ) : null}
+          {refused ? (
+            <View style={styles.refusedBox} accessibilityRole="alert">
+              <Feather name="alert-circle" size={20} color={colors.status.danger} />
+              <AppText variant="meta" color={colors.text.primary} style={styles.flex}>
+                Nous n’avons pas trouvé votre transfert. Si vous avez bien payé, écrivez au support LOCAPPCI avec la référence de la transaction.
+              </AppText>
+            </View>
+          ) : null}
+
           <SectionCard title="Suivi">
-            <Progress step={o.step} />
+            <Progress step={o.step} started={settled} />
             {o.shops.map((s) => (
               <View key={s.shopId} style={styles.shopLine}>
                 <AppText variant="meta" color={colors.text.body}>
@@ -142,13 +171,16 @@ export default function CommandeScreen() {
 }
 
 /** Three bars: green up to the current step. */
-function Progress({ step }: { step: OrderStep }) {
-  const current = STEPS.findIndex((s) => s.id === step);
+function Progress({ step, started }: { step: OrderStep; started: boolean }) {
+  // Not paid/checked yet: no step is green.
+  const current = started ? STEPS.findIndex((s) => s.id === step) : -1;
   return (
     <View
       style={styles.steps}
       accessible
-      accessibilityLabel={`Suivi : étape ${current + 1} sur ${STEPS.length}, ${STEPS[current].label}`}>
+      accessibilityLabel={
+        current >= 0 ? `Suivi : étape ${current + 1} sur ${STEPS.length}, ${STEPS[current].label}` : 'Suivi : en attente du paiement'
+      }>
       {STEPS.map((s, i) => (
         <View key={s.id} style={styles.step}>
           <View style={[styles.bar, i <= current && styles.barDone]} />
@@ -349,6 +381,16 @@ const styles = StyleSheet.create({
     marginBottom: space.xs,
   },
   checkPending: { backgroundColor: colors.brand.orangeText },
+  refusedBox: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 14,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.status.danger,
+    backgroundColor: colors.surface.card,
+  },
+  checkingBox: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: radius.lg, backgroundColor: colors.brand.orangeTint },
   steps: { flexDirection: 'row', gap: 6 },
   step: { flex: 1, gap: 6 },
   bar: { height: 4, borderRadius: 2, backgroundColor: colors.border.input },

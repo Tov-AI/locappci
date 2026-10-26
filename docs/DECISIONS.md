@@ -4,6 +4,12 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-26 | Gateway = a "LOCAPPCI API" WordPress plugin on the Hostinger site (not a separate server) | No extra cost; direct access to WooCommerce, WCFM and RnB; Simple JWT Login already installed |
+| 2026-10-26 | Payment v1 = Wave / Orange Money transfer to the LOCAPPCI number + transaction reference, checked by the team | No merchant accounts yet; works now; the screens stay when automatic payment arrives |
+| 2026-10-26 | "Paiement à la livraison" removed | Client: no cash on delivery |
+| 2026-10-26 | Delivery priced by distance from the shop to the commune in the address | Client: delivery paid by the customer, by distance; sample tariff 1 000 + 150 FCFA/km until the real one |
+| 2026-10-26 | Order screen always refreshes the status on open (staleTime 0) | A transfer can be validated any minute; a 5-minute cache showed an old status |
+| 2026-10-26 | Tracking bars stay grey until the payment is confirmed | "Confirmée" in green was wrong while the transfer was being checked |
 | 2026-10-25 | The mock fails when the phone is offline (real or dev switch) | It used to answer anyway, which hid the "offline with nothing saved" case |
 | 2026-10-25 | "Pas de connexion" state when there is no network and nothing saved (`waitingForNetwork`) | Without it, screens showed loading skeletons forever; the page fills itself in when the network returns |
 | 2026-10-25 | Favoris offline: falls back to cards already seen in Accueil/Recherche | Hearts are on the phone; the cards often are too |
