@@ -4,6 +4,12 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-26 | Gateway 0.1 is read-only and ships an admin diagnostics page | Install on the live site with zero risk, and learn how RnB and WCFM really store their data before writing orders |
+| 2026-10-26 | Plugin tested on a local WordPress + WooCommerce 9.9 (SQLite) with the app's own HTTP client | Real WooCommerce code, real REST stack: the test caught a pagination bug and a URL-joining bug before the site saw them |
+| 2026-10-26 | Category universe = "location" when most of its products are rentals (cached 1 h) | No setting to maintain; follows how products are actually typed |
+| 2026-10-26 | Product commune = its shop's commune (WCFM address, matched to the communes list) | Products have no address of their own; "Plus proches" works with shops' communes |
+| 2026-10-26 | Communes list editable in Outils → LOCAPPCI API (13 Abidjan communes by default) | The client can add or rename communes without a developer |
+| 2026-10-26 | Rental fields read through candidate meta keys + `locappci_rental_fields` filter | RnB is a paid plugin we can't inspect here; the diagnostics will confirm the real keys |
 | 2026-10-26 | Gateway = a "LOCAPPCI API" WordPress plugin on the Hostinger site (not a separate server) | No extra cost; direct access to WooCommerce, WCFM and RnB; Simple JWT Login already installed |
 | 2026-10-26 | Payment v1 = Wave / Orange Money transfer to the LOCAPPCI number + transaction reference, checked by the team | No merchant accounts yet; works now; the screens stay when automatic payment arrives |
 | 2026-10-26 | "Paiement à la livraison" removed | Client: no cash on delivery |

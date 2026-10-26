@@ -14,7 +14,8 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     params?: Record<string, string | number | undefined>,
     body?: unknown,
   ): Promise<T> {
-    const url = new URL(path, baseUrl);
+    // Join, don't resolve: new URL('/v1/x', 'https://site/wp-json/locappci') would drop '/wp-json/locappci'.
+    const url = new URL(`${baseUrl.replace(/\/+$/, '')}${path}`);
     Object.entries(params ?? {}).forEach(([k, v]) => {
       if (v !== undefined && v !== '') url.searchParams.set(k, String(v));
     });
