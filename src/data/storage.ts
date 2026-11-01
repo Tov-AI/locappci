@@ -22,4 +22,5 @@ export const storageKeys = {
   account: 'locappci.account.v1',
   notifications: 'locappci.notifications.v1',
   orders: 'locappci.orders.v1',
+  rentalRequest: 'locappci.rentalRequest.v1',
 } as const;

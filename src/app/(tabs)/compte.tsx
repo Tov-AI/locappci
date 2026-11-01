@@ -20,7 +20,8 @@ import { useFavouriteIds } from '@/data/favourites';
 import { answerNotifications, useNotificationAnswer } from '@/data/notifications';
 import { useOnline } from '@/data/online';
 import { forgetOrders, isInProgress, useMyOrders } from '@/data/orders';
-import { useDeleteAccount } from '@/data/queries';
+import { useDeleteAccount, useLocappciWhatsapp } from '@/data/queries';
+import { useRequestCount } from '@/data/rentalRequest';
 import { colors, fontFamily, size, space } from '@/theme';
 import { maskPhone } from '@/utils/phone';
 
@@ -45,6 +46,8 @@ export default function CompteScreen() {
   const favourites = useFavouriteIds();
   const notifications = useNotificationAnswer();
   const deleteAccount = useDeleteAccount();
+  const whatsapp = useLocappciWhatsapp();
+  const requestCount = useRequestCount();
 
   const [loginOpen, setLoginOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
@@ -64,8 +67,8 @@ export default function CompteScreen() {
   };
 
   const support = () => {
-    const url = config.supportWhatsapp
-      ? `https://wa.me/${config.supportWhatsapp}?text=${encodeURIComponent('Bonjour LOCAPPCI, j’ai besoin d’aide.')}`
+    const url = whatsapp
+      ? `https://wa.me/${whatsapp}?text=${encodeURIComponent('Bonjour LOCAPPCI, j’ai besoin d’aide.')}`
       : config.website;
     Linking.openURL(url).catch(() => showToast('Impossible d’ouvrir le lien sur ce téléphone.'));
   };
@@ -113,6 +116,12 @@ export default function CompteScreen() {
           label="Mes commandes"
           right={inProgress > 0 ? <Tag label={`${inProgress} en cours`} /> : undefined}
           onPress={() => router.push('/commandes')}
+        />
+        <ListRow
+          icon="calendar"
+          label="Ma demande de location"
+          right={requestCount > 0 ? <Count value={requestCount} /> : undefined}
+          onPress={() => router.push('/demande-location')}
         />
         <ListRow
           icon="heart"

@@ -26,24 +26,26 @@ import {
 } from '@/data/cart';
 import { useOnline } from '@/data/online';
 import { useCartCheck } from '@/data/queries';
+import { useRequestCount } from '@/data/rentalRequest';
 import { colors, fontFamily, radius, space } from '@/theme';
-import { formatDayShort, today } from '@/utils/dates';
 import { formatFcfa } from '@/utils/format';
 
 /** How long "… retiré · Annuler" stays. */
 const UNDO_MS = 6000;
 
-/** A message is shown only while the line is unchanged (same quantity / dates). */
+/** A message is shown only while the line is unchanged (same quantity). */
 type Issue = LineMessage & { signature: string };
 
 /**
- * Panier (Feature 8): lines grouped by shop, quantities, rental dates, totals.
+ * Panier (Feature 8): lines grouped by shop, quantities, totals. Sale products only:
+ * rentals go in "Ma demande de location" (Feature 14), linked from here.
  * "Commander" checks the whole cart live in one request before going to payment.
  */
 export default function PanierScreen() {
   const router = useRouter();
   const online = useOnline();
   const items = useCartItems();
+  const requestCount = useRequestCount();
   const cartCheck = useCartCheck();
   const [issues, setIssues] = useState<Record<string, Issue>>({});
   const [removed, setRemoved] = useState<{ line: CartItem; index: number } | null>(null);
@@ -65,16 +67,12 @@ export default function PanierScreen() {
 
   const groups = useMemo(() => groupByShop(items), [items]);
   const totals = cartTotals(items);
-  const count = totals.saleUnits + totals.rentalCount;
+  const count = totals.saleUnits;
 
-  // Messages for each line: from the last check, or worked out on the phone (past rental dates).
+  // Messages for each line, from the last check.
   const messages = useMemo(() => {
     const out: Record<string, LineMessage> = {};
     for (const i of items) {
-      if (i.rental && i.rental.startDate < today()) {
-        out[i.productId] = { text: 'Ces dates sont passées. Choisissez de nouvelles dates.', blocking: true };
-        continue;
-      }
       const issue = issues[i.productId];
       if (issue && issue.signature === lineSignature(i)) out[i.productId] = issue;
     }
@@ -128,10 +126,15 @@ export default function PanierScreen() {
           </AppText>
         </View>
         {removed ? <UndoRow removed={removed} onUndo={() => (restoreLine(removed), setRemoved(null))} /> : null}
+        {requestCount > 0 ? (
+          <View style={styles.requestWrap}>
+            <RequestLink count={requestCount} onPress={() => router.push('/demande-location')} />
+          </View>
+        ) : null}
         <EmptyState
           icon="shopping-cart"
           title="Votre panier est vide"
-          message="Ajoutez un produit ou réservez une location depuis l’accueil ou la recherche."
+          message="Ajoutez un produit depuis l’accueil ou la recherche."
           actionLabel="Découvrir les annonces"
           onAction={() => router.navigate('/')}
         />
@@ -168,6 +171,7 @@ export default function PanierScreen() {
           </View>
         ) : null}
         {removed ? <UndoRow removed={removed} onUndo={() => (restoreLine(removed), setRemoved(null))} /> : null}
+        {requestCount > 0 ? <RequestLink count={requestCount} onPress={() => router.push('/demande-location')} /> : null}
 
         {groups.map((g) => (
           <SectionCard key={g.shopId} title={g.shopName || 'Boutique'}>
@@ -186,23 +190,10 @@ export default function PanierScreen() {
         ))}
 
         <SectionCard title="Récapitulatif">
-          {totals.saleUnits > 0 ? (
-            <Row label={`Articles (${totals.saleUnits})`} value={formatFcfa(totals.saleTotal)} />
-          ) : null}
-          {totals.rentalCount > 0 ? (
-            <Row label={`Locations (${totals.rentalCount})`} value={formatFcfa(totals.rentalTotal)} />
-          ) : null}
+          <Row label={`Articles (${totals.saleUnits})`} value={formatFcfa(totals.total)} />
           <Row label="Livraison" value="À l’étape suivante" muted />
           <View style={styles.divider} />
           <Row label="Total" value={formatFcfa(totals.total)} strong />
-          {totals.depositTotal > 0 ? (
-            <View style={styles.deposit}>
-              <Feather name="lock" size={16} color={colors.brand.navy} />
-              <AppText variant="meta" color={colors.text.body} style={styles.flex}>
-                {`Caution${totals.rentalCount > 1 ? 's' : ''} à prévoir en plus : ${formatFcfa(totals.depositTotal)}, rendue${totals.rentalCount > 1 ? 's' : ''} au retour du matériel.`}
-              </AppText>
-            </View>
-          ) : null}
         </SectionCard>
       </ScrollView>
 
@@ -233,13 +224,6 @@ function describe(r: CartCheckResult, old: CartItem, now: CartItem): LineMessage
       return { text: 'Cette annonce n’existe plus. Retirez-la du panier.', blocking: true };
     case 'out_of_stock':
       return { text: 'Épuisé. Retirez cet article pour continuer.', blocking: true };
-    case 'dates_taken':
-      return {
-        text: `Déjà réservé le ${formatDayShort(r.conflicts?.[0] ?? now.rental?.startDate ?? today())}. Choisissez d’autres dates.`,
-        blocking: true,
-      };
-    case 'invalid_dates':
-      return { text: 'Ces dates ne sont plus possibles. Choisissez de nouvelles dates.', blocking: true };
     case 'not_enough_stock':
       if (now.maxQuantity == null || now.maxQuantity <= 0) {
         return { text: 'Épuisé. Retirez cet article pour continuer.', blocking: true };
@@ -249,10 +233,8 @@ function describe(r: CartCheckResult, old: CartItem, now: CartItem): LineMessage
       break;
   }
   if (r.priceChanged) {
-    const was = old.rental ? old.rental.pricePerDay : old.price;
-    const unit = old.rental ? ' / jour' : '';
     return {
-      text: `Prix mis à jour : ${formatFcfa(r.price)}${unit} (avant ${formatFcfa(was)}${unit}).`,
+      text: `Prix mis à jour : ${formatFcfa(r.price)} (avant ${formatFcfa(old.price)}).`,
       blocking: false,
     };
   }
@@ -288,6 +270,25 @@ function Row({ label, value, strong, muted }: { label: string; value: string; st
   );
 }
 
+/** Rentals are requested, not bought: a link to "Ma demande de location" when it holds items. */
+function RequestLink({ count, onPress }: { count: number; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.request, pressed && styles.pressed]}>
+      <Feather name="calendar" size={20} color={colors.brand.orangeText} />
+      <View style={styles.flex}>
+        <AppText variant="secondaryStrong">{`Ma demande de location (${count})`}</AppText>
+        <AppText variant="meta" color={colors.text.body}>
+          À envoyer aux loueurs : la location ne se paie pas dans le panier.
+        </AppText>
+      </View>
+      <Feather name="chevron-right" size={20} color={colors.text.muted} />
+    </Pressable>
+  );
+}
+
 function UndoRow({ removed, onUndo }: { removed: { line: CartItem }; onUndo: () => void }) {
   return (
     <View style={styles.undo} accessibilityLiveRegion="polite">
@@ -319,7 +320,18 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.md },
   strong: { fontFamily: fontFamily.bold },
   divider: { height: 1, backgroundColor: colors.border.default },
-  deposit: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
+  requestWrap: { paddingHorizontal: space.gutter },
+  request: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    padding: space.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.brand.orangeBorder,
+    backgroundColor: colors.brand.orangeTint,
+  },
+  pressed: { opacity: 0.8 },
   notice: { flexDirection: 'row', gap: space.sm, padding: space.md, borderRadius: radius.md, borderWidth: 1 },
   noticeDanger: { backgroundColor: colors.surface.card, borderColor: colors.status.danger },
   noticeInfo: { backgroundColor: colors.brand.navyTint, borderColor: colors.brand.navyTint },

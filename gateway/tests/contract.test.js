@@ -10,14 +10,14 @@ const checkSummary = (s) => {
   assert.ok(s.universe === 'location' ? s.stockStatus === null : ['in_stock','low_stock','out_of_stock'].includes(s.stockStatus));
 };
 // Product ids printed by seed.php (pass them as SEED_IDS when they differ from a first install).
-const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || '{"vent16":10,"clim":11,"mix":12,"pagne":13,"groupe":14,"hidden":15,"song":16}')).map(([k, v]) => [k, String(v)]));
+const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || '{"vent16":10,"clim":11,"mix":12,"pagne":13,"groupe":14,"hidden":15,"song":16,"chaises":17,"tente":18}')).map(([k, v]) => [k, String(v)]));
 (async () => {
   const cities = await api.listCities(); assert.ok(cities.length >= 7 && cities.every(c => isStr(c.id) && isStr(c.name)));
   const cats = await api.listCategories(); assert.ok(cats.every(c => isStr(c.id) && (c.parentId === null || isStr(c.parentId))));
   let page = await api.listProducts({}); page.items.forEach(checkSummary);
-  assert.strictEqual(page.total, 5); assert.ok(!page.items.some(i => i.name === 'Produit caché'));
+  assert.strictEqual(page.total, 7); assert.ok(!page.items.some(i => i.name === 'Produit caché'));
   console.log('list all:', page.items.map(i => i.name).join(' | '));
-  assert.deepStrictEqual((await api.listProducts({ universe: 'location' })).items.map(i => i.id), [ID.groupe]);
+  assert.ok((await api.listProducts({ universe: 'location' })).items.some(i => i.id === ID.groupe), 'RnB rental type still counts');
   assert.strictEqual((await api.listProducts({ universe: 'vente' })).total, 4);
   const elec = cats.find(c => c.name === 'Électroménager').id;
   assert.strictEqual((await api.listProducts({ categoryId: elec })).total, 4, 'parent includes children');
@@ -27,10 +27,10 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const near = (await api.listProducts({ cityId: 'cocody', sort: 'nearest' })).items; console.log('nearest cocody:', near.map(i => i.cityId).join(','));
   assert.ok(near[0].cityId === 'cocody' && near[1].cityId === 'cocody' && near.slice(2).every(i => i.cityId !== 'cocody'));
   // pagination across the two parts
-  const p1 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 1, pageSize: 3 });
-  const p2 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 2, pageSize: 3 });
+  const p1 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 1, pageSize: 4 });
+  const p2 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 2, pageSize: 4 });
   const both = [...p1.items, ...p2.items].map(i => i.id);
-  assert.deepStrictEqual([p1.hasMore, p2.hasMore, p1.total, new Set(both).size], [true, false, 5, 5]);
+  assert.deepStrictEqual([p1.hasMore, p2.hasMore, p1.total, new Set(both).size], [true, false, 7, 7]);
   assert.deepStrictEqual(both, near.map(i => i.id));
   assert.deepStrictEqual((await api.listProducts({ ids: [ID.pagne, ID.vent16, '999'] })).items.map(i => i.id), [ID.pagne, ID.vent16]);
   // detail
@@ -53,17 +53,26 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   let c = await api.checkStock(ID.vent16, 18500); assert.deepStrictEqual([c.available, c.priceChanged], [true, false]);
   c = await api.checkStock(ID.mix, 12000); assert.strictEqual(c.available, false);
   c = await api.checkStock(ID.vent16, 17000); assert.strictEqual(c.priceChanged, true);
-  const today = new Date().toISOString().slice(0, 10);
   const cart = await api.checkCart([
     { productId: ID.vent16, quantity: 2, shownPrice: 18500 },
     { productId: ID.clim, quantity: 5, shownPrice: 185000 },
     { productId: ID.mix, quantity: 1, shownPrice: 12000 },
     { productId: '999', quantity: 1, shownPrice: 1 },
-    { productId: ID.groupe, rental: { startDate: today, days: 3, shownPricePerDay: 15000 } },
-    { productId: ID.groupe, rental: { startDate: '2020-01-01', days: 3, shownPricePerDay: 15000 } },
-    { productId: ID.groupe, rental: { startDate: today, days: 40, shownPricePerDay: 15000 } },
+    { productId: ID.groupe, quantity: 1, shownPrice: 15000 },
+    { productId: ID.chaises, quantity: 1, shownPrice: 5000 },
   ]);
-  assert.deepStrictEqual(cart.lines.map(l => l.problem ?? 'ok'), ['ok', 'not_enough_stock', 'out_of_stock', 'gone', 'ok', 'invalid_dates', 'invalid_dates']);
-  assert.strictEqual(cart.lines[1].maxQuantity, 2); assert.strictEqual(cart.lines[4].deposit, 50000);
+  assert.deepStrictEqual(cart.lines.map(l => l.problem ?? 'ok'), ['ok', 'not_enough_stock', 'out_of_stock', 'gone', 'gone', 'gone'], 'rentals are never bought');
+  assert.strictEqual(cart.lines[1].maxQuantity, 2);
+  // locappci.fr rentals: products in the "location" category, with the site's own fields
+  assert.deepStrictEqual((await api.listProducts({ universe: 'location' })).items.map(i => i.id).sort(), [ID.groupe, ID.chaises, ID.tente].sort());
+  const ch = await api.getProduct(ID.chaises);
+  assert.deepStrictEqual([ch.universe, ch.pricePerDay, ch.deposit, ch.condition, ch.delivery, ch.cityId, ch.minDays, ch.maxDays],
+    ['location', 5000, 25000, 'Très bon état', 'Livraison possible à Abidjan', 'plateau', 1, 90]);
+  const tente = await api.getProduct(ID.tente); assert.deepStrictEqual([tente.pricePerDay, tente.deposit, tente.condition], [0, 0, null], 'price on request');
+  const locCats = await api.listCategories('location');
+  assert.deepStrictEqual(locCats.map(c => c.name).sort(), ['Chantier et outillage', 'Location', 'Événementiel'].sort());
+  // settings and requests
+  assert.deepStrictEqual(await api.getConfig(), { whatsapp: '447748039794' });
+  await assert.rejects(api.sendRentalRequest({ idempotencyKey: 'k', items: [], contact: { name: 'A', phone: '1' } }), e => e.code === 'unauthorized' && /WhatsApp/.test(e.message));
   console.log('ALL GATEWAY CONTRACT TESTS PASSED');
 })().catch(e => { console.error('FAIL', e); process.exit(1); });

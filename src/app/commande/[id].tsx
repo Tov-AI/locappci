@@ -144,11 +144,6 @@ export default function CommandeScreen() {
                 ) : null}
               </View>
             ))}
-            {o.depositTotal > 0 ? (
-              <AppText variant="meta" color={colors.text.body}>
-                {`Caution à remettre au retrait : ${formatFcfa(o.depositTotal)}, rendue au retour du matériel.`}
-              </AppText>
-            ) : null}
           </SectionCard>
 
           <AccountOffer order={o} />

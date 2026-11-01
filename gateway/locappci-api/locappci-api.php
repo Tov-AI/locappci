@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       LOCAPPCI API
  * Description:       Passerelle entre l'appli mobile LOCAPPCI et le site (WooCommerce, WCFM, location). Lecture seule pour l'instant.
- * Version:           0.1.1
+ * Version:           0.2.0
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            LOCAPPCI
@@ -11,16 +11,16 @@
  * The app talks only to these endpoints (namespace locappci/v1). They return exactly the
  * shapes of src/api/contract.ts in the app repository. See docs/API.md.
  *
- * Phase A (this version): catalogue, shops, stock and cart checks, health, admin diagnostics.
- * Phase B: rental calendar, delivery, orders, accounts (after the diagnostics confirm how the
- * rental and marketplace plugins store their data on the real site).
+ * 0.2: catalogue (rentals = the site's "location" category, downloads left out), shops, stock and
+ * cart checks, app settings (WhatsApp), health, admin diagnostics. Still read-only.
+ * Next: accounts (Simple JWT Login), then rental requests to loueurs, delivery and orders.
  */
 
 if (!defined('ABSPATH')) {
 	exit; // Never run outside WordPress.
 }
 
-define('LOCAPPCI_API_VERSION', '0.1.1');
+define('LOCAPPCI_API_VERSION', '0.2.0');
 define('LOCAPPCI_API_DIR', __DIR__);
 
 require_once __DIR__ . '/includes/class-errors.php';
