@@ -16,7 +16,7 @@ One feature at a time, in order. Write your name in **Owner** when you start one
 | 10 | Confirmation + account offer + notification soft ask | In review | Leo | Guest checkout? |
 | 11 | Compte (+ Favoris tab, Mes commandes, Adresses) | In review | Leo | Support WhatsApp number, terms URL; seller tools v1 or v1.1? |
 | 12 | Loading, empty, error, offline states on every screen | In review | Leo | No |
-| 13 | Gateway: real WooCommerce data (WordPress plugin `gateway/locappci-api`) | In progress: 0.1 read-only catalogue in review | Leo | Diagnostics screenshots from the real site |
+| 13 | Gateway: real WooCommerce data (WordPress plugin `gateway/locappci-api`) | In progress: 0.1 installed on locappci.fr (1 Nov); 0.1.1 deeper diagnostics in review | Leo | 0.1.1 diagnostics: how the site's own modules store each universe and shop |
 | 14 | Login with WordPress accounts (JWT) | Blocked | | JWT plugin |
 | 15 | Wave / Orange Money hand-off + deep link back | Blocked | | Payment plugin |
 | 16 | Push notifications (webhooks → Expo Push). Must ask the system permission of people who said "Oui, me prévenir" (Feature 10) before launch | Blocked | | Admin access |
