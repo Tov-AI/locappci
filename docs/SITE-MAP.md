@@ -44,9 +44,33 @@ statut (`validee`), verified, featured, refusal reason. The seller account also 
 The sample shop's city was outside Abidjan, so no commune matched: the app must read the boutique record and
 respect the hide flags.
 
+## Where the custom code is (Code Snippets export, 1 Nov)
+
+87 snippets in Code Snippets (no custom plugin, no custom mu-plugin). Groups: Emploi, Location, Vente, Boutiques,
+Services, Annonces, central onboarding flow. Musique, Librairie and Immobilier are not in the snippets
+(probably the child theme). The export is not stored in this repository.
+
+### How Location really works (snippets "Ma demande de location", "Demandes Location OFFICIEL STABLE", "Calendrier")
+
+- Rental items are **ordinary WooCommerce products in the product category `location`** (or its sub-categories).
+  Extra fields: `_locappci_location_city`, `_condition`, `_delivery`, `_deposit`.
+- An item goes live when the admin **publishes** it (pending → publish), from "Validation matériels location".
+- No cart, no online payment for rentals (the cart is removed from Location product pages).
+- The customer builds a **request list** ("Ma demande de location", saved in the browser): for each item a start date,
+  a number of days, a quantity and a city. The price shown is the product's price text, or "Prix à confirmer".
+- Two ways to send it:
+  1. **WhatsApp to LOCAPPCI** (number 2250788727319 in the code), with the summary as the message.
+  2. **Request to each loueur** (logged-in users only): one `locappci_loc_req` record per item, linked to the product's
+     author. Fields `_locappci_req_*`: product, start_date, days, qty, city, customer name/phone/WhatsApp/e-mail, notes,
+     batch id. Phone or WhatsApp is required.
+- The loueur sees the requests ("Mes demandes location") and sets a status: `new` → `processing` → `done` / `archived`.
+- The loueur's calendar only **shows** requested periods; nothing is booked automatically.
+
 ## Consequences for the app
 
-1. **Location** is probably request-based (renter asks, loueur answers), not calendar booking with payment.
-   Features 7–10 assumed booking + payment: to confirm with the client before Gateway 0.2.
-2. Universes come from content types and `_locappci_module`, not from product types.
-3. Read the LOCAPPCI plugin code (or Code Snippets) rather than guess field meanings.
+1. **Location is request-based**, confirmed by the code: the app's rental booking with payment (features 7–9) must
+   become "Ajouter à ma demande" → "Ma demande de location" → send to the loueur (and/or WhatsApp LOCAPPCI).
+   Rentals leave the cart and the payment screen. To agree with the client before building.
+2. Location = products in the `location` category, not RnB. Vente = the other products (minus downloads).
+3. Universes beyond Vente/Location come from content types and `_locappci_module`.
+4. Two support numbers exist: +44 7748 039794 (client's answer) and 225 07 88 72 73 19 (in the site's code): to confirm.
