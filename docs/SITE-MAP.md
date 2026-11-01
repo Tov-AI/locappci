@@ -1,0 +1,52 @@
+# What is really on locappci.fr (diagnostics, 1 Nov 2026)
+
+From the LOCAPPCI API 0.1.1 diagnostics page on the live site. Personal values were masked.
+
+## Main finding
+
+The site is built on its **own LOCAPPCI code** (custom content types and fields), on top of WooCommerce and WCFM.
+The rental plugin (RnB) is installed but **unused** (0 `redq_rental` products).
+Most universes are **not WooCommerce products**: they are separate content types.
+
+## WooCommerce products (159: 158 simple, 1 variable)
+
+| `_locappci_module` | Count | Notes |
+|---|---|---|
+| `musique` | 30 | All downloadable (song + 30 s excerpt URL). Also a `locappci_musique` content type (31). |
+| `librairie` | 12 | Physical books: `_locappci_type_ouvrage`, `_auteur_ouvrage`, `_etat_ouvrage` (occasion…), `_livraison_ouvrage` text |
+| (none) | 117 | Ordinary shop products |
+
+Visibility fields on products: `_locappci_validation_status` (`validee`), `_locappci_catalogue_visible` (`yes`),
+`_locappci_public_visibility` (`visible`). **The app must only show validated, visible products** (not done in 0.1).
+
+## Other content types (published)
+
+| Content type | Label | Count | Likely universe |
+|---|---|---|---|
+| `locappci_boutique` | Boutiques LOCAPPCI | 6 | Shops (linked from products by `_locappci_boutique_id`) |
+| `locappci_loueur` | Loueurs / Bailleurs | 3 | Location |
+| `locappci_loc_req`, `locappci_demande_loc` | Demandes (de) location | 3 + 1 | Location: **request-based?** |
+| `bien_immobilier`, `demande_immo` | Biens / Demandes immobilières | 9 + 4 | Immobilier |
+| `locappci_service`, `loc_service_request` | Services / Demandes services | 7 + 1 | Services |
+| `offre_emploi`, `candidature_emploi`, `locappci_candidat` | Emploi | 2 + 1 + 1 | Emploi |
+| `locappci_annonce` | Annonces | 2 | Annonces |
+| `locappci_podcast` | Podcasts | 2 | Podcasts |
+| `locappci_music_prop` | Propositions musique | 8 | Musique (artists' submissions) |
+| `locappci_pro_request` | Validations professionnelles | 4 | Seller / pro validation |
+
+User roles: customer 38, wcfm_vendor 7, prestataire 5, loueur_bailleur 2, agence_immobiliere 2, locappci_recruteur 1.
+
+## Shops
+
+`locappci_boutique` record: logo, banner, type (`professionnel`), ville, pays, téléphone, WhatsApp, e-mail, site web,
+statut (`validee`), verified, featured, refusal reason. The seller account also has WCFM settings
+(store name, address, geolocation lat/lng, shipping by distance, **store_hide_phone / store_hide_address**).
+The sample shop's city was outside Abidjan, so no commune matched: the app must read the boutique record and
+respect the hide flags.
+
+## Consequences for the app
+
+1. **Location** is probably request-based (renter asks, loueur answers), not calendar booking with payment.
+   Features 7–10 assumed booking + payment: to confirm with the client before Gateway 0.2.
+2. Universes come from content types and `_locappci_module`, not from product types.
+3. Read the LOCAPPCI plugin code (or Code Snippets) rather than guess field meanings.
