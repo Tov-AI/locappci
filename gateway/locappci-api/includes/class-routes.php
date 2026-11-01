@@ -63,7 +63,7 @@ final class Locappci_Routes {
 
 	private static function published_product(int $id): ?WC_Product {
 		$p = wc_get_product($id);
-		return ($p && $p->get_status() === 'publish' && $p->get_catalog_visibility() !== 'hidden') ? $p : null;
+		return ($p && $p->get_status() === 'publish' && $p->get_catalog_visibility() !== 'hidden' && Locappci_Catalogue::is_supported($p)) ? $p : null;
 	}
 
 	public static function product(WP_REST_Request $r): WP_REST_Response {

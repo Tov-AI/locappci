@@ -30,4 +30,6 @@ $ids = [
 	'groupe' => prod($loc, 'Groupe électrogène 5 kVA', 15000, [$chantier], 'redq_rental', null, ['general_price' => 15000, 'redq_security_deposit' => 50000, 'redq_max_rental_days' => 30]),
 ];
 $hidden = prod($kone, 'Produit caché', 1000, [$elec]); $h = wc_get_product($hidden); $h->set_catalog_visibility('hidden'); $h->save();
-echo json_encode($ids + ['hidden' => $hidden]);
+// A song to download: not sold in the app yet (no delivery or rental flow for downloads).
+$song = prod($riv, 'Chanson à télécharger', 350, [$elec], 'simple', null, ['_locappci_module' => 'musique']); $sg = wc_get_product($song); $sg->set_virtual(true); $sg->set_downloadable(true); $sg->save();
+echo json_encode($ids + ['song' => $song, 'hidden' => $hidden]);

@@ -58,6 +58,23 @@ final class Locappci_Catalogue {
 		return apply_filters('locappci_rental_types', ['redq_rental']);
 	}
 
+	/**
+	 * Products the app can sell. Downloads (songs, e-books…) have no delivery or rental flow in the
+	 * app yet, so they stay on the website for now.
+	 */
+	public static function is_supported(WC_Product $p): bool {
+		return (bool) apply_filters('locappci_is_supported', !$p->is_downloadable(), $p);
+	}
+
+	/** Same rule as is_supported(), as a WP_Query meta_query clause. */
+	public static function supported_meta_query(): array {
+		return [
+			'relation' => 'OR',
+			['key' => '_downloadable', 'compare' => 'NOT EXISTS'],
+			['key' => '_downloadable', 'value' => 'yes', 'compare' => '!='],
+		];
+	}
+
 	public static function is_rental(WC_Product $p): bool {
 		// Product class type, and the product_type term as a fallback (if the rental plugin is off).
 		return in_array($p->get_type(), self::rental_types(), true)
@@ -304,7 +321,7 @@ final class Locappci_Catalogue {
 				continue;
 			}
 			$u = self::category_universe($t);
-			if ($universe && $u !== $universe) {
+			if ($u === '' || ($universe && $u !== $universe)) {
 				continue;
 			}
 			$out[] = [
@@ -331,11 +348,15 @@ final class Locappci_Catalogue {
 					['taxonomy' => 'product_cat', 'terms' => [$t->term_id]],
 					['taxonomy' => 'product_type', 'field' => 'slug', 'terms' => $types, 'operator' => $exclude ? 'NOT IN' : 'IN'],
 				],
+				'meta_query'     => [self::supported_meta_query()],
 			]);
 			return (int) $q->found_posts;
 		};
 		$rentals = $count(self::rental_types(), false);
 		$sales = $count(self::rental_types(), true);
+		if ($rentals + $sales === 0) {
+			return ''; // Only downloads: not shown in the app.
+		}
 		return $rentals > $sales ? 'location' : 'vente';
 	}
 
@@ -354,7 +375,7 @@ final class Locappci_Catalogue {
 			'post_type'   => 'product',
 			'post_status' => 'publish',
 			'tax_query'   => ['relation' => 'AND'],
-			'meta_query'  => ['relation' => 'AND'],
+			'meta_query'  => ['relation' => 'AND', self::supported_meta_query()],
 		];
 		// Hidden from the catalogue in WooCommerce → hidden in the app too.
 		$args['tax_query'][] = ['taxonomy' => 'product_visibility', 'field' => 'name', 'terms' => ['exclude-from-catalog'], 'operator' => 'NOT IN'];
@@ -447,7 +468,7 @@ final class Locappci_Catalogue {
 		$out = [];
 		foreach ($posts as $post) {
 			$p = wc_get_product(is_object($post) ? $post->ID : (int) $post);
-			if ($p && $p->get_status() === 'publish') {
+			if ($p && $p->get_status() === 'publish' && self::is_supported($p)) {
 				$out[] = self::summary($p);
 			}
 		}

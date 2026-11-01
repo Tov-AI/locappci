@@ -1,6 +1,7 @@
 # Installing the LOCAPPCI API plugin on locappci.fr
 
 Version 0.1 only **reads** the shop (products, shops, stock). It changes nothing on the site.
+Products to download (songs, e-books) are not shown in the app yet: they stay on the website.
 
 ## Before you start (2 minutes, for safety)
 
@@ -13,18 +14,24 @@ Version 0.1 only **reads** the shop (products, shops, stock). It changes nothing
 2. WordPress admin → **Extensions** → **Ajouter une extension** → **Téléverser une extension** (top of the page).
 3. **Choisir un fichier** → `locappci-api.zip` → **Installer maintenant** → **Activer l’extension**.
 
+## Update to a new version
+
+Same steps as Install, with the new `locappci-api.zip`. WordPress then shows
+**« Remplacer la version installée par la version téléversée »**: click it. Nothing to deactivate first.
+
 ## Check it answers
 
 1. In a browser, open `https://locappci.fr/wp-json/locappci/v1/health`.
-   You should see something like `{"ok":true,"version":"0.1.0","plugins":{...}}`.
+   You should see something like `{"ok":true,"version":"0.1.1","plugins":{...}}`.
 2. Open `https://locappci.fr/wp-json/locappci/v1/products?page_size=3`: three of your real products as JSON.
 
 ## Diagnostics (send this to the app team)
 
 1. WordPress admin → **Outils** → **LOCAPPCI API**.
-2. Take screenshots of section **1. Diagnostic** (plugins found, product types, the fields of one
-   rental product, the fields of one sale product, one shop's WCFM settings).
-   Shop settings show field **names only**, never the sellers' personal details.
+2. Take screenshots of section **1. Diagnostic**: plugins found, product types, LOCAPPCI modules
+   (`_locappci_module`) with counts, the site's content types, user roles, the fields of one product per
+   module, and one shop (its linked "boutique" record if any, and its WCFM settings).
+   Phone numbers, e-mails, addresses and file links are **masked** (« (rempli) »): screenshots can be shared.
 3. Section **2. Communes**: check the list (one commune per line) and click **Enregistrer les communes**.
 
 ## Settings to check
