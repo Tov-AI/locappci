@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { usingMock, type ProductSummary, type Universe } from '@/api';
-import { confirmAwaitingTransfers, mockSettings } from '@/api/mock/server';
+import { confirmAwaitingTransfers, createTestAccount, mockSettings, rentalRequests } from '@/api/mock/server';
 import { AppText } from '@/components/AppText';
 import { Tag } from '@/components/Badge';
 import { Button } from '@/components/Button';
@@ -17,6 +17,7 @@ import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { Skeleton } from '@/components/Skeleton';
 import { showToast } from '@/components/Toast';
+import { saveAccount, useAccount } from '@/data/account';
 import { clearCart, useCartCount } from '@/data/cart';
 import { clearFavourites, useFavourite, useFavouriteIds } from '@/data/favourites';
 import { isForcedOffline, setForcedOffline, useOnline } from '@/data/online';
@@ -45,6 +46,7 @@ export default function DonneesScreen() {
   const [crash, setCrash] = useState(false);
   // "Simuler un plantage": throws while drawing, to check the crash screen.
   if (crash) throw new Error('Plantage simulé depuis l’écran Données (dev).');
+  const account = useAccount();
   const [nextCheck, setNextCheck] = useState<NextCheck>(mockSettings.nextCheck);
   const cartCount = useCartCount();
 
@@ -135,6 +137,26 @@ export default function DonneesScreen() {
             <Button label="Vider le panier" variant="outline" icon="shopping-cart" onPress={clearCart} />
           ) : null}
 
+ <Button
+            label={account ? `Connecté : ${account.name}` : 'Se connecter avec un compte test'}
+            variant="outline"
+            icon="user"
+            disabled={!!account}
+            onPress={() => {
+              saveAccount(createTestAccount());
+              showToast('Compte test : 07 00 00 00 01, mot de passe test1234.');
+            }}
+          />
+          <Button
+            label={`Demandes reçues par les loueurs : ${rentalRequests.length}`}
+            variant="outline"
+            icon="inbox"
+            onPress={() => {
+              const last = rentalRequests[rentalRequests.length - 1];
+              showToast(last ? `Dernière : ${last.receipt.reference}, ${last.items.length} matériel(s), ${last.contact.name}.` : 'Aucune demande reçue.');
+            }}
+          />
+
           <Button label="Simuler un plantage" variant="outline" icon="zap" onPress={() => setCrash(true)} />
 
           <AppText variant="caption" color={colors.text.muted}>
@@ -158,11 +180,11 @@ export default function DonneesScreen() {
           </View>
 
           <AppText variant="caption" color={colors.text.muted}>
-            PROCHAIN CONTRÔLE STOCK / DISPONIBILITÉ (UNE SEULE FOIS)
+            PROCHAIN CONTRÔLE DE STOCK (UNE SEULE FOIS)
           </AppText>
           <View style={styles.chips}>
             <Chip label="Normal" active={nextCheck === 'normal'} onPress={() => chooseNextCheck('normal')} />
-            <Chip label="Épuisé / dates prises" active={nextCheck === 'sold_out'} onPress={() => chooseNextCheck('sold_out')} />
+            <Chip label="Épuisé" active={nextCheck === 'sold_out'} onPress={() => chooseNextCheck('sold_out')} />
             <Chip label="Prix + 1 000" active={nextCheck === 'price_up'} onPress={() => chooseNextCheck('price_up')} />
           </View>
         </SectionCard>

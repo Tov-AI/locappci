@@ -10,6 +10,9 @@ if (!defined('ABSPATH')) {
  * 2. Communes: the list the app shows in "Où êtes-vous ?".
  */
 final class Locappci_Admin {
+	/** Given by the client for v1; changeable below without a new app version. */
+	const DEFAULT_WHATSAPP = '447748039794';
+
 	public static function menu(): void {
 		add_management_page('LOCAPPCI API', 'LOCAPPCI API', 'manage_options', 'locappci-api', [self::class, 'page']);
 	}
@@ -23,6 +26,15 @@ final class Locappci_Admin {
 			update_option('locappci_cities', array_values(array_unique($lines)));
 			update_option('locappci_region', sanitize_text_field(wp_unslash($_POST['locappci_region'] ?? 'Abidjan')));
 			echo '<div class="notice notice-success"><p>Communes enregistrées.</p></div>';
+		}
+		if (isset($_POST['locappci_whatsapp']) && check_admin_referer('locappci_whatsapp')) {
+			$digits = preg_replace('/\D+/', '', sanitize_text_field(wp_unslash($_POST['locappci_whatsapp'])));
+			if ($digits === '' || (strlen($digits) >= 10 && strlen($digits) <= 15)) {
+				update_option('locappci_whatsapp', $digits);
+				echo '<div class="notice notice-success"><p>Numéro WhatsApp enregistré. L’appli l’utilise dans l’heure.</p></div>';
+			} else {
+				echo '<div class="notice notice-error"><p>Numéro invalide : indiquez l’indicatif du pays, ex. +225 07 00 00 00 00.</p></div>';
+			}
 		}
 
 		$health = Locappci_Routes::health()->get_data();
@@ -73,7 +85,16 @@ final class Locappci_Admin {
 		echo '<h3>Une boutique</h3>';
 		self::sample_vendor($vendor_from);
 
-		echo '<h2>2. Communes affichées dans l’appli</h2>';
+		echo '<h2>2. WhatsApp LOCAPPCI dans l’appli</h2>';
+		echo '<p>Utilisé pour l’aide et pour « Envoyer sur WhatsApp LOCAPPCI » (demandes de location). Avec l’indicatif du pays.</p>';
+		echo '<form method="post">';
+		wp_nonce_field('locappci_whatsapp');
+		$wa = (string) get_option('locappci_whatsapp', self::DEFAULT_WHATSAPP);
+		echo '<p><label>Numéro WhatsApp <input name="locappci_whatsapp" value="' . esc_attr($wa !== '' ? '+' . $wa : '') . '" placeholder="+225 07 00 00 00 00"></label></p>';
+		submit_button('Enregistrer le numéro');
+		echo '</form>';
+
+		echo '<h2>3. Communes affichées dans l’appli</h2>';
 		echo '<form method="post">';
 		wp_nonce_field('locappci_settings');
 		echo '<p><label>Une commune par ligne<br><textarea name="locappci_cities" rows="10" cols="40">' . esc_textarea(implode("\n", $cities)) . '</textarea></label></p>';

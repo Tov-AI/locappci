@@ -19,6 +19,7 @@ import { loadAccount } from '@/data/account';
 import { loadCart } from '@/data/cart';
 import { loadCity } from '@/data/city';
 import { loadCustomer } from '@/data/customer';
+import { loadRentalRequest } from '@/data/rentalRequest';
 import { loadFavourites } from '@/data/favourites';
 import { loadNotificationAnswer } from '@/data/notifications';
 import { loadOrders } from '@/data/orders';
@@ -37,6 +38,7 @@ loadRecentSearches();
 loadCart();
 loadCustomer();
 loadAccount();
+loadRentalRequest();
 loadNotificationAnswer();
 loadOrders();
 
@@ -83,6 +85,7 @@ export default function RootLayout() {
             <Stack.Screen name="commande/[id]" />
             <Stack.Screen name="adresses" />
             <Stack.Screen name="commandes" />
+            <Stack.Screen name="demande-location" />
           </Stack>
           <ToastHost />
         </PersistQueryClientProvider>
