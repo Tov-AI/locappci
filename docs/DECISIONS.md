@@ -4,6 +4,25 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-26 | Gateway 0.1 is read-only and ships an admin diagnostics page | Install on the live site with zero risk, and learn how RnB and WCFM really store their data before writing orders |
+| 2026-10-26 | Plugin tested on a local WordPress + WooCommerce 9.9 (SQLite) with the app's own HTTP client | Real WooCommerce code, real REST stack: the test caught a pagination bug and a URL-joining bug before the site saw them |
+| 2026-10-26 | Category universe = "location" when most of its products are rentals (cached 1 h) | No setting to maintain; follows how products are actually typed |
+| 2026-10-26 | Product commune = its shop's commune (WCFM address, matched to the communes list) | Products have no address of their own; "Plus proches" works with shops' communes |
+| 2026-10-26 | Communes list editable in Outils → LOCAPPCI API (13 Abidjan communes by default) | The client can add or rename communes without a developer |
+| 2026-10-26 | Rental fields read through candidate meta keys + `locappci_rental_fields` filter | RnB is a paid plugin we can't inspect here; the diagnostics will confirm the real keys |
+| 2026-10-26 | Gateway = a "LOCAPPCI API" WordPress plugin on the Hostinger site (not a separate server) | No extra cost; direct access to WooCommerce, WCFM and RnB; Simple JWT Login already installed |
+| 2026-10-26 | Payment v1 = Wave / Orange Money transfer to the LOCAPPCI number + transaction reference, checked by the team | No merchant accounts yet; works now; the screens stay when automatic payment arrives |
+| 2026-10-26 | "Paiement à la livraison" removed | Client: no cash on delivery |
+| 2026-10-26 | Delivery priced by distance from the shop to the commune in the address | Client: delivery paid by the customer, by distance; sample tariff 1 000 + 150 FCFA/km until the real one |
+| 2026-10-26 | Order screen always refreshes the status on open (staleTime 0) | A transfer can be validated any minute; a 5-minute cache showed an old status |
+| 2026-10-26 | Tracking bars stay grey until the payment is confirmed | "Confirmée" in green was wrong while the transfer was being checked |
+| 2026-11-01 | Rentals by request, not booking: "Ma demande de location" saved on the phone, sent to the loueurs (account needed, as on the site) or to the LOCAPPCI WhatsApp | The site's own code works this way; the client confirmed. Availability and price are confirmed by the loueur, nothing is paid in the app |
+| 2026-11-01 | Rental calendar check, rental cart lines and deposits removed from the contract | They described a booking flow the site does not have; keeping them would invite wrong promises |
+| 2026-11-01 | LOCAPPCI WhatsApp read from `GET /v1/config` (set in Outils → LOCAPPCI API), with the built-in +44 number as fallback | The client wants to change it himself without a new app version |
+| 2026-11-01 | Rental items = products in the `location` category (and RnB type as fallback); their commune comes from `_locappci_location_city` | Same rule as the site's snippets; RnB holds no products on locappci.fr |
+| 2026-11-01 | Downloadable products (songs…) are left out of the app for now (`is_supported`, filter `locappci_is_supported`) | The app's Vente flow means delivery; a song can't be delivered. Music waits for the client's answer |
+| 2026-11-01 | Diagnostics mask phone, e-mail, address and file-link values | The first screenshot showed an artist's contact details; screenshots get shared |
+| 2026-11-01 | Real site has 0 RnB rentals; products carry the site's own `_locappci_module` field | Universes must be mapped from that field, not from the rental plugin: 0.1.1 diagnostics list each module |
 | 2026-10-25 | The mock fails when the phone is offline (real or dev switch) | It used to answer anyway, which hid the "offline with nothing saved" case |
 | 2026-10-25 | "Pas de connexion" state when there is no network and nothing saved (`waitingForNetwork`) | Without it, screens showed loading skeletons forever; the page fills itself in when the network returns |
 | 2026-10-25 | Favoris offline: falls back to cards already seen in Accueil/Recherche | Hearts are on the phone; the cards often are too |

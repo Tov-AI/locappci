@@ -17,9 +17,9 @@ type Props = {
 };
 
 /**
- * "Conditions de location". Built only from facts we have in the product data.
- * The shop's own detailed rules (late return, damage) will be added once the client
- * confirms the deposit and rental rules (open question, docs/FEATURES.md).
+ * "Conditions de location": product data + the client's rules (deposit settled with the loueur,
+ * broken item charged, late return penalty). Penalty amounts: to confirm with the client.
+ * Nothing is paid in the app for a rental: the loueur confirms price and availability.
  */
 export function RentalTermsSheet({ visible, onClose, product: p }: Props) {
   const lines: { icon: ComponentProps<typeof Feather>['name']; text: string }[] = [
@@ -30,11 +30,22 @@ export function RentalTermsSheet({ visible, onClose, product: p }: Props) {
           ? `Durée : ${formatDays(p.minDays)}.`
           : `Durée : de ${formatDays(p.minDays)} à ${formatDays(p.maxDays)}.`,
     },
-    { icon: 'tag', text: `Prix : ${formatFcfa(p.pricePerDay)} par jour.` },
+    {
+      icon: 'tag',
+      text:
+        p.pricePerDay > 0
+          ? `Prix indiqué : ${formatFcfa(p.pricePerDay)} par jour. Le loueur le confirme avec vous.`
+          : 'Prix : à confirmer avec le loueur.',
+    },
     {
       icon: 'lock',
-      text: `Caution : ${formatFcfa(p.deposit)}, payée en plus et rendue au retour du matériel en bon état.`,
+      text:
+        p.deposit > 0
+          ? `Caution : ${formatFcfa(p.deposit)}, réglée au loueur (en espèces au retrait ou selon son accord) et rendue au retour du matériel en bon état.`
+          : 'Caution : le loueur vous dit si une caution est demandée.',
     },
+    { icon: 'alert-triangle', text: 'Matériel cassé : il est facturé.' },
+    { icon: 'clock', text: 'Retour en retard : une pénalité est appliquée.' },
     { icon: 'credit-card', text: 'Pièce d’identité demandée au retrait.' },
     { icon: 'check-square', text: 'Vérifiez le matériel avec le loueur au retrait et au retour.' },
   ];

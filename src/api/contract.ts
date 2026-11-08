@@ -64,10 +64,15 @@ export type SaleProduct = ProductBase & {
 
 export type RentalProduct = ProductBase & {
   universe: 'location';
+  /** 0 when the loueur gives the price on request ("Prix à confirmer"). */
   pricePerDay: Fcfa;
+  /** Refundable deposit asked by the loueur, 0 when none is stated. */
   deposit: Fcfa;
   minDays: number;
   maxDays: number;
+  /** Seller's own words from the site, or null: "Très bon état", "Livraison possible dans Abidjan". */
+  condition: string | null;
+  delivery: string | null;
 };
 
 export type Product = SaleProduct | RentalProduct;
@@ -131,61 +136,72 @@ export type ApiErrorBody = {
 /** Calendar date "YYYY-MM-DD" (Côte d'Ivoire time = GMT). */
 export type IsoDate = string;
 
-/** Days already booked for a rental item, from today on. */
-export type RentalCalendar = {
+/**
+ * Rentals work by request, like on the website: the person lists what they need
+ * ("Ma demande de location"), then sends it to the loueurs or to LOCAPPCI on WhatsApp.
+ * Nothing is booked or paid in the app; the loueur confirms availability and price.
+ */
+export type RentalRequestItem = {
   productId: string;
-  bookedDates: IsoDate[];
-};
-
-/** Asked when the person taps "Réserver". */
-export type RentalRequest = {
   startDate: IsoDate;
-  /** Number of days, between minDays and maxDays. Return is on startDate + days. */
+  /** Number of days, between the item's minDays and maxDays. */
   days: number;
-  /** Price per day the app displayed, to detect a price change. */
-  shownPricePerDay: Fcfa;
+  quantity: number;
+  /** Commune where the item is needed. */
+  cityId: string;
 };
 
-/** Live answer for a rental request. Never cached. */
-export type RentalCheck = {
-  productId: string;
-  available: boolean;
-  /** Requested days that are already booked (empty when available). */
-  conflicts: IsoDate[];
-  pricePerDay: Fcfa;
-  /** Refundable, paid on top of the rental. */
-  deposit: Fcfa;
-  /** pricePerDay × days. */
-  total: Fcfa;
-  priceChanged: boolean;
+export type RentalRequestContact = {
+  name: string;
+  /** Digits with country code: "2250700000000". */
+  phone: string;
+  /** Only when different from phone. */
+  whatsapp?: string;
+  /** Free text for the loueurs, at most 500 characters. */
+  message?: string;
 };
 
-/** One cart line sent for the check before payment. */
-export type CartCheckLine =
-  | { productId: string; quantity: number; shownPrice: Fcfa }
-  | { productId: string; rental: RentalRequest };
+export type RentalRequestSend = {
+  /** Same key when the same list is sent again (double tap, lost connection): no duplicate requests. */
+  idempotencyKey: string;
+  items: RentalRequestItem[];
+  contact: RentalRequestContact;
+};
+
+/** What the loueurs received: one request per item, each sent to the item's loueur. */
+export type RentalRequestReceipt = {
+  /** Shown to people: "LOCREQ-…". */
+  reference: string;
+  sent: { productId: string; shopName: string }[];
+  /** Items no longer offered for rent (removed from the site meanwhile). */
+  skipped: string[];
+};
+
+/** Settings LOCAPPCI can change on the website without a new app version. */
+export type AppConfig = {
+  /** LOCAPPCI WhatsApp (support and rental requests), digits with country code. */
+  whatsapp: string | null;
+};
+
+/** One cart line sent for the check before payment (sale products only). */
+export type CartCheckLine = { productId: string; quantity: number; shownPrice: Fcfa };
 
 /** What can be wrong with a line. */
 export type CartProblem =
   | 'gone' // product removed from the site
   | 'out_of_stock'
-  | 'not_enough_stock' // fewer units than asked: see maxQuantity
-  | 'dates_taken' // see conflicts
-  | 'invalid_dates'; // start in the past or duration out of limits
+  | 'not_enough_stock'; // fewer units than asked: see maxQuantity
 
 export type CartCheckResult = {
   productId: string;
   /** True when the line can be paid as it is (a price change alone keeps it true). */
   ok: boolean;
   problem?: CartProblem;
-  /** Current unit price (sale) or price per day (rental). */
+  /** Current unit price. */
   price: Fcfa;
   priceChanged: boolean;
-  /** Sale: units available (null = no limit). */
+  /** Units available (null = no limit). */
   maxQuantity?: number | null;
-  /** Rental: current deposit and clashing days. */
-  deposit?: Fcfa;
-  conflicts?: IsoDate[];
 };
 
 /** One request for the whole cart: fewer round trips on mobile data. Never cached. */
@@ -194,7 +210,7 @@ export type CartCheck = { lines: CartCheckResult[] };
 export type DeliveryOption = {
   id: string;
   kind: 'home' | 'pickup';
-  /** "À domicile", "Retrait en boutique", "Retrait chez le loueur". */
+  /** "À domicile", "Retrait en boutique". */
   label: string;
   price: Fcfa;
   /** Short, shown under the price: "24–48 h", "Yopougon". */
@@ -204,6 +220,7 @@ export type DeliveryOption = {
 /** Delivery choices of one shop (each shop delivers or hands over its own items). */
 export type ShopDelivery = { shopId: string; options: DeliveryOption[] };
 
+/** 'cash' stays in the contract for later; the client said no cash on delivery for v1. */
 export type PaymentMethod = 'wave' | 'orange_money' | 'cash';
 
 export type Customer = {
@@ -223,11 +240,14 @@ export type OrderRequest = {
   customer: Customer;
   lines: CartCheckLine[];
   deliveries: { shopId: string; optionId: string }[];
+  /** Commune to deliver to: home delivery is priced by distance from each shop. */
+  deliveryCityId?: string;
   paymentMethod: PaymentMethod;
 };
 
 export type OrderStatus =
   | 'pending_payment' // waiting for Wave / Orange Money
+  | 'awaiting_confirmation' // transfer reference sent; the team checks it
   | 'paid'
   | 'confirmed' // cash on delivery: accepted, paid later
   | 'payment_failed'
@@ -242,7 +262,7 @@ export type OrderShop = {
   shopName: string;
   whatsapp: string | null;
   delivery: { kind: 'home' | 'pickup'; label: string; detail: string };
-  lines: { name: string; quantity: number; rental?: { startDate: IsoDate; days: number; deposit: Fcfa } }[];
+  lines: { name: string; quantity: number }[];
 };
 
 export type Order = {
@@ -255,10 +275,15 @@ export type Order = {
   deliveryTotal: Fcfa;
   /** itemsTotal + deliveryTotal: what is paid now (or on delivery for cash). */
   total: Fcfa;
-  /** Refundable deposits, handed over at pickup; not in total. */
-  depositTotal: Fcfa;
-  /** Wave / Orange Money page to open, or null (cash, or the mock). */
+  /** Wave / Orange Money page to open (merchant accounts, later), or null. */
   paymentUrl: string | null;
+  /**
+   * v1 without merchant accounts: send the amount to this number by transfer,
+   * then give the transaction reference. null when paymentUrl is used instead.
+   */
+  transferTo: { number: string; name: string } | null;
+  /** Reference typed by the customer after the transfer. */
+  paymentReference: string | null;
   createdAt: IsoDateTime;
   step: OrderStep;
   customer: Customer;
@@ -290,10 +315,14 @@ export interface LocappciApi {
   getShop(id: string): Promise<Shop>;
   checkStock(productId: string, shownPrice: Fcfa): Promise<StockCheck>;
   reportProduct(productId: string, report: ProductReport): Promise<void>;
-  getRentalCalendar(productId: string): Promise<RentalCalendar>;
-  checkRental(productId: string, request: RentalRequest): Promise<RentalCheck>;
+  getConfig(): Promise<AppConfig>;
+  /** Needs a LOCAPPCI account, like on the website (the session token comes with the accounts feature). */
+  sendRentalRequest(request: RentalRequestSend): Promise<RentalRequestReceipt>;
   checkCart(lines: CartCheckLine[]): Promise<CartCheck>;
-  getDeliveryOptions(shopIds: string[]): Promise<ShopDelivery[]>;
+  /** `cityId`: where to deliver, for the distance-based price. */
+  getDeliveryOptions(shopIds: string[], cityId?: string): Promise<ShopDelivery[]>;
+  /** "J'ai payé": sends the Wave / Orange Money transaction reference. */
+  submitPaymentReference(orderId: string, reference: string): Promise<Order>;
   createOrder(request: OrderRequest): Promise<Order>;
   getOrder(id: string): Promise<Order>;
   createAccount(request: AccountRequest): Promise<Account>;

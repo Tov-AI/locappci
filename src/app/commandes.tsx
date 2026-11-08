@@ -16,6 +16,7 @@ import { useGoBack } from '@/utils/navigation';
 
 const STATUS: Record<OrderStatus, string> = {
   pending_payment: 'Paiement en attente',
+  awaiting_confirmation: 'Paiement en vérification',
   paid: 'Payée',
   confirmed: 'À payer à la livraison',
   payment_failed: 'Paiement refusé',

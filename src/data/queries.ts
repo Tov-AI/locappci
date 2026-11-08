@@ -1,8 +1,9 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 
+import { config } from '@/config';
 import { getRememberedOrder } from '@/data/orders';
 
-import { api, type AccountRequest, type CartCheckLine, type LoginRequest, type Page, type ProductSummary, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequest, type Universe } from '@/api';
+import { api, type AccountRequest, type CartCheckLine, type LoginRequest, type Page, type ProductSummary, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequestSend, type Universe } from '@/api';
 
 /**
  * Query keys: one name per kind of data, so the cache knows what to refresh.
@@ -14,8 +15,9 @@ export const keys = {
   products: (query: Omit<ProductQuery, 'page'>) => ['products', query] as const,
   product: (id: string) => ['product', id] as const,
   shop: (id: string) => ['shop', id] as const,
-  rentalCalendar: (id: string) => ['rentalCalendar', id] as const,
-  deliveryOptions: (shopIds: string[]) => ['deliveryOptions', [...shopIds].sort()] as const,
+  config: ['config'] as const,
+  deliveryOptions: (shopIds: string[], cityId?: string) =>
+    ['deliveryOptions', [...shopIds].sort(), cityId ?? 'none'] as const,
   order: (id: string) => ['order', id] as const,
 };
 
@@ -92,36 +94,38 @@ export const useReportProduct = () =>
     networkMode: 'online',
   });
 
-/** Booked days of a rental item. Short freshness: bookings change during the day. */
-export const useRentalCalendar = (productId: string) =>
-  useQuery({
-    queryKey: keys.rentalCalendar(productId),
-    queryFn: () => api.getRentalCalendar(productId),
-    staleTime: 60_000,
-  });
+/**
+ * Settings LOCAPPCI changes on the website (WhatsApp number). Fresh for an hour;
+ * the app falls back to src/config.ts until the first answer.
+ */
+export const useAppConfig = () =>
+  useQuery({ queryKey: keys.config, queryFn: () => api.getConfig(), staleTime: 60 * 60_000 });
 
-/** Live availability and price check before "Réserver". Like the stock check: never cached. */
-export const useRentalCheck = () =>
-  useMutation({
-    mutationFn: ({ productId, request }: { productId: string; request: RentalRequest }) =>
-      api.checkRental(productId, request),
-    networkMode: 'online',
-  });
+/** LOCAPPCI WhatsApp: from the website settings, else the number built into the app. */
+export const useLocappciWhatsapp = () => {
+  const cfg = useAppConfig();
+  return cfg.data?.whatsapp || config.supportWhatsapp;
+};
 
-/** Live check of the whole cart before payment (stock, dates, prices). Never cached. */
+/** "Envoyer aux loueurs". Safe to retry: the idempotency key prevents duplicate requests. */
+export const useSendRentalRequest = () =>
+  useMutation({ mutationFn: (r: RentalRequestSend) => api.sendRentalRequest(r), networkMode: 'online' });
+
+/** Live check of the whole cart before payment (stock, prices). Never cached. */
 export const useCartCheck = () =>
   useMutation({
     mutationFn: (lines: CartCheckLine[]) => api.checkCart(lines),
     networkMode: 'online',
   });
 
-/** Delivery choices for the shops in the cart. */
-export const useDeliveryOptions = (shopIds: string[]) =>
+/** Delivery choices for the shops in the cart, priced for the commune `cityId`. Keeps the last prices while the commune changes. */
+export const useDeliveryOptions = (shopIds: string[], cityId?: string) =>
   useQuery({
-    queryKey: keys.deliveryOptions(shopIds),
-    queryFn: () => api.getDeliveryOptions(shopIds),
+    queryKey: keys.deliveryOptions(shopIds, cityId),
+    queryFn: () => api.getDeliveryOptions(shopIds, cityId),
     enabled: shopIds.length > 0,
     staleTime: 10 * 60_000,
+    placeholderData: (previous) => previous,
   });
 
 /** Creates the order. Safe to retry thanks to the idempotency key in the request. */
@@ -141,6 +145,8 @@ export const useOrder = (id: string) =>
     queryFn: () => api.getOrder(id),
     initialData: () => getRememberedOrder(id),
     initialDataUpdatedAt: 0, // always refresh once
+    // A status can change any minute (transfer checked, order shipped): always ask again on open.
+    staleTime: 0,
   });
 
 /** "Créer mon compte" after an order. */

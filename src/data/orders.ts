@@ -44,8 +44,9 @@ export function forgetOrders() {
 
 export const getRememberedOrder = (id: string) => orders.find((o) => o.id === id);
 
-/** Paid or confirmed, not delivered yet. */
-export const isInProgress = (o: Order) => (o.status === 'paid' || o.status === 'confirmed') && o.step !== 'delivered';
+/** Paid, confirmed or transfer being checked, not delivered yet. */
+export const isInProgress = (o: Order) =>
+  (o.status === 'paid' || o.status === 'confirmed' || o.status === 'awaiting_confirmation') && o.step !== 'delivered';
 
 const subscribe = (cb: () => void) => {
   listeners.add(cb);
