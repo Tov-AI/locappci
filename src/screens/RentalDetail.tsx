@@ -1,13 +1,14 @@
-import { useQueryClient } from '@tanstack/react-query';
+import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { api, type RentalCalendar, type RentalProduct } from '@/api';
+import type { RentalProduct } from '@/api';
 import { AppText } from '@/components/AppText';
 import { BottomActionBar } from '@/components/BottomActionBar';
 import { Button } from '@/components/Button';
 import { CalendarSheet } from '@/components/CalendarSheet';
+import { CityPickerSheet } from '@/components/CityPickerSheet';
 import { Description } from '@/components/Description';
 import { InfoBlock } from '@/components/InfoBlock';
 import { OfflineBanner } from '@/components/OfflineBanner';
@@ -20,48 +21,45 @@ import { SellerRow } from '@/components/SellerRow';
 import { Stepper } from '@/components/Stepper';
 import { clearToast, showToast } from '@/components/Toast';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
-import { addRentalToCart, useCartLine } from '@/data/cart';
+import { useCity } from '@/data/city';
 import { useOnline } from '@/data/online';
-import { keys, useCities, useRentalCalendar, useRentalCheck, useShop, waitingForNetwork } from '@/data/queries';
-import { colors, space } from '@/theme';
-import {
-  addDays,
-  formatDayCompact,
-  formatDays,
-  formatDayShort,
-  rentalDays,
-  today,
-  type IsoDate,
-} from '@/utils/dates';
+import { useCities, useShop } from '@/data/queries';
+import { putRequestLine, useRequestLine } from '@/data/rentalRequest';
+import { colors, radius, size, space } from '@/theme';
+import { addDays, formatDayCompact, formatDays, formatDayShort, today, type IsoDate } from '@/utils/dates';
 import { formatFcfa, formatTime } from '@/utils/format';
 import { useGoBack } from '@/utils/navigation';
 
 type StartChoice = 'today' | 'tomorrow' | 'other';
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
+const MAX_QUANTITY = 20;
+const formatUnits = (n: number) => `${n} unité${n > 1 ? 's' : ''}`;
 
 /**
- * Location détail (Feature 7): pick a start day and a duration, see the return date,
- * the total and the deposit, then "Réserver". Booked days come from the rental calendar;
- * "Réserver" re-checks availability and price live before the booking goes in the cart.
+ * Location détail (Feature 14, replaces the booking of Feature 7).
+ * Like on the website, renting works by request: pick when, how long, how many and where,
+ * then "Ajouter à ma demande". The loueur confirms availability and price; nothing is paid here.
  */
 export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; savedAt: number }) {
   const router = useRouter();
   const goBack = useGoBack();
-  const queryClient = useQueryClient();
   const online = useOnline();
   const shop = useShop(p.shopId);
   const cities = useCities();
-  const calendar = useRentalCalendar(p.id);
-  const rentalCheck = useRentalCheck();
-  const booking = useCartLine(p.id)?.rental;
+  const myCity = useCity();
+  const inRequest = useRequestLine(p.id);
 
-  // Start from the booking already in the cart (if still in the future), else tomorrow.
+  // Start from what is already in the request (if still in the future), else tomorrow.
   const [start, setStart] = useState<IsoDate>(() =>
-    booking && booking.startDate >= today() ? booking.startDate : addDays(today(), 1),
+    inRequest && inRequest.startDate >= today() ? inRequest.startDate : addDays(today(), 1),
   );
-  const [days, setDays] = useState(() => clamp(booking?.days ?? p.minDays, p.minDays, p.maxDays));
+  const [days, setDays] = useState(() => clamp(inRequest?.days ?? p.minDays, p.minDays, p.maxDays));
+  const [quantity, setQuantity] = useState(() => clamp(inRequest?.quantity ?? 1, 1, MAX_QUANTITY));
+  // Where the item is needed: what was chosen before, else the person's commune, else the item's.
+  const [cityId, setCityId] = useState(() => inRequest?.cityId || myCity || p.cityId);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
 
@@ -69,66 +67,46 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
   useEffect(() => clearToast, []);
 
   const choice: StartChoice = start === today() ? 'today' : start === addDays(today(), 1) ? 'tomorrow' : 'other';
-  const bookedDates = useMemo(() => calendar.data?.bookedDates ?? [], [calendar.data]);
-  const booked = useMemo(() => new Set(bookedDates), [bookedDates]);
-  const conflict = rentalDays(start, days).find((d) => booked.has(d));
   const returnDate = addDays(start, days);
-  const total = p.pricePerDay * days;
+  const priced = p.pricePerDay > 0;
+  const estimate = p.pricePerDay * days * quantity;
 
   const cityNames = useMemo(() => new Map((cities.data ?? []).map((c) => [c.id, c.name])), [cities.data]);
-  const perDay = formatFcfa(p.pricePerDay);
+  const cityName = cityNames.get(cityId) ?? '';
+  const perDay = priced ? formatFcfa(p.pricePerDay) : 'Prix à confirmer';
 
-  const reserve = () => {
-    if (!online) {
-      showToast('Connexion nécessaire pour vérifier les disponibilités avant de réserver.');
+  const add = () => {
+    const outcome = putRequestLine({
+      productId: p.id,
+      name: p.name,
+      coverUrl: p.images[0] ?? null,
+      shopId: p.shopId,
+      shopName: shop.data?.name ?? '',
+      pricePerDay: p.pricePerDay,
+      minDays: p.minDays,
+      maxDays: p.maxDays,
+      startDate: start,
+      days,
+      quantity,
+      cityId,
+    });
+    if (outcome === 'full') {
+      showToast('Votre demande contient déjà 20 matériels. Envoyez-la avant d’en ajouter.', {
+        label: 'Voir ma demande',
+        onPress: () => router.push('/demande-location'),
+      });
       return;
     }
-    rentalCheck.mutate(
-      { productId: p.id, request: { startDate: start, days, shownPricePerDay: p.pricePerDay } },
-      {
-        onSuccess: async (check) => {
-          // Trust the live answer straight away: price, deposit and newly booked days.
-          queryClient.setQueryData<RentalProduct>(keys.product(p.id), (old) =>
-            old ? { ...old, pricePerDay: check.pricePerDay, deposit: check.deposit } : old,
-          );
-          if (!check.available) {
-            queryClient.setQueryData<RentalCalendar>(keys.rentalCalendar(p.id), (old) => ({
-              productId: p.id,
-              bookedDates: [...new Set([...(old?.bookedDates ?? []), ...check.conflicts])],
-            }));
-            showToast('Ces dates viennent d’être réservées. Choisissez d’autres dates.');
-            return;
-          }
-
-          // The shop name may still be loading if the person tapped very fast.
-          const shopName =
-            shop.data?.name ??
-            (await queryClient
-              .ensureQueryData({ queryKey: keys.shop(p.shopId), queryFn: () => api.getShop(p.shopId) })
-              .then((s) => s.name)
-              .catch(() => ''));
-
-          const outcome = addRentalToCart({
-            productId: p.id,
-            name: p.name,
-            coverUrl: p.images[0] ?? null,
-            shopId: p.shopId,
-            shopName,
-            rental: { startDate: start, days, pricePerDay: check.pricePerDay, deposit: check.deposit },
-          });
-
-          const priceNote = check.priceChanged
-            ? `Le prix a changé : ${formatFcfa(check.pricePerDay)} / jour. `
-            : '';
-          const message = outcome === 'added' ? 'Réservation ajoutée au panier.' : 'Réservation mise à jour.';
-          showToast(priceNote + message, { label: 'Voir le panier', onPress: () => router.dismissTo('/panier') });
-        },
-        onError: (error) => showToast(error.message),
-      },
-    );
+    showToast(outcome === 'added' ? 'Ajouté à votre demande de location.' : 'Demande mise à jour.', {
+      label: 'Voir ma demande',
+      onPress: () => router.push('/demande-location'),
+    });
   };
 
-  const reserveLabel = booking ? 'Modifier la réservation' : 'Réserver';
+  const period =
+    days === 1
+      ? `Le ${formatDayShort(start)}`
+      : `Du ${formatDayShort(start)} au ${formatDayShort(addDays(returnDate, -1))}`;
 
   return (
     <View style={styles.fill}>
@@ -137,7 +115,7 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
           productId={p.id}
           images={p.images}
           name={p.name}
-          shareMessage={`${p.name} – ${perDay} / jour\n${p.webUrl}`}
+          shareMessage={`${p.name}${priced ? ` – ${perDay} / jour` : ''}\n${p.webUrl}`}
           onBack={goBack}
           rental
         />
@@ -151,16 +129,31 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
             </AppText>
             <AppText variant="display" color={colors.brand.navy}>
               {perDay}
-              <AppText variant="secondary" color={colors.text.muted}>
-                {' / jour'}
+              {priced ? (
+                <AppText variant="secondary" color={colors.text.muted}>
+                  {' / jour'}
+                </AppText>
+              ) : null}
+            </AppText>
+            {p.deposit > 0 ? (
+              <AppText variant="meta" color={colors.text.body}>
+                {`Caution demandée : ${formatFcfa(p.deposit)}, rendue au retour du matériel`}
               </AppText>
-            </AppText>
-            <AppText variant="meta" color={colors.text.body}>
-              {`Caution : ${formatFcfa(p.deposit)}, rendue au retour du matériel`}
-            </AppText>
+            ) : null}
+            {p.condition ? (
+              <AppText variant="meta" color={colors.text.body}>
+                {`État : ${p.condition}`}
+              </AppText>
+            ) : null}
+            {p.delivery ? (
+              <AppText variant="meta" color={colors.text.body}>
+                {p.delivery}
+              </AppText>
+            ) : null}
           </View>
 
-          <SectionCard title="Quand en avez-vous besoin ?">
+          <SectionCard title="Votre demande">
+            <AppText variant="secondaryStrong">À partir de quand ?</AppText>
             <View style={styles.choices} accessibilityRole="radiogroup">
               <OptionCard
                 label="Aujourd’hui"
@@ -185,7 +178,7 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
               />
             </View>
 
-            <View style={styles.duration}>
+            <View style={styles.row}>
               <AppText variant="secondaryStrong">Durée</AppText>
               <Stepper
                 value={days}
@@ -196,22 +189,42 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
                 accessibilityLabel="Durée de location"
               />
             </View>
+            <AppText variant="meta" color={colors.text.muted} accessibilityLiveRegion="polite">
+              {`${period}. Retour prévu le ${formatDayShort(returnDate)}.`}
+            </AppText>
 
-            {conflict ? (
-              <AppText variant="meta" color={colors.status.danger} accessibilityRole="alert">
-                {`Déjà réservé le ${formatDayShort(conflict)}. Changez la date ou la durée.`}
+            <View style={styles.row}>
+              <AppText variant="secondaryStrong">Quantité</AppText>
+              <Stepper
+                value={quantity}
+                onChange={setQuantity}
+                min={1}
+                max={MAX_QUANTITY}
+                format={formatUnits}
+                accessibilityLabel="Quantité"
+              />
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Commune d’utilisation : ${cityName || 'à choisir'}. Changer`}
+              onPress={() => setCityOpen(true)}
+              style={({ pressed }) => [styles.cityRow, pressed && styles.pressed]}>
+              <Feather name="map-pin" size={18} color={colors.brand.navy} />
+              <View style={styles.flex}>
+                <AppText variant="caption" color={colors.text.muted}>
+                  Commune d’utilisation
+                </AppText>
+                <AppText variant="secondaryStrong">{cityName || 'À choisir'}</AppText>
+              </View>
+              <AppText variant="secondaryStrong" color={colors.brand.navy}>
+                Changer
               </AppText>
-            ) : (
-              <AppText variant="meta" color={colors.text.muted} accessibilityLiveRegion="polite">
-                {`${days === 1 ? `Le ${formatDayShort(start)}` : `Du ${formatDayShort(start)} au ${formatDayShort(addDays(returnDate, -1))}`}. Retour prévu le ${formatDayShort(returnDate)}.`}
-              </AppText>
-            )}
-            {!calendar.data && (calendar.isError || waitingForNetwork(calendar)) ? (
-              // Booked days unknown: say so, rather than let free-looking days mislead.
-              <AppText variant="meta" color={colors.brand.orangeTextDark}>
-                Disponibilités non chargées : elles seront vérifiées quand vous réserverez.
-              </AppText>
-            ) : null}
+            </Pressable>
+
+            <AppText variant="meta" color={colors.text.body}>
+              Le loueur vous confirme la disponibilité et le prix. Rien n’est payé dans l’appli.
+            </AppText>
           </SectionCard>
 
           <SellerRow
@@ -234,22 +247,24 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
         </View>
       </ScrollView>
 
-      <BottomActionBar summary={`${formatDays(days)} · caution en plus`} total={formatFcfa(total)}>
+      <BottomActionBar
+        summary={`${formatDays(days)} · ${formatUnits(quantity)}`}
+        total={priced ? `≈ ${formatFcfa(estimate)}` : 'Prix à confirmer'}>
         {shop.data?.whatsapp ? (
           <WhatsAppButton
             number={shop.data.whatsapp}
             name={shop.data.name}
             message={
-              `Bonjour ${shop.data.name}, je voudrais louer « ${p.name} » ` +
-              `${formatDays(days)} à partir du ${formatDayShort(start)} sur LOCAPPCI. Est-ce disponible ?\n${p.webUrl}`
+              `Bonjour ${shop.data.name}, je voudrais louer « ${p.name} »` +
+              `${quantity > 1 ? ` (${formatUnits(quantity)})` : ''} ${formatDays(days)} à partir du ${formatDayShort(start)}` +
+              `${cityName ? ` à ${cityName}` : ''} sur LOCAPPCI. Est-ce disponible ?\n${p.webUrl}`
             }
           />
         ) : null}
         <Button
-          label={reserveLabel}
-          disabled={!!conflict}
-          loading={rentalCheck.isPending}
-          onPress={reserve}
+          label={inRequest ? 'Mettre à jour ma demande' : 'Ajouter à ma demande'}
+          disabled={!cityName && !!cities.data}
+          onPress={add}
           style={styles.flex}
         />
       </BottomActionBar>
@@ -259,8 +274,15 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
         onClose={() => setCalendarOpen(false)}
         value={start}
         days={days}
-        bookedDates={bookedDates}
+        bookedDates={[]}
         onChoose={setStart}
+      />
+      <CityPickerSheet
+        visible={cityOpen}
+        onClose={() => setCityOpen(false)}
+        selected={cityId}
+        onChoose={setCityId}
+        title="Où en avez-vous besoin ?"
       />
       <RentalTermsSheet visible={termsOpen} onClose={() => setTermsOpen(false)} product={p} />
       <ReportSheet visible={reportOpen} onClose={() => setReportOpen(false)} productId={p.id} />
@@ -276,5 +298,16 @@ const styles = StyleSheet.create({
   titleBlock: { gap: space.xs },
   choices: { flexDirection: 'row', gap: space.sm },
   choice: { flex: 1 },
-  duration: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    minHeight: size.touch,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface.field,
+  },
+  pressed: { opacity: 0.7 },
 });

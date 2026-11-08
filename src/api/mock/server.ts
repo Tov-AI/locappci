@@ -4,18 +4,18 @@ import type {
   OrderShop,
   DeliveryOption,
   Order,
-  IsoDate,
   LocappciApi,
   Product,
   ProductQuery,
   ProductSummary,
+  RentalRequestReceipt,
   StockCheck,
 } from '@/api/contract';
 import { onlineManager } from '@tanstack/react-query';
 
 import { ApiError, networkError } from '@/api/errors';
-import { bookedDayOffsets, categories, cities, products, shops } from '@/api/mock/data';
-import { addDays, today } from '@/utils/dates';
+import { categories, cities, products, shops } from '@/api/mock/data';
+import { today } from '@/utils/dates';
 
 /**
  * Developer switches to test loading, error and offline behaviour on a real phone.
@@ -27,10 +27,12 @@ export const mockSettings = {
   /** Every request fails as if the network were down. */
   failAll: false,
   /**
-   * Answer of the NEXT live stock check or rental check only, then back to 'normal'.
-   * Lets us test "sold out / dates taken meanwhile" and "price changed" on the phone.
+   * Answer of the NEXT live stock check only, then back to 'normal'.
+   * Lets us test "sold out meanwhile" and "price changed" on the phone.
    */
   nextCheck: 'normal' as 'normal' | 'sold_out' | 'price_up',
+  /** LOCAPPCI WhatsApp returned by getConfig (on the real site: Outils → LOCAPPCI API). */
+  whatsapp: '447748039794' as string | null,
 };
 
 const delayMs = () => ({ fast: 50, normal: 400, slow: 2500 })[mockSettings.latency];
@@ -148,11 +150,46 @@ export const mockApi: LocappciApi = {
       reports.push({ productId, ...report, at: new Date().toISOString() });
     }),
 
-  getRentalCalendar: (productId) =>
-    respond(() => {
-      const p = products.find((x) => x.id === productId);
-      if (!p || p.universe !== 'location') throw new ApiError('not_found', "Cette annonce n'est plus disponible.");
-      return { productId, bookedDates: bookedDates(productId) };
+  getConfig: () => respond(() => ({ whatsapp: mockSettings.whatsapp })),
+
+  sendRentalRequest: (req) =>
+    respond((): RentalRequestReceipt => {
+      const done = requestsByKey.get(req.idempotencyKey);
+      if (done) return done;
+      const { contact } = req;
+      if (contact.name.trim().length < 2) throw new ApiError('validation', 'Indiquez votre nom.');
+      if (!CI_PHONE.test(contact.phone)) throw new ApiError('validation', 'Numéro de téléphone invalide.');
+      if (contact.whatsapp && !/^\d{10,15}$/.test(contact.whatsapp)) throw new ApiError('validation', 'Numéro WhatsApp invalide.');
+      if ((contact.message?.length ?? 0) > 500) throw new ApiError('validation', 'Le message ne doit pas dépasser 500 caractères.');
+      if (req.items.length === 0) throw new ApiError('validation', 'Votre demande est vide.');
+
+      const sent: RentalRequestReceipt['sent'] = [];
+      const skipped: string[] = [];
+      for (const item of req.items) {
+        const p = products.find((x) => x.id === item.productId);
+        if (!p || p.universe !== 'location') {
+          skipped.push(item.productId);
+          continue;
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(item.startDate) || item.startDate < today()) {
+          throw new ApiError('validation', `« ${p.name} » : choisissez une date à partir d’aujourd’hui.`);
+        }
+        if (!Number.isInteger(item.days) || item.days < p.minDays || item.days > p.maxDays) {
+          throw new ApiError('validation', `« ${p.name} » : durée possible de ${p.minDays} à ${p.maxDays} jours.`);
+        }
+        if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
+          throw new ApiError('validation', `« ${p.name} » : quantité invalide.`);
+        }
+        if (!cities.some((c) => c.id === item.cityId)) {
+          throw new ApiError('validation', `« ${p.name} » : choisissez la commune.`);
+        }
+        sent.push({ productId: p.id, shopName: shopName(p.shopId) });
+      }
+      if (sent.length === 0) throw new ApiError('validation', 'Ces matériels ne sont plus proposés à la location.');
+      const receipt = { reference: `LOCREQ-${nextRequestNumber++}`, sent, skipped };
+      requestsByKey.set(req.idempotencyKey, receipt);
+      rentalRequests.push({ ...req, receipt, at: new Date().toISOString() });
+      return receipt;
     }),
 
   getDeliveryOptions: (shopIds, cityId) =>
@@ -218,9 +255,7 @@ export const mockApi: LocappciApi = {
             .filter((l) => shopOf(l.productId) === shopId)
             .map((l) => {
               const p = products.find((x) => x.id === l.productId)!;
-              return 'rental' in l && p.universe === 'location'
-                ? { name: p.name, quantity: 1, rental: { startDate: l.rental.startDate, days: l.rental.days, deposit: p.deposit } }
-                : { name: p.name, quantity: 'quantity' in l ? l.quantity : 1 };
+              return { name: p.name, quantity: l.quantity };
             }),
         });
       }
@@ -228,17 +263,7 @@ export const mockApi: LocappciApi = {
         throw new ApiError('validation', 'Indiquez votre adresse de livraison.');
       }
 
-      let itemsTotal = 0;
-      let depositTotal = 0;
-      req.lines.forEach((l, i) => {
-        const r = results[i];
-        if ('rental' in l) {
-          itemsTotal += r.price * l.rental.days;
-          depositTotal += r.deposit ?? 0;
-        } else {
-          itemsTotal += r.price * l.quantity;
-        }
-      });
+      const itemsTotal = req.lines.reduce((sum, l, i) => sum + results[i].price * l.quantity, 0);
 
       const order: Order = {
         id: `ord_${nextOrderNumber}`,
@@ -248,7 +273,6 @@ export const mockApi: LocappciApi = {
         itemsTotal,
         deliveryTotal,
         total: itemsTotal + deliveryTotal,
-        depositTotal,
         paymentUrl: null,
         transferTo: req.paymentMethod === 'cash' ? null : TRANSFER_TO,
         paymentReference: null,
@@ -304,51 +328,11 @@ export const mockApi: LocappciApi = {
       // The simulation applies to the first line only, like a single item changing.
       return { lines: lines.map((l, i) => checkCartLine(l, i === 0 ? forced : 'normal')) };
     }),
-
-  checkRental: (productId, { startDate, days, shownPricePerDay }) =>
-    respond(() => {
-      const p = products.find((x) => x.id === productId);
-      if (!p || p.universe !== 'location') throw new ApiError('not_found', "Cette annonce n'est plus disponible.");
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || startDate < today()) {
-        throw new ApiError('validation', 'Choisissez une date à partir d’aujourd’hui.');
-      }
-      if (!Number.isInteger(days) || days < p.minDays || days > p.maxDays) {
-        throw new ApiError('validation', `Durée possible : ${p.minDays} à ${p.maxDays} jours.`);
-      }
-      const forced = mockSettings.nextCheck;
-      mockSettings.nextCheck = 'normal';
-      const pricePerDay = forced === 'price_up' ? p.pricePerDay + 1000 : p.pricePerDay;
-      const wanted = Array.from({ length: days }, (_, i) => addDays(startDate, i));
-      const booked = new Set(bookedDates(productId));
-      // 'sold_out' simulates someone booking the first day a moment ago.
-      const conflicts = forced === 'sold_out' ? [startDate] : wanted.filter((d) => booked.has(d));
-      return {
-        productId,
-        available: conflicts.length === 0,
-        conflicts,
-        pricePerDay,
-        deposit: p.deposit,
-        total: pricePerDay * days,
-        priceChanged: pricePerDay !== shownPricePerDay,
-      };
-    }),
 };
 
 function checkCartLine(line: Parameters<LocappciApi['checkCart']>[0][number], forced: typeof mockSettings.nextCheck): CartCheckResult {
   const p = products.find((x) => x.id === line.productId);
   if (!p) return { productId: line.productId, ok: false, problem: 'gone', price: 0, priceChanged: false };
-
-  if ('rental' in line) {
-    if (p.universe !== 'location') return { productId: p.id, ok: false, problem: 'gone', price: 0, priceChanged: false };
-    const { startDate, days, shownPricePerDay } = line.rental;
-    const price = forced === 'price_up' ? p.pricePerDay + 1000 : p.pricePerDay;
-    const base = { productId: p.id, price, priceChanged: price !== shownPricePerDay, deposit: p.deposit };
-    if (startDate < today() || days < p.minDays || days > p.maxDays) return { ...base, ok: false, problem: 'invalid_dates' };
-    const booked = new Set(bookedDates(p.id));
-    const wanted = Array.from({ length: days }, (_, i) => addDays(startDate, i));
-    const conflicts = forced === 'sold_out' ? [startDate] : wanted.filter((d) => booked.has(d));
-    return conflicts.length ? { ...base, ok: false, problem: 'dates_taken', conflicts } : { ...base, ok: true };
-  }
 
   if (p.universe !== 'vente') return { productId: p.id, ok: false, problem: 'gone', price: 0, priceChanged: false };
   const price = forced === 'price_up' ? p.price + 1000 : p.price;
@@ -386,7 +370,7 @@ export function roadKm(from: string, to: string | undefined): number {
  */
 export const deliveryPrice = (km: number) => Math.ceil((1000 + 150 * km) / 100) * 100;
 
-/** Delivery choices: sellers deliver (price by distance) or hand over in the shop; rental shops hand over only. */
+/** Delivery choices: the shop delivers (price by distance) or hands over in the shop. */
 function deliveryOptionsFor(shopId: string, cityId?: string): DeliveryOption[] {
   const shop = shops.find((s) => s.id === shopId);
   if (!shop) return [];
@@ -394,11 +378,10 @@ function deliveryOptionsFor(shopId: string, cityId?: string): DeliveryOption[] {
   const pickup: DeliveryOption = {
     id: 'pickup',
     kind: 'pickup',
-    label: shop.role === 'loueur' ? 'Retrait chez le loueur' : 'Retrait en boutique',
+    label: 'Retrait en boutique',
     price: 0,
     detail: commune,
   };
-  if (shop.role === 'loueur') return [pickup];
   const km = roadKm(shop.cityId, cityId);
   return [
     { id: 'home', kind: 'home', label: 'À domicile', price: deliveryPrice(km), detail: `≈\u00A0${km}\u00A0km · 24–48\u00A0h` },
@@ -444,9 +427,20 @@ const accounts = new Map<string, Account & { password: string }>();
 
 const CI_PHONE = /^225(01|05|07|21|25|27)\d{8}$/;
 
-/** Booked days of a rental, worked out from today so the sample data never goes out of date. */
-const bookedDates = (productId: string): IsoDate[] =>
-  (bookedDayOffsets[productId] ?? []).map((n) => addDays(today(), n));
+/**
+ * Mock only (Données dev screen): an account to test "Envoyer aux loueurs" without placing
+ * an order first. Phone 07 00 00 00 01, password test1234.
+ */
+export function createTestAccount(): Account {
+  const account = { name: 'Compte Test', phone: '2250700000001' };
+  accounts.set(account.phone, { ...account, password: 'test1234' });
+  return account;
+}
+
+/** Rental requests received by the mock (what loueurs would see), and which key sent which. */
+export const rentalRequests: (Parameters<LocappciApi['sendRentalRequest']>[0] & { receipt: RentalRequestReceipt; at: string })[] = [];
+const requestsByKey = new Map<string, RentalRequestReceipt>();
+let nextRequestNumber = 5301;
 
 /** Reports received by the mock, so we can check them in tests. */
 export const reports: { productId: string; reason: string; details?: string; at: string }[] = [];

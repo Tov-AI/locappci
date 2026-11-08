@@ -96,40 +96,30 @@ export const products: Product[] = [
     description: 'Essence, démarrage électrique. Vérifié avant chaque location.',
     images: [], categoryId: 'energie', shopId: 'marcory-loc', cityId: 'marcory', webUrl: web('groupe-5kva'), updatedAt: at,
     pricePerDay: 15000, deposit: 50000, minDays: 1, maxDays: 30,
+    condition: 'Très bon état', delivery: 'Livraison possible dans Abidjan, à la charge du client.',
   },
   {
     id: 'r-brasseur', universe: 'location', name: "Brasseur d'air industriel",
     description: 'Idéal pour cérémonies et entrepôts.',
     images: [], categoryId: 'evenementiel', shopId: 'fete-treich', cityId: 'treichville', webUrl: web('brasseur-air'), updatedAt: at,
-    pricePerDay: 8000, deposit: 20000, minDays: 1, maxDays: 14,
+    pricePerDay: 8000, deposit: 20000, minDays: 1, maxDays: 14, condition: null, delivery: null,
   },
   {
     id: 'r-chaises', universe: 'location', name: 'Chaises pliantes (lot de 10)',
     description: 'Chaises blanches, livraison possible.',
     images: [], categoryId: 'evenementiel', shopId: 'fete-treich', cityId: 'treichville', webUrl: web('chaises-lot-10'), updatedAt: at,
-    pricePerDay: 5000, deposit: 15000, minDays: 1, maxDays: 7,
+    pricePerDay: 5000, deposit: 15000, minDays: 1, maxDays: 7, condition: 'Bon état', delivery: 'Livraison possible.',
   },
   {
     id: 'r-bache', universe: 'location', name: 'Bâche de réception 5 × 10 m',
     description: 'Montage inclus dans Abidjan.',
     images: [], categoryId: 'evenementiel', shopId: 'fete-treich', cityId: 'treichville', webUrl: web('bache-5x10'), updatedAt: at,
-    pricePerDay: 35000, deposit: 50000, minDays: 1, maxDays: 5,
+    pricePerDay: 0, deposit: 0, minDays: 1, maxDays: 5, condition: null, delivery: 'Montage inclus dans Abidjan.',
   },
   {
     id: 'r-betonniere', universe: 'location', name: 'Bétonnière 160 L',
     description: 'Moteur électrique, roues de transport.',
     images: [], categoryId: 'chantier', shopId: 'marcory-loc', cityId: 'marcory', webUrl: web('betonniere-160'), updatedAt: at,
-    pricePerDay: 12000, deposit: 40000, minDays: 1, maxDays: 30,
+    pricePerDay: 12000, deposit: 40000, minDays: 1, maxDays: 30, condition: 'Bon état', delivery: null,
   },
 ];
-
-/**
- * Booked days per rental item, counted from today (0 = today, 1 = tomorrow…).
- * The bétonnière is booked tomorrow on purpose: the default choice shows the "already booked" message.
- */
-export const bookedDayOffsets: Record<string, number[]> = {
-  'r-groupe-5kva': [3, 4, 5],
-  'r-betonniere': [1, 2],
-  'r-bache': [6, 7, 13],
-  'r-chaises': [0],
-};

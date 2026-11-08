@@ -1,5 +1,4 @@
 import type { Order, OrderShop } from '@/api';
-import { formatDays, formatDayShort } from '@/utils/dates';
 import { formatCiPhone } from '@/utils/phone';
 
 /**
@@ -7,8 +6,7 @@ import { formatCiPhone } from '@/utils/phone';
  * Non-breaking spaces inside « » (French typography): the quote marks never sit alone on a line.
  */
 export function trackingText(s: OrderShop, o: Order): string {
-  const sale = s.lines.filter((l) => !l.rental);
-  const rentals = s.lines.filter((l) => l.rental);
+  const sale = s.lines;
   const parts: string[] = [];
 
   if (sale.length > 0) {
@@ -22,12 +20,6 @@ export function trackingText(s: OrderShop, o: Order): string {
     } else {
       parts.push(`${s.shopName} prépare ${what}. Retrait en boutique à ${s.delivery.detail} : la boutique vous appelle au ${formatCiPhone(o.customer.phone)} quand c’est prêt.`);
     }
-  }
-  for (const l of rentals) {
-    const r = l.rental!;
-    parts.push(
-      `${s.shopName} vous attend le ${formatDayShort(r.startDate)} à ${s.delivery.detail} pour «\u00A0${l.name}\u00A0» (${formatDays(r.days)}).`,
-    );
   }
   return parts.join(' ');
 }
