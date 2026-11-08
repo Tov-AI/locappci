@@ -3,6 +3,8 @@
 Android and iOS app for [locappci.fr](https://locappci.fr/), the Ivorian marketplace for buying, renting and finding services.
 Built with Expo (SDK 58), Expo Router and TypeScript.
 
+> **New here or taking over?** Read [HANDOVER.md](HANDOVER.md) first: where the project is, which branch to use, and what's next.
+
 ## Run it
 
 ```bash
