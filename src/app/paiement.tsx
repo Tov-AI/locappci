@@ -135,7 +135,7 @@ export default function PaiementScreen() {
   const deliveryTotal = chosen.reduce((sum, o) => sum + (o?.price ?? 0), 0);
   const totals = cartTotals(items);
   const total = totals.total + deliveryTotal;
-  const count = totals.saleUnits + totals.rentalCount;
+  const count = totals.saleUnits;
   const deliveryReady = !!delivery.data && chosen.every(Boolean);
 
   // Same checkout content → same idempotency key, so a retry never creates a second order.
@@ -250,7 +250,7 @@ export default function PaiementScreen() {
         <EmptyState
           icon="shopping-cart"
           title="Votre panier est vide"
-          message="Ajoutez un produit ou une location avant de payer."
+          message="Ajoutez un produit avant de payer."
           actionLabel="Retour"
           onAction={goBack}
         />
@@ -385,15 +385,10 @@ export default function PaiementScreen() {
           </SectionCard>
 
           <SectionCard title="Récapitulatif">
-            <Row label={`Articles et locations (${count})`} value={formatFcfa(totals.total)} />
+            <Row label={`Articles (${count})`} value={formatFcfa(totals.total)} />
             <Row label="Livraison" value={deliveryTotal ? formatFcfa(deliveryTotal) : 'Gratuite'} />
             <View style={styles.divider} />
             <Row label="Total" value={formatFcfa(total)} strong />
-            {totals.depositTotal > 0 ? (
-              <AppText variant="meta" color={colors.text.body}>
-                {`Caution${totals.rentalCount > 1 ? 's' : ''} à remettre au retrait : ${formatFcfa(totals.depositTotal)}, rendue${totals.rentalCount > 1 ? 's' : ''} au retour du matériel.`}
-              </AppText>
-            ) : null}
           </SectionCard>
         </ScrollView>
 

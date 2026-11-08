@@ -14,7 +14,8 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     params?: Record<string, string | number | undefined>,
     body?: unknown,
   ): Promise<T> {
-    const url = new URL(path, baseUrl);
+    // Join, don't resolve: new URL('/v1/x', 'https://site/wp-json/locappci') would drop '/wp-json/locappci'.
+    const url = new URL(`${baseUrl.replace(/\/+$/, '')}${path}`);
     Object.entries(params ?? {}).forEach(([k, v]) => {
       if (v !== undefined && v !== '') url.searchParams.set(k, String(v));
     });
@@ -75,13 +76,8 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     getShop: (id) => get(`/v1/shops/${encodeURIComponent(id)}`),
     checkStock: (productId, shownPrice) =>
       get(`/v1/products/${encodeURIComponent(productId)}/stock`, { shown_price: shownPrice }),
-    getRentalCalendar: (productId) => get(`/v1/products/${encodeURIComponent(productId)}/calendar`),
-    checkRental: (productId, request) =>
-      get(`/v1/products/${encodeURIComponent(productId)}/rental-check`, {
-        start_date: request.startDate,
-        days: request.days,
-        shown_price_per_day: request.shownPricePerDay,
-      }),
+    getConfig: () => get('/v1/config'),
+    sendRentalRequest: (req) => request('POST', '/v1/rental-requests', undefined, req),
     getDeliveryOptions: (shopIds, cityId) => get('/v1/delivery-options', { shops: shopIds.join(','), city: cityId }),
     submitPaymentReference: (orderId, reference) =>
       request('POST', `/v1/orders/${encodeURIComponent(orderId)}/payment-reference`, undefined, { reference }),

@@ -5,7 +5,6 @@ import { AppText } from '@/components/AppText';
 import { Stepper } from '@/components/Stepper';
 import type { CartItem } from '@/data/cart';
 import { colors, radius, space } from '@/theme';
-import { addDays, formatDayCompact, formatDays } from '@/utils/dates';
 import { formatFcfa } from '@/utils/format';
 
 const THUMB = 64;
@@ -21,9 +20,8 @@ type Props = {
   onRemove: () => void;
 };
 
-/** One cart line: photo, name, price, quantity (sale) or dates (rental), "Retirer". */
+/** One cart line: photo, name, price, quantity, "Retirer". */
 export function CartLine({ item, message, onOpen, onQuantity, onRemove }: Props) {
-  const r = item.rental;
   return (
     <View style={styles.line}>
       <Pressable
@@ -31,36 +29,22 @@ export function CartLine({ item, message, onOpen, onQuantity, onRemove }: Props)
         accessibilityLabel={`Voir ${item.name}`}
         onPress={onOpen}
         style={({ pressed }) => [styles.top, pressed && styles.pressed]}>
-        <View style={[styles.thumb, { backgroundColor: r ? colors.brand.orangeTint : colors.brand.navyTint }]}>
-          <Feather name="image" size={22} color={r ? colors.brand.orangeBorder : colors.brand.navyMuted} />
+        <View style={[styles.thumb, { backgroundColor: colors.brand.navyTint }]}>
+          <Feather name="image" size={22} color={colors.brand.navyMuted} />
           {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.image} resizeMode="cover" /> : null}
         </View>
         <View style={styles.texts}>
           <AppText variant="secondaryStrong" numberOfLines={2}>
             {item.name}
           </AppText>
-          {r ? (
-            <>
-              <AppText variant="meta" color={colors.text.body}>
-                {r.days === 1
-                  ? `Location 1 jour · le ${formatDayCompact(r.startDate)}`
-                  : `Location ${formatDays(r.days)} · du ${formatDayCompact(r.startDate)} au ${formatDayCompact(addDays(r.startDate, r.days - 1))}`}
-              </AppText>
-              <AppText variant="bodyStrong">{formatFcfa(item.price)}</AppText>
+          <AppText variant="bodyStrong">
+            {formatFcfa(item.price)}
+            {item.quantity > 1 ? (
               <AppText variant="caption" color={colors.text.muted}>
-                {`+ caution ${formatFcfa(r.deposit)}, rendue au retour`}
+                {` × ${item.quantity} = ${formatFcfa(item.price * item.quantity)}`}
               </AppText>
-            </>
-          ) : (
-            <AppText variant="bodyStrong">
-              {formatFcfa(item.price)}
-              {item.quantity > 1 ? (
-                <AppText variant="caption" color={colors.text.muted}>
-                  {` × ${item.quantity} = ${formatFcfa(item.price * item.quantity)}`}
-                </AppText>
-              ) : null}
-            </AppText>
-          )}
+            ) : null}
+          </AppText>
         </View>
       </Pressable>
 
@@ -82,16 +66,9 @@ export function CartLine({ item, message, onOpen, onQuantity, onRemove }: Props)
       ) : null}
 
       <View style={styles.actions}>
-        {item.maxQuantity === 0 && !r ? (
+        {item.maxQuantity === 0 ? (
           // Sold out: nothing to adjust, only "Retirer".
           <View />
-        ) : r ? (
-          <Pressable accessibilityRole="button" hitSlop={8} onPress={onOpen} style={styles.link}>
-            <Feather name="calendar" size={16} color={colors.brand.navy} />
-            <AppText variant="secondaryStrong" color={colors.brand.navy}>
-              Modifier les dates
-            </AppText>
-          </Pressable>
         ) : (
           <Stepper
             value={item.quantity}

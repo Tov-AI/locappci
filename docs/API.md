@@ -5,7 +5,8 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 
 ## Basics
 
-- **Base URL:** set in the app with `EXPO_PUBLIC_API_URL` (e.g. `https://api.locappci.fr`). With no value, the app uses the mock in `src/api/mock/`.
+- **Base URL:** set in the app with `EXPO_PUBLIC_API_URL`. The gateway is the WordPress plugin in `gateway/locappci-api`, so the value is `https://locappci.fr/wp-json/locappci` (the app adds `/v1/…`). With no value, the app uses the mock in `src/api/mock/`.
+- **Implementation status:** plugin 0.2 implements `health`, `config`, `cities`, `categories`, `products` (list, `ids`, detail, `stock`), `shops`, `cart/check`. `rental-requests` answers `401` until accounts (Simple JWT Login) are connected; delivery options, orders, payment reference, accounts and reports come next.
 - **Format:** JSON, UTF-8. Field names in camelCase, exactly as in `contract.ts`.
 - **Money:** whole FCFA as integers (`18500`, never `"18 500"` or `18500.00`).
 - **Dates:** ISO 8601 UTC strings.
@@ -24,8 +25,8 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 | GET | `/v1/products/{id}` | — | `Product` (sale or rental, told apart by `universe`) |
 | GET | `/v1/shops/{id}` | — | `Shop` |
 | GET | `/v1/products/{id}/stock` | `shown_price` (the price the app displayed) | `StockCheck` |
-| GET | `/v1/products/{id}/calendar` | — | `RentalCalendar` (booked days from today, `YYYY-MM-DD`) |
-| GET | `/v1/products/{id}/rental-check` | `start_date` (`YYYY-MM-DD`), `days`, `shown_price_per_day` | `RentalCheck` |
+| GET | `/v1/config` | — | `AppConfig` (`whatsapp`: LOCAPPCI WhatsApp, set in Outils → LOCAPPCI API) |
+| POST | `/v1/rental-requests` | — · JSON body `RentalRequestSend` (needs a signed-in account) | `RentalRequestReceipt` |
 | POST | `/v1/cart/check` | — · JSON body `{ "lines": CartCheckLine[] }` | `CartCheck` |
 | GET | `/v1/delivery-options` | `shops` (comma-separated shop ids), `city` (delivery commune) | `ShopDelivery[]` |
 | POST | `/v1/orders/{id}/payment-reference` | — · JSON body `{ "reference" }` | `Order` (status `awaiting_confirmation`) |
@@ -44,11 +45,12 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - **Stock check** is never cached by the gateway. `priceChanged` is `true` when the current price differs from `shown_price`.
 - **Pagination:** `hasMore` is `true` when another page exists; the app loads it on scroll.
 - **Reports** ("Signaler cette annonce") are forwarded to the LOCAPPCI team, for example by email to the site admin. Return `404 not_found` if the product no longer exists, `422 validation` if `details` is over 500 characters. Rate-limit per device to stop spam.
-- **Rental dates** are calendar days in Côte d'Ivoire time (GMT). A rental of `days` days starting `start_date` occupies `start_date` … `start_date + days − 1`; the item comes back on `start_date + days`.
-- **Rental check** is never cached. `422 validation` if `start_date` is in the past or `days` is outside `minDays`–`maxDays` (French message, shown as is). `available` is `false` with the clashing days in `conflicts` when any day is already booked. `total` = `pricePerDay × days`; the deposit is separate.
-- **Cart check** (before payment, one request for the whole cart): one result per line, same order. `ok` is `false` with a `problem`: `gone`, `out_of_stock`, `not_enough_stock` (with `maxQuantity`), `dates_taken` (with `conflicts`) or `invalid_dates`. A price change alone keeps `ok: true` with `priceChanged: true`; the app shows the new price and asks the person to confirm. Never cached.
+- **Rentals work by request, like on locappci.fr** (Feature 14): nothing is booked or paid in the app. Rental items are the products in the site's `location` category (or a rental product type). `pricePerDay` is `0` when the price is on request ("Prix à confirmer"); `deposit`, `condition`, `delivery` and the item's commune come from the site's `_locappci_location_*` fields.
+- **Rental requests**: one request per item, sent to that item's loueur (site record `locappci_loc_req`, status `new` → `processing` → `done` / `archived`). Idempotent on `idempotencyKey`. `422 validation` (French message) for a past `startDate`, `days` outside `minDays`–`maxDays`, a quantity outside 1–99, an unknown commune, a bad phone or a message over 500 characters. Items no longer offered are returned in `skipped`. Needs a signed-in account (`401 unauthorized` otherwise), like the website; without an account the app sends the list to the LOCAPPCI WhatsApp.
+- **Rental dates** are calendar days in Côte d'Ivoire time (GMT). A rental of `days` days starting `startDate` covers `startDate` … `startDate + days − 1`.
+- **Cart check** (before payment, one request for the whole cart, sale products only): one result per line, same order. `ok` is `false` with a `problem`: `gone` (also for a rental item: rentals are never bought), `out_of_stock` or `not_enough_stock` (with `maxQuantity`). A price change alone keeps `ok: true` with `priceChanged: true`; the app shows the new price and asks the person to confirm. Never cached.
 - **Orders are idempotent**: the same `idempotencyKey` must return the same order, never a second one (double tap, lost connection, retry after a refused payment). After `payment_failed`, a retry with the same key puts the order back to `pending_payment` (the payment method may change).
-- **`POST /v1/orders`** re-checks stock, dates and prices; if anything changed it returns `409` with code `cart_changed` and creates nothing. It validates the Ivorian phone (`225` + 10 digits starting 01, 05, 07, 21, 25, 27), one delivery choice per shop, and an address when any choice is home delivery.
+- **`POST /v1/orders`** re-checks stock and prices; if anything changed it returns `409` with code `cart_changed` and creates nothing. It validates the Ivorian phone (`225` + 10 digits starting 01, 05, 07, 21, 25, 27), one delivery choice per shop, and an address when any choice is home delivery.
 - **Statuses**: cash → `confirmed` at once; Wave / Orange Money → `pending_payment` with a `paymentUrl` to open, then `paid` or `payment_failed` once the provider tells the gateway (Feature 15). The app reads the result with `GET /v1/orders/{id}`.
 - **`Order.shops`** tells each shop's items and delivery choice; **`Order.step`** (`confirmed` → `preparing` → `delivered`) drives "Suivi". The gateway maps WooCommerce statuses to these steps.
 - **Account from an order** creates a WordPress customer with the order's name and phone and the given password (sent over HTTPS, never stored by the app). `422 validation` if the phone already has an account. Login and session tokens come with Feature 14.
@@ -58,7 +60,7 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - **Payment v1 (no merchant accounts yet)**: Wave / Orange Money orders come back `pending_payment` with `transferTo` (the LOCAPPCI number and name, from the gateway settings). The customer transfers `total`, then sends the transaction reference → `awaiting_confirmation`. The team checks it in WordPress and sets `paid` (or `payment_failed`). With merchant accounts later, `paymentUrl` replaces `transferTo` (Feature 15).
 - **Delivery price** depends on the distance between the shop and the delivery commune (`city`); `detail` shows "≈ 14 km · 24–48 h". The real tariff is to confirm with the client.
 - **No cash on delivery** in v1 (client's answer); `cash` stays in the contract for later.
-- **Deposits** are not in `total`: they are handed over at pickup (pending client confirmation).
+- **Deposits** are settled between the customer and the loueur; never in an order.
 - **`Shop.whatsapp`** is digits only in international format (`225…`). The app opens `https://wa.me/<number>` with a pre-filled message; `null` hides the WhatsApp button.
 - **`SaleProduct.stock.quantity`** is the number of units the shop has (or `null` if unknown). The cart never goes above it.
 
