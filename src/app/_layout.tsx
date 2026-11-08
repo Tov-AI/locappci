@@ -5,15 +5,51 @@ import {
   DMSans_700Bold,
   useFonts,
 } from '@expo-google-fonts/dm-sans';
-import { Stack } from 'expo-router';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { CrashScreen } from '@/components/CrashScreen';
+import { ToastHost } from '@/components/Toast';
+import { loadAccount } from '@/data/account';
+import { loadCart } from '@/data/cart';
+import { loadCity } from '@/data/city';
+import { loadCustomer } from '@/data/customer';
+import { loadRentalRequest } from '@/data/rentalRequest';
+import { loadFavourites } from '@/data/favourites';
+import { loadNotificationAnswer } from '@/data/notifications';
+import { loadOrders } from '@/data/orders';
+import { startOnlineTracking } from '@/data/online';
+import { loadRecentSearches } from '@/data/recentSearches';
+import { persistOptions, queryClient } from '@/data/queryClient';
+
 // Keep the splash screen up until the brand font is ready, so text never flashes in the wrong font.
 SplashScreen.preventAutoHideAsync();
+
+// Start once, outside React: follow the network and read what the phone saved.
+startOnlineTracking();
+loadFavourites();
+loadCity();
+loadRecentSearches();
+loadCart();
+loadCustomer();
+loadAccount();
+loadRentalRequest();
+loadNotificationAnswer();
+loadOrders();
+
+/** Expo Router shows this when any screen throws while rendering. */
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return (
+    <SafeAreaProvider>
+      <CrashScreen {...props} />
+    </SafeAreaProvider>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -37,10 +73,22 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+        {/* Restores yesterday's cache from the phone, then refreshes it in the background. */}
+        <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="composants" />
+            <Stack.Screen name="donnees" />
+            <Stack.Screen name="produit/[id]" />
+            <Stack.Screen name="paiement" />
+            <Stack.Screen name="commande/[id]" />
+            <Stack.Screen name="adresses" />
+            <Stack.Screen name="commandes" />
+            <Stack.Screen name="demande-location" />
+          </Stack>
+          <ToastHost />
+        </PersistQueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

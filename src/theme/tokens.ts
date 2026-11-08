@@ -11,6 +11,10 @@ export const colors = {
     navyTint: '#E9EDF7',
     navySelected: '#EDF1F9',
     onNavyMuted: '#CBD5EE',
+    /** Placeholder icon on navy-tint photo areas. */
+    navyMuted: '#8D9AC0',
+    /** Translucent white tile on a navy card. */
+    onNavyTile: 'rgba(255, 255, 255, 0.16)',
     orange: '#F86200',
     orangeTint: '#FEEDE1',
     orangeText: '#A33F00',
@@ -33,15 +37,21 @@ export const colors = {
     ground: '#F6F7F5',
     field: '#F1F3F1',
     neutral: '#EEF0F3',
+    /** Loading placeholder: dark enough to see on the grey ground and on white cards. */
+    skeleton: '#DFE3E8',
   },
   border: {
     default: '#E4E6EA',
     input: '#D5D9DE',
+    /** Unselected radio ring: darker than input so the empty circle stays visible (3:1). */
+    radio: '#8A939E',
   },
   status: {
     danger: '#B42318',
   },
   overlay: 'rgba(22, 25, 29, 0.45)',
+  /** Dark see-through pill on photos: white text on it stays readable on any picture. */
+  scrim: 'rgba(22, 25, 29, 0.72)',
 } as const;
 
 /** DM Sans families, one per weight (loaded in src/app/_layout.tsx). */

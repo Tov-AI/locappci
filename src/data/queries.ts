@@ -1,0 +1,185 @@
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+
+import { config } from '@/config';
+import { getRememberedOrder } from '@/data/orders';
+
+import { api, type AccountRequest, type CartCheckLine, type LoginRequest, type Page, type ProductSummary, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequestSend, type Universe } from '@/api';
+
+/**
+ * Query keys: one name per kind of data, so the cache knows what to refresh.
+ * Screens use the hooks below, never `api` directly.
+ */
+export const keys = {
+  cities: ['cities'] as const,
+  categories: (universe?: Universe) => ['categories', universe ?? 'all'] as const,
+  products: (query: Omit<ProductQuery, 'page'>) => ['products', query] as const,
+  product: (id: string) => ['product', id] as const,
+  shop: (id: string) => ['shop', id] as const,
+  config: ['config'] as const,
+  deliveryOptions: (shopIds: string[], cityId?: string) =>
+    ['deliveryOptions', [...shopIds].sort(), cityId ?? 'none'] as const,
+  order: (id: string) => ['order', id] as const,
+};
+
+const DAY = 24 * 60 * 60_000;
+
+/**
+ * No data yet and the request is waiting for the network (offline, nothing cached).
+ * Without this check the screen would show a skeleton forever.
+ */
+export const waitingForNetwork = (q: { isPending: boolean; fetchStatus: string }) =>
+  q.isPending && q.fetchStatus === 'paused';
+
+/** Communes rarely change: keep them fresh for a day. */
+export const useCities = () =>
+  useQuery({ queryKey: keys.cities, queryFn: () => api.listCities(), staleTime: DAY });
+
+export const useCategories = (universe?: Universe) =>
+  useQuery({ queryKey: keys.categories(universe), queryFn: () => api.listCategories(universe), staleTime: DAY });
+
+/** Product list with endless scroll: 20 per page, next page loaded on demand. */
+export const useProducts = (query: Omit<ProductQuery, 'page'>) =>
+  useInfiniteQuery({
+    queryKey: keys.products(query),
+    queryFn: ({ pageParam }) => api.listProducts({ ...query, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
+  });
+
+export const useProduct = (id: string) =>
+  useQuery({ queryKey: keys.product(id), queryFn: () => api.getProduct(id) });
+
+export const useShop = (id: string | undefined) =>
+  useQuery({ queryKey: keys.shop(id ?? ''), queryFn: () => api.getShop(id!), enabled: !!id });
+
+/**
+ * Live stock and price check before "Ajouter au panier" and before payment.
+ * A mutation, not a cached query: the answer must always come from the server.
+ */
+export const useStockCheck = () =>
+  useMutation({
+    mutationFn: ({ productId, shownPrice }: { productId: string; shownPrice: number }) =>
+      api.checkStock(productId, shownPrice),
+    networkMode: 'online',
+  });
+
+/**
+ * Number of results for a set of filters, without downloading the products.
+ * Used by "Afficher N résultats" in the Filtres sheet.
+ */
+export const useProductCount = (query: Omit<ProductQuery, 'page' | 'pageSize'>, enabled = true) =>
+  useQuery({
+    queryKey: ['productCount', query],
+    queryFn: async () => (await api.listProducts({ ...query, page: 1, pageSize: 1 })).total,
+    enabled,
+    placeholderData: (previous) => previous,
+  });
+
+/** Up to 6 other products from the same category, for "Articles similaires". */
+export const useSimilarProducts = (productId: string, universe: Universe | undefined, categoryId: string | undefined) =>
+  useQuery({
+    queryKey: ['similar', productId],
+    queryFn: async () => {
+      const page = await api.listProducts({ universe, categoryId, page: 1, pageSize: 7 });
+      return page.items.filter((p) => p.id !== productId).slice(0, 6);
+    },
+    enabled: !!categoryId,
+  });
+
+/** "Signaler cette annonce". Needs the network: never queued silently. */
+export const useReportProduct = () =>
+  useMutation({
+    mutationFn: ({ productId, report }: { productId: string; report: ProductReport }) =>
+      api.reportProduct(productId, report),
+    networkMode: 'online',
+  });
+
+/**
+ * Settings LOCAPPCI changes on the website (WhatsApp number). Fresh for an hour;
+ * the app falls back to src/config.ts until the first answer.
+ */
+export const useAppConfig = () =>
+  useQuery({ queryKey: keys.config, queryFn: () => api.getConfig(), staleTime: 60 * 60_000 });
+
+/** LOCAPPCI WhatsApp: from the website settings, else the number built into the app. */
+export const useLocappciWhatsapp = () => {
+  const cfg = useAppConfig();
+  return cfg.data?.whatsapp || config.supportWhatsapp;
+};
+
+/** "Envoyer aux loueurs". Safe to retry: the idempotency key prevents duplicate requests. */
+export const useSendRentalRequest = () =>
+  useMutation({ mutationFn: (r: RentalRequestSend) => api.sendRentalRequest(r), networkMode: 'online' });
+
+/** Live check of the whole cart before payment (stock, prices). Never cached. */
+export const useCartCheck = () =>
+  useMutation({
+    mutationFn: (lines: CartCheckLine[]) => api.checkCart(lines),
+    networkMode: 'online',
+  });
+
+/** Delivery choices for the shops in the cart, priced for the commune `cityId`. Keeps the last prices while the commune changes. */
+export const useDeliveryOptions = (shopIds: string[], cityId?: string) =>
+  useQuery({
+    queryKey: keys.deliveryOptions(shopIds, cityId),
+    queryFn: () => api.getDeliveryOptions(shopIds, cityId),
+    enabled: shopIds.length > 0,
+    staleTime: 10 * 60_000,
+    placeholderData: (previous) => previous,
+  });
+
+/** Creates the order. Safe to retry thanks to the idempotency key in the request. */
+export const useCreateOrder = () =>
+  useMutation({
+    mutationFn: (request: OrderRequest) => api.createOrder(request),
+    networkMode: 'online',
+  });
+
+/**
+ * One order. Starts from the copy saved on this phone (works offline), then refreshes
+ * from the gateway; if the refresh fails, the saved copy stays on screen.
+ */
+export const useOrder = (id: string) =>
+  useQuery({
+    queryKey: keys.order(id),
+    queryFn: () => api.getOrder(id),
+    initialData: () => getRememberedOrder(id),
+    initialDataUpdatedAt: 0, // always refresh once
+    // A status can change any minute (transfer checked, order shipped): always ask again on open.
+    staleTime: 0,
+  });
+
+/** "Créer mon compte" after an order. */
+export const useCreateAccount = () =>
+  useMutation({
+    mutationFn: (request: AccountRequest) => api.createAccount(request),
+    networkMode: 'online',
+  });
+
+/**
+ * The favourite products, in the order given. While loading (or offline with nothing saved
+ * for this exact list), shows the last list, or else the cards already seen in Accueil/Recherche.
+ */
+export function useFavouriteProducts(ids: string[]) {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: ['favouriteProducts', ids],
+    queryFn: async () => (await api.listProducts({ ids, page: 1, pageSize: Math.max(ids.length, 1) })).items,
+    enabled: ids.length > 0,
+    placeholderData: (previous) => {
+      if (previous) return previous;
+      const seen = new Map<string, ProductSummary>();
+      for (const [, data] of queryClient.getQueriesData<InfiniteData<Page<ProductSummary>>>({ queryKey: ['products'] })) {
+        data?.pages.forEach((page) => page.items.forEach((item) => seen.set(item.id, item)));
+      }
+      const found = ids.map((id) => seen.get(id)).filter((p): p is ProductSummary => !!p);
+      return found.length > 0 ? found : undefined;
+    },
+  });
+}
+
+export const useLogin = () =>
+  useMutation({ mutationFn: (r: LoginRequest) => api.login(r), networkMode: 'online' });
+
+export const useDeleteAccount = () =>
+  useMutation({ mutationFn: (r: LoginRequest) => api.deleteAccount(r), networkMode: 'online' });

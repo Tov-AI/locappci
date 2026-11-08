@@ -3,6 +3,8 @@
 Android and iOS app for [locappci.fr](https://locappci.fr/), the Ivorian marketplace for buying, renting and finding services.
 Built with Expo (SDK 58), Expo Router and TypeScript.
 
+> **New here or taking over?** Read [HANDOVER.md](HANDOVER.md) first: where the project is, which branch to use, and what's next.
+
 ## Run it
 
 ```bash
@@ -25,6 +27,8 @@ npm run typecheck   # TypeScript, must pass with no errors
 | `src/app/` | Screens. Every file is a route (Expo Router) |
 | `src/app/(tabs)/` | The 5 bottom tabs: Accueil, Recherche, Favoris, Panier, Compte |
 | `src/components/` | Reusable components (AppText, Screen, EmptyState…) |
+| `src/api/` | API contract, mock server and HTTP client. See docs/API.md |
+| `src/data/` | Cache, offline detection, favourites, data hooks for screens |
 | `src/theme/` | Design tokens: colours, type, spacing, radius. Never hard-code these in screens |
 | `assets/` | Logo, app icon, splash |
 | `docs/` | Feature roadmap and decisions |
