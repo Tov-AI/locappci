@@ -16,6 +16,13 @@ One line per decision, newest first. Why we chose it matters more than what.
 | 2026-10-26 | Delivery priced by distance from the shop to the commune in the address | Client: delivery paid by the customer, by distance; sample tariff 1 000 + 150 FCFA/km until the real one |
 | 2026-10-26 | Order screen always refreshes the status on open (staleTime 0) | A transfer can be validated any minute; a 5-minute cache showed an old status |
 | 2026-10-26 | Tracking bars stay grey until the payment is confirmed | "Confirmée" in green was wrong while the transfer was being checked |
+| 2026-11-01 | Rentals by request, not booking: "Ma demande de location" saved on the phone, sent to the loueurs (account needed, as on the site) or to the LOCAPPCI WhatsApp | The site's own code works this way; the client confirmed. Availability and price are confirmed by the loueur, nothing is paid in the app |
+| 2026-11-01 | Rental calendar check, rental cart lines and deposits removed from the contract | They described a booking flow the site does not have; keeping them would invite wrong promises |
+| 2026-11-01 | LOCAPPCI WhatsApp read from `GET /v1/config` (set in Outils → LOCAPPCI API), with the built-in +44 number as fallback | The client wants to change it himself without a new app version |
+| 2026-11-01 | Rental items = products in the `location` category (and RnB type as fallback); their commune comes from `_locappci_location_city` | Same rule as the site's snippets; RnB holds no products on locappci.fr |
+| 2026-11-01 | Downloadable products (songs…) are left out of the app for now (`is_supported`, filter `locappci_is_supported`) | The app's Vente flow means delivery; a song can't be delivered. Music waits for the client's answer |
+| 2026-11-01 | Diagnostics mask phone, e-mail, address and file-link values | The first screenshot showed an artist's contact details; screenshots get shared |
+| 2026-11-01 | Real site has 0 RnB rentals; products carry the site's own `_locappci_module` field | Universes must be mapped from that field, not from the rental plugin: 0.1.1 diagnostics list each module |
 | 2026-10-25 | The mock fails when the phone is offline (real or dev switch) | It used to answer anyway, which hid the "offline with nothing saved" case |
 | 2026-10-25 | "Pas de connexion" state when there is no network and nothing saved (`waitingForNetwork`) | Without it, screens showed loading skeletons forever; the page fills itself in when the network returns |
 | 2026-10-25 | Favoris offline: falls back to cards already seen in Accueil/Recherche | Hearts are on the phone; the cards often are too |

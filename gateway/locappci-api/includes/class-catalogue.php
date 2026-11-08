@@ -53,13 +53,60 @@ final class Locappci_Catalogue {
 
 	// ---------------------------------------------------------------- products
 
-	/** Product types sold as rentals (the WooCommerce Booking & Rental plugin uses "redq_rental"). */
+	/** Product types sold as rentals (the WooCommerce Booking & Rental plugin uses "redq_rental"). Unused on locappci.fr so far. */
 	public static function rental_types(): array {
 		return apply_filters('locappci_rental_types', ['redq_rental']);
 	}
 
+	/**
+	 * On locappci.fr, rental items are products in the "location" category (or its sub-categories):
+	 * the site's own snippets ("Demandes Location OFFICIEL STABLE") use the same rule.
+	 */
+	public static function location_category_slug(): string {
+		return (string) apply_filters('locappci_location_category', 'location');
+	}
+
+	/** Term id of the "location" category, or 0. */
+	public static function location_term_id(): int {
+		$t = get_term_by('slug', self::location_category_slug(), 'product_cat');
+		return ($t && !is_wp_error($t)) ? (int) $t->term_id : 0;
+	}
+
+	/** Rentals as a WP_Query tax_query clause: in the location category, or a rental product type. */
+	public static function rental_tax_query(bool $rentals): array {
+		$cat = self::location_term_id();
+		$by_cat = ['taxonomy' => 'product_cat', 'terms' => [$cat ?: 0], 'include_children' => true, 'operator' => $rentals ? 'IN' : 'NOT IN'];
+		$by_type = ['taxonomy' => 'product_type', 'field' => 'slug', 'terms' => self::rental_types(), 'operator' => $rentals ? 'IN' : 'NOT IN'];
+		return $rentals ? ['relation' => 'OR', $by_cat, $by_type] : ['relation' => 'AND', $by_cat, $by_type];
+	}
+
+	/**
+	 * Products the app can sell. Downloads (songs, e-books…) have no delivery or rental flow in the
+	 * app yet, so they stay on the website for now.
+	 */
+	public static function is_supported(WC_Product $p): bool {
+		return (bool) apply_filters('locappci_is_supported', !$p->is_downloadable(), $p);
+	}
+
+	/** Same rule as is_supported(), as a WP_Query meta_query clause. */
+	public static function supported_meta_query(): array {
+		return [
+			'relation' => 'OR',
+			['key' => '_downloadable', 'compare' => 'NOT EXISTS'],
+			['key' => '_downloadable', 'value' => 'yes', 'compare' => '!='],
+		];
+	}
+
 	public static function is_rental(WC_Product $p): bool {
-		// Product class type, and the product_type term as a fallback (if the rental plugin is off).
+		$cat = self::location_term_id();
+		if ($cat) {
+			foreach ($p->get_category_ids() as $id) {
+				if ((int) $id === $cat || in_array($cat, array_map('intval', get_ancestors((int) $id, 'product_cat')), true)) {
+					return true;
+				}
+			}
+		}
+		// A rental product type (RnB), and the product_type term as a fallback (if that plugin is off).
 		return in_array($p->get_type(), self::rental_types(), true)
 			|| has_term(self::rental_types(), 'product_type', $p->get_id());
 	}
@@ -80,7 +127,12 @@ final class Locappci_Catalogue {
 		return (int) round((float) $p->get_price());
 	}
 
-	/** Price per day, deposit and min/max days of a rental. Keys to confirm on the real site (diagnostics). */
+	/**
+	 * Price per day, deposit, durations and the seller's notes of a rental.
+	 * locappci.fr stores _locappci_location_deposit / _condition / _delivery / _city (snippet
+	 * "Validation admin matériels location"); RnB keys are kept as a fallback.
+	 * A missing price gives 0: the app shows "Prix à confirmer".
+	 */
 	public static function rental_fields(WC_Product $p): array {
 		$id = $p->get_id();
 		$num = function ($keys, $default) use ($id) {
@@ -92,16 +144,35 @@ final class Locappci_Catalogue {
 			}
 			return $default;
 		};
+		$text = function (string $key) use ($id): ?string {
+			$v = trim(wp_strip_all_tags((string) get_post_meta($id, $key, true)));
+			return $v === '' ? null : html_entity_decode($v, ENT_QUOTES, 'UTF-8');
+		};
 		$fields = [
 			'pricePerDay' => (int) round($num(['general_price', '_price'], (float) $p->get_price())),
-			'deposit'     => (int) round($num(['_locappci_deposit', 'redq_security_deposit'], 0)),
+			'deposit'     => self::amount((string) get_post_meta($id, '_locappci_location_deposit', true))
+				?? (int) round($num(['_locappci_deposit', 'redq_security_deposit'], 0)),
 			'minDays'     => max(1, (int) $num(['redq_min_rental_days', '_locappci_min_days'], 1)),
-			'maxDays'     => max(1, (int) $num(['redq_max_rental_days', '_locappci_max_days'], 30)),
+			'maxDays'     => max(1, (int) $num(['redq_max_rental_days', '_locappci_max_days'], 90)),
+			'condition'   => $text('_locappci_location_condition'),
+			'delivery'    => $text('_locappci_location_delivery'),
 		];
 		if ($fields['maxDays'] < $fields['minDays']) {
 			$fields['maxDays'] = $fields['minDays'];
 		}
 		return apply_filters('locappci_rental_fields', $fields, $p);
+	}
+
+	/** "50 000 FCFA" or "50000" → 50000; no digits → null. */
+	public static function amount(string $text): ?int {
+		$digits = preg_replace('/\D+/', '', $text);
+		return $digits === '' ? null : (int) $digits;
+	}
+
+	/** Commune of a rental item: its own field on locappci.fr, else the shop's. */
+	public static function item_city(WC_Product $p, ?array $shop): string {
+		$own = self::is_rental($p) ? self::match_city((string) get_post_meta($p->get_id(), '_locappci_location_city', true)) : '';
+		return $own ?: ($shop ? $shop['cityId'] : '');
 	}
 
 	/** in_stock / low_stock / out_of_stock, like the app expects. */
@@ -145,7 +216,7 @@ final class Locappci_Catalogue {
 			'coverUrl'    => $images[0] ?? null,
 			'categoryId'  => self::category_id($p),
 			'price'       => $rental ? self::rental_fields($p)['pricePerDay'] : self::price($p),
-			'cityId'      => $shop ? $shop['cityId'] : '',
+			'cityId'      => self::item_city($p, $shop),
 			'shopName'    => $shop ? $shop['name'] : '',
 			'stockStatus' => $rental ? null : self::stock($p)['status'],
 		];
@@ -261,7 +332,7 @@ final class Locappci_Catalogue {
 			'posts_per_page' => 1,
 			'fields'         => 'ids',
 			'no_found_rows'  => true,
-			'tax_query'      => [['taxonomy' => 'product_type', 'field' => 'slug', 'terms' => self::rental_types()]],
+			'tax_query'      => [self::rental_tax_query(true)],
 		]);
 		return !empty($q->posts);
 	}
@@ -304,7 +375,7 @@ final class Locappci_Catalogue {
 				continue;
 			}
 			$u = self::category_universe($t);
-			if ($universe && $u !== $universe) {
+			if ($u === '' || ($universe && $u !== $universe)) {
 				continue;
 			}
 			$out[] = [
@@ -318,9 +389,16 @@ final class Locappci_Catalogue {
 		return $out;
 	}
 
-	/** A category is "location" when most of its products are rentals. */
+	/**
+	 * "location" for the location category and its sub-categories; "vente" for a category holding
+	 * products the app can sell; '' (hidden) for a category with only downloads or rentals of RnB type.
+	 */
 	private static function category_universe(WP_Term $t): string {
-		$count = function (array $types, bool $exclude) use ($t) {
+		$cat = self::location_term_id();
+		if ($cat && ((int) $t->term_id === $cat || in_array($cat, array_map('intval', get_ancestors($t->term_id, 'product_cat')), true))) {
+			return 'location';
+		}
+		$count = function (bool $rentals) use ($t) {
 			$q = new WP_Query([
 				'post_type'      => 'product',
 				'post_status'    => 'publish',
@@ -329,13 +407,17 @@ final class Locappci_Catalogue {
 				'tax_query'      => [
 					'relation' => 'AND',
 					['taxonomy' => 'product_cat', 'terms' => [$t->term_id]],
-					['taxonomy' => 'product_type', 'field' => 'slug', 'terms' => $types, 'operator' => $exclude ? 'NOT IN' : 'IN'],
+					self::rental_tax_query($rentals),
 				],
+				'meta_query'     => [self::supported_meta_query()],
 			]);
 			return (int) $q->found_posts;
 		};
-		$rentals = $count(self::rental_types(), false);
-		$sales = $count(self::rental_types(), true);
+		$rentals = $count(true);
+		$sales = $count(false);
+		if ($rentals + $sales === 0) {
+			return ''; // Only downloads: not shown in the app.
+		}
 		return $rentals > $sales ? 'location' : 'vente';
 	}
 
@@ -354,7 +436,7 @@ final class Locappci_Catalogue {
 			'post_type'   => 'product',
 			'post_status' => 'publish',
 			'tax_query'   => ['relation' => 'AND'],
-			'meta_query'  => ['relation' => 'AND'],
+			'meta_query'  => ['relation' => 'AND', self::supported_meta_query()],
 		];
 		// Hidden from the catalogue in WooCommerce → hidden in the app too.
 		$args['tax_query'][] = ['taxonomy' => 'product_visibility', 'field' => 'name', 'terms' => ['exclude-from-catalog'], 'operator' => 'NOT IN'];
@@ -365,12 +447,7 @@ final class Locappci_Catalogue {
 			$args['orderby'] = 'post__in';
 		}
 		if (($q['universe'] ?? '') === 'location' || ($q['universe'] ?? '') === 'vente') {
-			$args['tax_query'][] = [
-				'taxonomy' => 'product_type',
-				'field'    => 'slug',
-				'terms'    => self::rental_types(),
-				'operator' => $q['universe'] === 'location' ? 'IN' : 'NOT IN',
-			];
+			$args['tax_query'][] = self::rental_tax_query($q['universe'] === 'location');
 		}
 		if (!empty($q['category'])) {
 			// include_children is WordPress's default: a parent category finds its sub-categories' products.
@@ -447,7 +524,7 @@ final class Locappci_Catalogue {
 		$out = [];
 		foreach ($posts as $post) {
 			$p = wc_get_product(is_object($post) ? $post->ID : (int) $post);
-			if ($p && $p->get_status() === 'publish') {
+			if ($p && $p->get_status() === 'publish' && self::is_supported($p)) {
 				$out[] = self::summary($p);
 			}
 		}

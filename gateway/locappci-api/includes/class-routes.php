@@ -21,6 +21,22 @@ final class Locappci_Routes {
 		register_rest_route(self::NS, '/products/(?P<id>\d+)/stock', ['methods' => 'GET', 'callback' => [self::class, 'stock'], 'permission_callback' => $public]);
 		register_rest_route(self::NS, '/shops/(?P<id>\d+)', ['methods' => 'GET', 'callback' => [self::class, 'shop'], 'permission_callback' => $public]);
 		register_rest_route(self::NS, '/cart/check', ['methods' => 'POST', 'callback' => [self::class, 'cart_check'], 'permission_callback' => $public]);
+		register_rest_route(self::NS, '/config', ['methods' => 'GET', 'callback' => [self::class, 'config'], 'permission_callback' => $public]);
+		register_rest_route(self::NS, '/rental-requests', ['methods' => 'POST', 'callback' => [self::class, 'rental_requests'], 'permission_callback' => $public]);
+	}
+
+	/** Settings LOCAPPCI changes in Outils → LOCAPPCI API, read by the app (WhatsApp number). */
+	public static function config(): WP_REST_Response {
+		$wa = preg_replace('/\D+/', '', (string) get_option('locappci_whatsapp', Locappci_Admin::DEFAULT_WHATSAPP));
+		return Locappci_Errors::no_cache(new WP_REST_Response(['whatsapp' => $wa !== '' ? $wa : null], 200));
+	}
+
+	/**
+	 * "Envoyer aux loueurs". Like on the website, it needs a signed-in LOCAPPCI account: the app
+	 * session (Simple JWT Login) comes with the accounts step. Until then the app offers WhatsApp.
+	 */
+	public static function rental_requests(): WP_REST_Response {
+		return Locappci_Errors::response('unauthorized', 'Connectez-vous pour envoyer votre demande aux loueurs, ou envoyez-la sur WhatsApp.');
 	}
 
 	/** Quick check that the plugin answers and which plugins it found. */
@@ -63,7 +79,7 @@ final class Locappci_Routes {
 
 	private static function published_product(int $id): ?WC_Product {
 		$p = wc_get_product($id);
-		return ($p && $p->get_status() === 'publish' && $p->get_catalog_visibility() !== 'hidden') ? $p : null;
+		return ($p && $p->get_status() === 'publish' && $p->get_catalog_visibility() !== 'hidden' && Locappci_Catalogue::is_supported($p)) ? $p : null;
 	}
 
 	public static function product(WP_REST_Request $r): WP_REST_Response {
@@ -95,11 +111,7 @@ final class Locappci_Routes {
 		], 200));
 	}
 
-	/**
-	 * Whole cart before payment, one result per line, same order.
-	 * Rental availability needs the rental plugin's calendar (Phase B): for now rentals are checked
-	 * for existence, price and duration limits only.
-	 */
+	/** Whole cart before payment (sale products only), one result per line, same order. */
 	public static function cart_check(WP_REST_Request $r): WP_REST_Response {
 		$lines = $r->get_json_params()['lines'] ?? null;
 		if (!is_array($lines) || count($lines) > 100) {
@@ -119,25 +131,9 @@ final class Locappci_Routes {
 			return ['productId' => $id, 'ok' => false, 'problem' => 'gone', 'price' => 0, 'priceChanged' => false];
 		}
 
-		if (isset($line['rental']) && is_array($line['rental'])) {
-			if (!Locappci_Catalogue::is_rental($p)) {
-				return ['productId' => $id, 'ok' => false, 'problem' => 'gone', 'price' => 0, 'priceChanged' => false];
-			}
-			$f = Locappci_Catalogue::rental_fields($p);
-			$start = (string) ($line['rental']['startDate'] ?? '');
-			$days = (int) ($line['rental']['days'] ?? 0);
-			$base = [
-				'productId'    => $id,
-				'price'        => $f['pricePerDay'],
-				'priceChanged' => $f['pricePerDay'] !== (int) ($line['rental']['shownPricePerDay'] ?? -1),
-				'deposit'      => $f['deposit'],
-			];
-			$today = wp_date('Y-m-d'); // Site time zone: set it to Abidjan (GMT) in Réglages → Général.
-			$valid_date = (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) && $start >= $today;
-			if (!$valid_date || $days < $f['minDays'] || $days > $f['maxDays']) {
-				return $base + ['ok' => false, 'problem' => 'invalid_dates'];
-			}
-			return $base + ['ok' => true];
+		if (Locappci_Catalogue::is_rental($p)) {
+			// Rentals are requested, never bought (same as on the website).
+			return ['productId' => $id, 'ok' => false, 'problem' => 'gone', 'price' => 0, 'priceChanged' => false];
 		}
 
 		$qty = (int) ($line['quantity'] ?? 0);

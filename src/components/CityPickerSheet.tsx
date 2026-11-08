@@ -15,14 +15,21 @@ type Props = {
   selected: string | null | undefined;
   /** First launch: different title and a "Passer" button. */
   firstLaunch?: boolean;
+  /**
+   * Choose a commune for something else than the user's own commune (e.g. where a rental
+   * is needed). Without it, the choice becomes the user's commune. Hides "Toute la Côte d'Ivoire".
+   */
+  onChoose?: (cityId: string) => void;
+  title?: string;
 };
 
-/** Commune picker: first-launch question and the city chip on Accueil share it. */
-export function CityPickerSheet({ visible, onClose, selected, firstLaunch = false }: Props) {
+/** Commune picker: first-launch question, the city chip on Accueil and rental requests share it. */
+export function CityPickerSheet({ visible, onClose, selected, firstLaunch = false, onChoose, title }: Props) {
   const cities = useCities();
 
   const choose = (id: string) => {
-    setCity(id);
+    if (onChoose) onChoose(id);
+    else setCity(id);
     onClose();
   };
 
@@ -30,7 +37,7 @@ export function CityPickerSheet({ visible, onClose, selected, firstLaunch = fals
     <BottomSheet
       visible={visible}
       onClose={firstLaunch ? () => choose('') : onClose}
-      title={firstLaunch ? 'Où êtes-vous ?' : 'Choisir ma commune'}
+      title={title ?? (firstLaunch ? 'Où êtes-vous ?' : 'Choisir ma commune')}
       headerAction={firstLaunch ? { label: 'Passer', onPress: () => choose('') } : undefined}>
       {firstLaunch ? (
         <AppText variant="meta" color={colors.text.body}>
@@ -41,7 +48,9 @@ export function CityPickerSheet({ visible, onClose, selected, firstLaunch = fals
         {waitingForNetwork(cities) || cities.isError ? (
           // No list yet (first launch offline, or server down): "Toute la Côte d'Ivoire" still works.
           <AppText variant="meta" color={colors.text.muted}>
-            Liste des communes indisponible sans connexion. Vous pourrez choisir plus tard.
+            {onChoose
+              ? 'Liste des communes indisponible sans connexion. Réessayez une fois connecté.'
+              : 'Liste des communes indisponible sans connexion. Vous pourrez choisir plus tard.'}
           </AppText>
         ) : cities.isPending
           ? [0, 1, 2, 3].map((i) => <Skeleton key={i} height={56} />)
@@ -54,11 +63,9 @@ export function CityPickerSheet({ visible, onClose, selected, firstLaunch = fals
                 onSelect={() => choose(c.id)}
               />
             ))}
-        <OptionCard
-          label="Toute la Côte d'Ivoire"
-          selected={selected === ''}
-          onSelect={() => choose('')}
-        />
+        {onChoose ? null : (
+          <OptionCard label="Toute la Côte d'Ivoire" selected={selected === ''} onSelect={() => choose('')} />
+        )}
       </ScrollView>
     </BottomSheet>
   );

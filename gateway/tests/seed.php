@@ -30,4 +30,12 @@ $ids = [
 	'groupe' => prod($loc, 'Groupe électrogène 5 kVA', 15000, [$chantier], 'redq_rental', null, ['general_price' => 15000, 'redq_security_deposit' => 50000, 'redq_max_rental_days' => 30]),
 ];
 $hidden = prod($kone, 'Produit caché', 1000, [$elec]); $h = wc_get_product($hidden); $h->set_catalog_visibility('hidden'); $h->save();
-echo json_encode($ids + ['hidden' => $hidden]);
+// A song to download: not sold in the app yet (no delivery or rental flow for downloads).
+$song = prod($riv, 'Chanson à télécharger', 350, [$elec], 'simple', null, ['_locappci_module' => 'musique']); $sg = wc_get_product($song); $sg->set_virtual(true); $sg->set_downloadable(true); $sg->save();
+// locappci.fr style rentals: products in the "location" category, with the site's own fields.
+$location = cat('Location'); $event = cat('Événementiel', $location);
+$chaises = prod($loc, 'Chaises VIP (lot de 10)', 5000, [$event], 'simple', null, [
+	'_locappci_location_deposit' => '25 000 FCFA', '_locappci_location_condition' => 'Très bon état',
+	'_locappci_location_delivery' => 'Livraison possible à Abidjan', '_locappci_location_city' => 'Plateau']);
+$tente = prod($loc, 'Tente de réception', '', [$location]);
+echo json_encode($ids + ['song' => $song, 'hidden' => $hidden, 'chaises' => $chaises, 'tente' => $tente]);
