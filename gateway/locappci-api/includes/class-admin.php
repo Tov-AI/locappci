@@ -58,6 +58,8 @@ final class Locappci_Admin {
 
 		echo '<h3>Modules LOCAPPCI des produits</h3>';
 		self::module_counts();
+		echo '<h3>Validation et visibilité des produits</h3>';
+		self::approval_counts();
 		echo '<h3>Types de contenu du site</h3>';
 		self::post_type_counts();
 		echo '<h3>Rôles des utilisateurs</h3>';
@@ -152,6 +154,50 @@ final class Locappci_Admin {
 			self::row((string) $r->module, (int) $r->n . ' produits publiés, dont ' . (int) $r->downloads . ' à télécharger');
 		}
 		self::row('(sans module)', $without . ' produits publiés');
+		echo '</tbody></table>';
+	}
+
+	/** How many published products the approval rule shows or hides, and the values found in each field. */
+	private static function approval_counts(): void {
+		global $wpdb;
+		$total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'");
+		$shown = new WP_Query(['post_type' => 'product', 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids',
+			'meta_query' => [Locappci_Catalogue::approved_meta_query()]]);
+		$approved = (int) $shown->found_posts;
+		$keys = array_keys(Locappci_Catalogue::approval_fields());
+		$none = $total;
+		if ($keys) {
+			$in = implode(',', array_fill(0, count($keys), '%s'));
+			$none = (int) $wpdb->get_var($wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->posts} p WHERE p.post_type = 'product' AND p.post_status = 'publish'
+				 AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} pm WHERE pm.post_id = p.ID AND pm.meta_key IN ($in))",
+				$keys
+			));
+		}
+		echo '<p>L’appli montre seulement les produits validés et visibles (les trois champs ci-dessous à la bonne valeur).</p>';
+		echo '<table class="widefat striped" style="max-width:900px"><tbody>';
+		self::row('Produits publiés', (string) $total);
+		self::row('Validés et visibles', (string) $approved);
+		self::row('Cachés dans l’appli', (string) ($total - $approved));
+		self::row('… dont sans aucun champ de validation', (string) $none);
+		foreach (Locappci_Catalogue::approval_fields() as $key => $value) {
+			$rows = $wpdb->get_results($wpdb->prepare(
+				"SELECT pm.meta_value AS v, COUNT(DISTINCT p.ID) AS n FROM {$wpdb->postmeta} pm
+				 JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+				 WHERE pm.meta_key = %s AND p.post_type = 'product' AND p.post_status = 'publish'
+				 GROUP BY pm.meta_value ORDER BY n DESC LIMIT 12",
+				$key
+			));
+			$with = 0;
+			$parts = [];
+			foreach ((array) $rows as $r) {
+				$with += (int) $r->n;
+				$label = (string) $r->v === '' ? '(vide)' : sanitize_key((string) $r->v);
+				$parts[] = $label . ' : ' . (int) $r->n;
+			}
+			$parts[] = '(absent) : ' . max(0, $total - $with);
+			self::row($key . ' (attendu : ' . $value . ')', implode(' · ', $parts));
+		}
 		echo '</tbody></table>';
 	}
 

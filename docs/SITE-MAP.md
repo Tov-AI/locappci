@@ -17,7 +17,8 @@ Most universes are **not WooCommerce products**: they are separate content types
 | (none) | 117 | Ordinary shop products |
 
 Visibility fields on products: `_locappci_validation_status` (`validee`), `_locappci_catalogue_visible` (`yes`),
-`_locappci_public_visibility` (`visible`). **The app must only show validated, visible products** (not done in 0.1).
+`_locappci_public_visibility` (`visible`). **The app only shows validated, visible products** (plugin 0.2.1: all three fields must have these values;
+a product with a missing field is hidden. Counts are in Outils → LOCAPPCI API → « Validation et visibilité des produits »).
 
 ## Other content types (published)
 

@@ -19,7 +19,9 @@ function prod($author, $name, $price, $cats, $type = 'simple', $stock = null, $m
 	$p->set_status('publish'); $id = $p->save();
 	wp_update_post(['ID' => $id, 'post_author' => $author]);
 	if ($type === 'redq_rental') wp_set_object_terms($id, 'redq_rental', 'product_type');
-	foreach ($meta as $k => $v) update_post_meta($id, $k, $v);
+	// Approved and visible, like a product the LOCAPPCI team has validated (override through $meta).
+	$meta += ['_locappci_validation_status' => 'validee', '_locappci_catalogue_visible' => 'yes', '_locappci_public_visibility' => 'visible'];
+	foreach ($meta as $k => $v) { if ($v !== null) update_post_meta($id, $k, $v); }
 	return $id;
 }
 $ids = [
@@ -38,4 +40,14 @@ $chaises = prod($loc, 'Chaises VIP (lot de 10)', 5000, [$event], 'simple', null,
 	'_locappci_location_deposit' => '25 000 FCFA', '_locappci_location_condition' => 'Très bon état',
 	'_locappci_location_delivery' => 'Livraison possible à Abidjan', '_locappci_location_city' => 'Plateau']);
 $tente = prod($loc, 'Tente de réception', '', [$location]);
-echo json_encode($ids + ['song' => $song, 'hidden' => $hidden, 'chaises' => $chaises, 'tente' => $tente]);
+// Not approved yet, approved but hidden by the team, and an old product with no approval fields: all hidden in the app.
+$pending = prod($kone, 'Fer à repasser en attente', 9000, [$elec], 'simple', 3, ['_locappci_validation_status' => 'en_attente']);
+$masked = prod($kone, 'Bouilloire masquée', 7000, [$elec], 'simple', 3, ['_locappci_public_visibility' => 'masquee']);
+$nofields = prod($riv, 'Ancien produit sans validation', 5000, [$elec], 'simple', 3,
+	['_locappci_validation_status' => null, '_locappci_catalogue_visible' => null, '_locappci_public_visibility' => null]);
+// A category and a loueur whose only products are not approved: neither should appear.
+$attente = cat('En attente seulement');
+$newloc = vendor('nouveau', 'Nouveau Loueur', '07 00 00 00 09', 'Yopougon');
+$pending_cat = prod($kone, 'Lampe en attente', 4000, [$attente], 'simple', 2, ['_locappci_validation_status' => 'en_attente']);
+$pending_rental = prod($newloc, 'Sono en attente', 20000, [$location], 'simple', null, ['_locappci_validation_status' => 'en_attente']);
+echo json_encode($ids + ['pending' => $pending, 'masked' => $masked, 'nofields' => $nofields, 'pendingCat' => $attente, 'pendingRental' => $pending_rental, 'newLoueur' => $newloc] + ['song' => $song, 'hidden' => $hidden, 'chaises' => $chaises, 'tente' => $tente]);

@@ -71,6 +71,16 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const tente = await api.getProduct(ID.tente); assert.deepStrictEqual([tente.pricePerDay, tente.deposit, tente.condition], [0, 0, null], 'price on request');
   const locCats = await api.listCategories('location');
   assert.deepStrictEqual(locCats.map(c => c.name).sort(), ['Chantier et outillage', 'Location', 'Événementiel'].sort());
+  // only products the team has validated and left visible (the site's _locappci_* approval fields)
+  for (const k of ['pending', 'masked', 'nofields', 'pendingRental']) {
+    await assert.rejects(api.getProduct(ID[k]), e => e.code === 'not_found', 'not approved: ' + k);
+  }
+  for (const word of ['attente', 'masquée', 'Ancien']) assert.strictEqual((await api.listProducts({ search: word })).total, 0, 'not approved is not listed: ' + word);
+  assert.deepStrictEqual((await api.listProducts({ ids: [ID.pending, ID.vent16, ID.nofields] })).items.map(i => i.id), [ID.vent16], 'favourites drop unapproved');
+  assert.deepStrictEqual((await api.checkCart([{ productId: ID.pending, quantity: 1, shownPrice: 9000 }])).lines.map(l => l.problem), ['gone']);
+  assert.strictEqual((await api.checkStock(ID.masked, 7000).catch(e => e.code)), 'not_found', 'no stock answer for a hidden product');
+  assert.ok(!(await api.listCategories()).some(c => c.name === 'En attente seulement'), 'category with only unapproved products');
+  assert.strictEqual((await api.getShop(ID.newLoueur)).role, 'vendeur', 'an unapproved rental does not make a loueur');
   // settings and requests
   assert.deepStrictEqual(await api.getConfig(), { whatsapp: '447748039794' });
   await assert.rejects(api.sendRentalRequest({ idempotencyKey: 'k', items: [], contact: { name: 'A', phone: '1' } }), e => e.code === 'unauthorized' && /WhatsApp/.test(e.message));
