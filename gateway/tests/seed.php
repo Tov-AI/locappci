@@ -40,10 +40,10 @@ $chaises = prod($loc, 'Chaises VIP (lot de 10)', 5000, [$event], 'simple', null,
 	'_locappci_location_deposit' => '25 000 FCFA', '_locappci_location_condition' => 'Très bon état',
 	'_locappci_location_delivery' => 'Livraison possible à Abidjan', '_locappci_location_city' => 'Plateau']);
 $tente = prod($loc, 'Tente de réception', '', [$location]);
-// Not approved yet, approved but hidden by the team, and an old product with no approval fields: all hidden in the app.
+// Not approved yet and approved-but-hidden: not in the app. An old product with no approval fields: shown, as on the site.
 $pending = prod($kone, 'Fer à repasser en attente', 9000, [$elec], 'simple', 3, ['_locappci_validation_status' => 'en_attente']);
 $masked = prod($kone, 'Bouilloire masquée', 7000, [$elec], 'simple', 3, ['_locappci_public_visibility' => 'masquee']);
-$nofields = prod($riv, 'Ancien produit sans validation', 5000, [$elec], 'simple', 3,
+$nofields = prod($loc, 'Ancien produit sans validation', 5000, [cat('Divers')], 'simple', 3,
 	['_locappci_validation_status' => null, '_locappci_catalogue_visible' => null, '_locappci_public_visibility' => null]);
 // A category and a loueur whose only products are not approved: neither should appear.
 $attente = cat('En attente seulement');

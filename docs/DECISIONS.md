@@ -4,7 +4,7 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
-| 2026-11-09 | Gateway 0.2.1 shows a product only when `_locappci_validation_status = validee`, `_locappci_catalogue_visible = yes` and `_locappci_public_visibility = visible`; a missing field hides it | Showing an unapproved product is worse than hiding an approved one. The diagnostics page counts what is hidden so the rule can be relaxed (`locappci_is_approved` filter) if old products have no fields |
+| 2026-11-09 | Gateway 0.2.2 hides a product only when `_locappci_validation_status`, `_locappci_catalogue_visible` or `_locappci_public_visibility` is filled with a value other than `validee` / `yes` / `visible`; products without the fields are shown | 0.2.1 required all three fields and hid 141 of 159 live products: 129 predate the approval flow and have no fields, yet are on sale on the website. Filters `locappci_approval_fields` / `locappci_is_approved` can tighten it |
 | 2026-10-26 | Gateway 0.1 is read-only and ships an admin diagnostics page | Install on the live site with zero risk, and learn how RnB and WCFM really store their data before writing orders |
 | 2026-10-26 | Plugin tested on a local WordPress + WooCommerce 9.9 (SQLite) with the app's own HTTP client | Real WooCommerce code, real REST stack: the test caught a pagination bug and a URL-joining bug before the site saw them |
 | 2026-10-26 | Category universe = "location" when most of its products are rentals (cached 1 h) | No setting to maintain; follows how products are actually typed |

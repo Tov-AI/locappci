@@ -3,8 +3,9 @@
 Version 0.1 only **reads** the shop (products, shops, stock). It changes nothing on the site.
 Products to download (songs, e-books) are not shown in the app yet: they stay on the website.
 Rental items are the products of the **location** category, as on the site.
-Since 0.2.1 the app only shows products the team has **validated and left visible** (`_locappci_validation_status = validee`,
-`_locappci_catalogue_visible = yes`, `_locappci_public_visibility = visible`). Anything else is hidden, as if it did not exist.
+Since 0.2.2 the app hides products the site marks as **waiting, refused or hidden** (`_locappci_validation_status`,
+`_locappci_catalogue_visible`, `_locappci_public_visibility` filled with anything other than `validee` / `yes` / `visible`).
+Products without these fields (most of the catalogue) are shown, as on the website.
 
 ## Before you start (2 minutes, for safety)
 
@@ -25,7 +26,7 @@ Same steps as Install, with the new `locappci-api.zip`. WordPress then shows
 ## Check it answers
 
 1. In a browser, open `https://locappci.fr/wp-json/locappci/v1/health`.
-   You should see something like `{"ok":true,"version":"0.2.1","plugins":{...}}`.
+   You should see something like `{"ok":true,"version":"0.2.2","plugins":{...}}`.
 2. Open `https://locappci.fr/wp-json/locappci/v1/products?page_size=3`: three of your real products as JSON.
 
 ## Diagnostics (send this to the app team)

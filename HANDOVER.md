@@ -15,8 +15,8 @@ Everything here is in the repository; nothing depends on a conversation you were
 - **The gateway** is a WordPress plugin, **LOCAPPCI API** (`gateway/locappci-api`), that runs on locappci.fr itself.
   It is **read-only** today: catalogue, shops, stock, cart check, config. Orders, accounts and rental requests are not
   written to WordPress yet.
-- **Plugin 0.2.0 is installed on the live site** (9 Nov) and the WhatsApp number is set. **0.2.1** (only validated,
-  visible products) is in PR `feature/15-produits-valides`.
+- **Plugin 0.2.0 is installed on the live site** (9 Nov) and the WhatsApp number is set. **0.2.2** (products waiting for
+  validation or masked are hidden) is in PR #18, `feature/15-produits-valides`.
 - **The next big piece of work is accounts (login with Simple JWT Login).** Sending rental requests to loueurs and
   creating real orders both depend on it. See section 8.
 
@@ -177,8 +177,9 @@ on mock data. Each PR description (#2 to #16) lists exactly what was tested.
 1. ✅ Done (8–9 Nov). ~~**Merge the PR chain into `main`** (section 2) and install **plugin 0.2** on the site (`docs/GATEWAY.md`).
    Check `/health` says `0.2.0`, then set the WhatsApp number in Outils → LOCAPPCI API.~~
 2. **Gateway: only show validated, visible products.** Products have `_locappci_validation_status = validee`,
-   `_locappci_catalogue_visible = yes`, `_locappci_public_visibility = visible`. **Done in 0.2.1** (PR
-   `feature/15-produits-valides`): install it, then read the counts in Outils → LOCAPPCI API.
+   `_locappci_catalogue_visible = yes`, `_locappci_public_visibility = visible`. **Done in 0.2.2** (PR #18), with one change after
+   reading the live counts: 129 of 159 products have none of these fields, so the app hides only products marked
+   otherwise (`en_attente`, `no`, `hidden`). See `docs/SITE-MAP.md`.
    This matters before anyone uses the app with real data.
 3. **Gateway: read shops from the `locappci_boutique` record** (logo, city, WhatsApp, status) and respect WCFM's
    `store_hide_phone` / `store_hide_address`. Today it reads WCFM settings only.

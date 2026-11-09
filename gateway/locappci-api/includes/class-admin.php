@@ -174,12 +174,12 @@ final class Locappci_Admin {
 				$keys
 			));
 		}
-		echo '<p>L’appli montre seulement les produits validés et visibles (les trois champs ci-dessous à la bonne valeur).</p>';
+		echo '<p>L’appli cache un produit seulement si un des trois champs ci-dessous a une autre valeur que celle attendue (en attente, refusé, masqué). Un produit sans ces champs est montré, comme sur le site.</p>';
 		echo '<table class="widefat striped" style="max-width:900px"><tbody>';
 		self::row('Produits publiés', (string) $total);
-		self::row('Validés et visibles', (string) $approved);
-		self::row('Cachés dans l’appli', (string) ($total - $approved));
-		self::row('… dont sans aucun champ de validation', (string) $none);
+		self::row('Montrés dans l’appli (avant d’enlever les téléchargements)', (string) $approved);
+		self::row('Cachés : en attente, refusés ou masqués', (string) ($total - $approved));
+		self::row('Sans aucun champ de validation (montrés)', (string) $none);
 		foreach (Locappci_Catalogue::approval_fields() as $key => $value) {
 			$rows = $wpdb->get_results($wpdb->prepare(
 				"SELECT pm.meta_value AS v, COUNT(DISTINCT p.ID) AS n FROM {$wpdb->postmeta} pm

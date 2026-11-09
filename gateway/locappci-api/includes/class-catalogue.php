@@ -98,8 +98,10 @@ final class Locappci_Catalogue {
 	}
 
 	/**
-	 * The site's own approval fields (set by the LOCAPPCI code when the team validates a product).
-	 * A product is shown in the app only when all three have the approved value, as on the website.
+	 * The site's own approval fields (set by the LOCAPPCI code when a seller submits a product and the
+	 * team validates it). Most products on locappci.fr were created before that flow and have none of
+	 * these fields: they are on sale on the website, so the app shows them too. A product is hidden
+	 * only when a field is filled with something other than the approved value (en_attente, no, hidden…).
 	 */
 	public static function approval_fields(): array {
 		return (array) apply_filters('locappci_approval_fields', [
@@ -109,11 +111,12 @@ final class Locappci_Catalogue {
 		]);
 	}
 
-	/** Validated by the team and visible: a missing or different value hides the product. */
+	/** Not marked as waiting, refused or hidden: an empty or missing field does not hide the product. */
 	public static function is_approved(WC_Product $p): bool {
 		$ok = true;
 		foreach (self::approval_fields() as $key => $value) {
-			if ((string) get_post_meta($p->get_id(), $key, true) !== (string) $value) {
+			$found = (string) get_post_meta($p->get_id(), $key, true);
+			if ($found !== '' && $found !== (string) $value) {
 				$ok = false;
 				break;
 			}
@@ -125,7 +128,11 @@ final class Locappci_Catalogue {
 	public static function approved_meta_query(): array {
 		$clause = ['relation' => 'AND'];
 		foreach (self::approval_fields() as $key => $value) {
-			$clause[] = ['key' => $key, 'value' => (string) $value];
+			$clause[] = [
+				'relation' => 'OR',
+				['key' => $key, 'compare' => 'NOT EXISTS'],
+				['key' => $key, 'value' => [(string) $value, ''], 'compare' => 'IN'],
+			];
 		}
 		return $clause;
 	}

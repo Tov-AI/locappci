@@ -6,7 +6,7 @@ the shapes in `src/api/contract.ts`.
 
 What it covers: cities, categories (universe per category), product list (universe, category with
 sub-categories, search, price range, sorts, "nearest" pagination across local and other shops, ids,
-hidden products, products not validated or not visible), product detail (sale and rental), shops (WCFM-style settings, WhatsApp numbers),
+hidden products, products waiting for validation or masked, old products without approval fields), product detail (sale and rental), shops (WCFM-style settings, WhatsApp numbers),
 live stock check, whole-cart check (ok, not enough stock, sold out, gone, rental dates).
 
 ## Run it
