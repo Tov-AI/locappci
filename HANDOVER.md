@@ -82,6 +82,18 @@ With real data, browsing, product pages, shops, stock and cart check work. **Ord
 reports and sending rental requests to loueurs will fail**, because the gateway doesn't have those endpoints yet.
 Sending a rental request **by WhatsApp** works with real data (it only opens WhatsApp).
 
+**Test app for Android (APK), to show the client:** `eas.json` has a `preview` profile that builds an installable
+APK wired to the real site. Needs a free Expo account.
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest build -p android --profile preview
+```
+
+Answer **Y** to "create an EAS project" and "generate a new Android Keystore" the first time. The build runs in
+Expo's cloud (10 to 20 minutes) and ends with a link to the `.apk`. The first run adds `extra.eas.projectId` to
+`app.json`: commit it. The same limits as "real data" above apply (no login or ordering yet).
+
 **Developer screens** (Compte tab, development builds only):
 - **Voir les composants (dev)** → `/composants`: every UI component, to review on a real phone.
 - **Voir les données (dev)** → `/donnees`: mock switches: force offline, slow network, "sold out / price changed at the
