@@ -197,7 +197,7 @@ on mock data. Each PR description (#2 to #16) lists exactly what was tested.
 3. ✅ **Done in 0.3.0** (PR `feature/16-fiches-boutiques`): shops read the validated `locappci_boutique` record
    (logo, town, WhatsApp), then WCFM, and respect `store_hide_phone` / `store_hide_address`. Field names in
    `docs/SITE-MAP.md`.
-4. ✅ **Done in 0.4.0** (PR `feature/18-comptes`): login with the website's account (phone or e-mail), account
+4. ✅ **Done in 0.4.0** (PR #22): login with the website's account (phone or e-mail), account
    creation, sign-out, account deletion. Rules in `docs/API.md`. The app needs a **new build** (it adds
    `expo-secure-store`, a native module, for the session token).
 5. **Rental requests to loueurs:** `POST /v1/rental-requests` writes `locappci_loc_req` records, the same ones the
@@ -228,6 +228,8 @@ Leo relays these to the client. Answers so far are at the bottom of `docs/FEATUR
   have no commune: they stay visible, without « Plus proches ».
 - ✅ **London shops** (e.g. Bazar Ivoire Market): they **do deliver to Côte d'Ivoire**, so they stay in the app.
 - ✅ **129 products without approval fields:** they **stay visible** (the 0.2.3 rule is confirmed).
+- **Services posted as products** (e.g. « Plombier professionnel », 0 FCFA): hidden from the app since 0.4.1. The
+  client wants services under their own section: that is the Services universe (`locappci_service`), not built yet.
 - **Other universes** (Immobilier, Services, Emploi…): in v1 or later?
 - **Music / downloads** in the app?
 - **Seller tools** ("Ma boutique") in v1 or v1.1?

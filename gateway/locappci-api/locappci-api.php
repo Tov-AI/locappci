@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       LOCAPPCI API
  * Description:       Passerelle entre l'appli mobile LOCAPPCI et le site (WooCommerce, WCFM, location). Lecture seule, sauf les comptes clients (connexion, création, suppression).
- * Version:           0.4.0
+ * Version:           0.4.1
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            LOCAPPCI
@@ -19,6 +19,7 @@
  * seller's WCFM store_hide_phone / store_hide_address switches.
  * 0.4: customer accounts for the app (sign in with the website's account by phone or e-mail, create,
  * sign out, delete). First version that writes to the site: it creates and deletes customer users.
+ * 0.4.1: products for sale without a price (0 FCFA, e.g. a service posted as a product) are not listed.
  * Next: rental requests to loueurs, then delivery and orders.
  */
 
@@ -26,7 +27,7 @@ if (!defined('ABSPATH')) {
 	exit; // Never run outside WordPress.
 }
 
-define('LOCAPPCI_API_VERSION', '0.4.0');
+define('LOCAPPCI_API_VERSION', '0.4.1');
 define('LOCAPPCI_API_DIR', __DIR__);
 
 require_once __DIR__ . '/includes/class-errors.php';

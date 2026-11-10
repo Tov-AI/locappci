@@ -6,7 +6,7 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 ## Basics
 
 - **Base URL:** set in the app with `EXPO_PUBLIC_API_URL`. The gateway is the WordPress plugin in `gateway/locappci-api`, so the value is `https://locappci.fr/wp-json/locappci` (the app adds `/v1/…`). With no value, the app uses the mock in `src/api/mock/`.
-- **Implementation status:** plugin 0.4.0 implements `health`, `config`, `cities`, `categories`, `products` (list, `ids`, detail, `stock`), `shops`, `cart/check` and **accounts** (`session`, `session/logout`, `account`, `accounts`, `accounts/delete`). `rental-requests` answers `401` without a session and `503` with one (not built yet); delivery options, orders, payment reference and reports come next.
+- **Implementation status:** plugin 0.4.1 implements `health`, `config`, `cities`, `categories`, `products` (list, `ids`, detail, `stock`), `shops`, `cart/check` and **accounts** (`session`, `session/logout`, `account`, `accounts`, `accounts/delete`). `rental-requests` answers `401` without a session and `503` with one (not built yet); delivery options, orders, payment reference and reports come next.
 - **Format:** JSON, UTF-8. Field names in camelCase, exactly as in `contract.ts`.
 - **Money:** whole FCFA as integers (`18500`, never `"18 500"` or `18500.00`).
 - **Dates:** ISO 8601 UTC strings.
