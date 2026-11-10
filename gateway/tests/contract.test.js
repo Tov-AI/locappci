@@ -15,7 +15,7 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const cities = await api.listCities(); assert.ok(cities.length >= 7 && cities.every(c => isStr(c.id) && isStr(c.name)));
   const cats = await api.listCategories(); assert.ok(cats.every(c => isStr(c.id) && (c.parentId === null || isStr(c.parentId))));
   let page = await api.listProducts({}); page.items.forEach(checkSummary);
-  assert.strictEqual(page.total, 9); assert.ok(!page.items.some(i => i.name === 'Produit caché'));
+  assert.strictEqual(page.total, 10); assert.ok(!page.items.some(i => i.name === 'Produit caché'));
   console.log('list all:', page.items.map(i => i.name).join(' | '));
   assert.ok((await api.listProducts({ universe: 'location' })).items.some(i => i.id === ID.groupe), 'RnB rental type still counts');
   assert.strictEqual((await api.listProducts({ universe: 'vente' })).total, 6);
@@ -30,7 +30,7 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const p1 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 1, pageSize: 5 });
   const p2 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 2, pageSize: 5 });
   const both = [...p1.items, ...p2.items].map(i => i.id);
-  assert.deepStrictEqual([p1.hasMore, p2.hasMore, p1.total, new Set(both).size], [true, false, 9, 9]);
+  assert.deepStrictEqual([p1.hasMore, p2.hasMore, p1.total, new Set(both).size], [true, false, 10, 10]);
   assert.deepStrictEqual(both, near.map(i => i.id));
   assert.deepStrictEqual((await api.listProducts({ ids: [ID.pagne, ID.vent16, '999'] })).items.map(i => i.id), [ID.pagne, ID.vent16]);
   // detail
@@ -64,7 +64,7 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   assert.deepStrictEqual(cart.lines.map(l => l.problem ?? 'ok'), ['ok', 'not_enough_stock', 'out_of_stock', 'gone', 'gone', 'gone'], 'rentals are never bought');
   assert.strictEqual(cart.lines[1].maxQuantity, 2);
   // locappci.fr rentals: products in the "location" category, with the site's own fields
-  assert.deepStrictEqual((await api.listProducts({ universe: 'location' })).items.map(i => i.id).sort(), [ID.groupe, ID.chaises, ID.tente].sort());
+  assert.deepStrictEqual((await api.listProducts({ universe: 'location' })).items.map(i => i.id).sort(), [ID.groupe, ID.chaises, ID.tente, ID.locsansprix].sort());
   const ch = await api.getProduct(ID.chaises);
   assert.deepStrictEqual([ch.universe, ch.pricePerDay, ch.deposit, ch.condition, ch.delivery, ch.cityId, ch.minDays, ch.maxDays],
     ['location', 5000, 25000, 'Très bon état', 'Livraison possible à Abidjan', 'plateau', 1, 90]);
@@ -99,6 +99,11 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   assert.deepStrictEqual([dis2.cityId, dis2.whatsapp], ['marcory', null], 'hidden phone wins over the record, record town is public');
   assert.strictEqual((await api.getShop(ID.communev)).cityId, 'port-bouet', 'commune chosen on the record wins over its town');
   assert.strictEqual((await api.getShop(ID.communex)).cityId, 'abobo', 'unknown commune: the town is tried next');
+  // for sale without a price (a service posted as a product): not in the app; a rental without a price stays
+  for (const k of ['sansprix', 'sansprix2']) await assert.rejects(api.getProduct(ID[k]), e => e.code === 'not_found', 'no price: ' + k);
+  assert.strictEqual((await api.listProducts({ search: 'Plombier' })).total, 0);
+  assert.deepStrictEqual((await api.checkCart([{ productId: ID.sansprix, quantity: 1, shownPrice: 0 }])).lines.map(l => l.problem), ['gone']);
+  assert.strictEqual((await api.getProduct(ID.locsansprix)).universe, 'location', 'rental without a price is still listed');
   // settings and requests
   assert.deepStrictEqual(await api.getConfig(), { whatsapp: '447748039794' });
   await assert.rejects(api.sendRentalRequest({ idempotencyKey: 'k', items: [], contact: { name: 'A', phone: '1' } }), e => e.code === 'unauthorized' && /WhatsApp/.test(e.message));

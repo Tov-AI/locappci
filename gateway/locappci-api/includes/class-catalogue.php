@@ -132,6 +132,15 @@ final class Locappci_Catalogue {
 	public static function hidden_ids(): array {
 		static $ids = null;
 		if ($ids === null) {
+			$ids = array_values(array_unique(array_merge(self::unapproved_ids(), self::unpriced_sale_ids())));
+		}
+		return $ids;
+	}
+
+	/** Posts the site marks as waiting, refused or hidden (the three approval fields). */
+	public static function unapproved_ids(): array {
+		static $ids = null;
+		if ($ids === null) {
 			global $wpdb;
 			$where = [];
 			$values = [];
@@ -144,6 +153,35 @@ final class Locappci_Catalogue {
 				? array_map('intval', (array) $wpdb->get_col($wpdb->prepare(
 					"SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE " . implode(' OR ', $where), $values)))
 				: [];
+		}
+		return $ids;
+	}
+
+	/**
+	 * Published products for sale with no price (empty or 0 FCFA): they cannot be ordered, so the app
+	 * does not list them. In practice these are services posted as products (« Plombier… », 0 FCFA):
+	 * they belong to the Services universe, which the app does not have yet.
+	 * Rentals are not concerned: a rental without a price shows « Prix à confirmer ».
+	 */
+	public static function unpriced_sale_ids(): array {
+		static $ids = null;
+		if ($ids === null) {
+			global $wpdb;
+			$found = array_map('intval', (array) $wpdb->get_col(
+				"SELECT p.ID FROM {$wpdb->posts} p
+				 LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = '_price'
+				 WHERE p.post_type = 'product' AND p.post_status = 'publish'
+				 GROUP BY p.ID
+				 HAVING MAX(pm.meta_value + 0) IS NULL OR MAX(pm.meta_value + 0) <= 0"
+			));
+			$ids = [];
+			foreach ($found as $id) {
+				$p = wc_get_product($id);
+				if ($p && !self::is_rental($p)) {
+					$ids[] = $id;
+				}
+			}
+			$ids = (array) apply_filters('locappci_unpriced_sale_ids', $ids);
 		}
 		return $ids;
 	}
@@ -166,7 +204,8 @@ final class Locappci_Catalogue {
 	/** Everything a product needs to appear in the app: published, not hidden, not a download, approved. */
 	public static function is_shown(WC_Product $p): bool {
 		return $p->get_status() === 'publish' && $p->get_catalog_visibility() !== 'hidden'
-			&& self::is_supported($p) && self::is_approved($p);
+			&& self::is_supported($p) && self::is_approved($p)
+			&& !in_array($p->get_id(), self::unpriced_sale_ids(), true);
 	}
 
 	public static function is_rental(WC_Product $p): bool {
@@ -654,7 +693,8 @@ final class Locappci_Catalogue {
 		$out = [];
 		foreach ($posts as $post) {
 			$p = wc_get_product(is_object($post) ? $post->ID : (int) $post);
-			if ($p && $p->get_status() === 'publish' && self::is_supported($p) && self::is_approved($p)) {
+			if ($p && $p->get_status() === 'publish' && self::is_supported($p) && self::is_approved($p)
+				&& !in_array($p->get_id(), self::unpriced_sale_ids(), true)) {
 				$out[] = self::summary($p);
 			}
 		}

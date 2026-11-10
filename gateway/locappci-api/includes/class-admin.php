@@ -169,7 +169,7 @@ final class Locappci_Admin {
 	private static function approval_counts(): void {
 		global $wpdb;
 		$total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'");
-		$hidden = Locappci_Catalogue::hidden_ids();
+		$hidden = Locappci_Catalogue::unapproved_ids();
 		$hidden_published = 0;
 		if ($hidden) {
 			$hidden_published = (int) $wpdb->get_var(
@@ -193,6 +193,10 @@ final class Locappci_Admin {
 		self::row('Montrés dans l’appli (avant d’enlever les téléchargements)', (string) $approved);
 		self::row('Cachés : en attente, refusés ou masqués', (string) ($total - $approved));
 		self::row('Sans aucun champ de validation (montrés)', (string) $none);
+		// Services posted as products, or a forgotten price: listed by name so the team can fix them on the site.
+		$unpriced = Locappci_Catalogue::unpriced_sale_ids();
+		$names = array_map(fn($id) => '« ' . get_the_title($id) . ' »', array_slice($unpriced, 0, 15));
+		self::row('Cachés : articles en vente sans prix (0 FCFA)', count($unpriced) . ($names ? ' : ' . implode(', ', $names) . (count($unpriced) > 15 ? '…' : '') : ''));
 		foreach (Locappci_Catalogue::approval_fields() as $key => $value) {
 			$rows = $wpdb->get_results($wpdb->prepare(
 				"SELECT pm.meta_value AS v, COUNT(DISTINCT p.ID) AS n FROM {$wpdb->postmeta} pm

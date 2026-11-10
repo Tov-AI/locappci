@@ -24,6 +24,9 @@ a product without the fields is shown, as on the website. Counts are in Outils �
 « Validation et visibilité des produits ». With 0.2.3 live (10 Nov): 3 products hidden, 156 shown before downloads are removed.
 To confirm with the client: are the 129 field-less products all meant to be public?
 
+Products **for sale without a price** (0 FCFA, e.g. the service « Plombier professionnel » posted as a product) are not
+listed since plugin 0.4.1; the diagnostics page names them. Services proper are the `locappci_service` content type below.
+
 ## Other content types (published)
 
 | Content type | Label | Count | Likely universe |

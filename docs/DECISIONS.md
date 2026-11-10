@@ -4,6 +4,7 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-11-10 | Gateway 0.4.1 does not list products **for sale** without a price (empty or 0 FCFA); rentals without a price stay (« Prix à confirmer ») | Client feedback: « Plombier professionnel » (a service, 0 FCFA) appeared with « Ajouter au panier ». A sale at 0 FCFA cannot be ordered; services belong to the Services universe, not built yet. The diagnostics page names the hidden items |
 | 2026-11-10 | Product photos are always shown whole (`ProductPhoto`, `resizeMode="contain"` on white), in a square on cards and a height of 80 % of the screen width on the product page | Client feedback on the first test build: photos were zoomed and cut (`cover`). Sellers upload every shape of photo and phones come in every size; a cropped product is worse than white bars |
 | 2026-11-10 | Accounts: our own session token in the `X-Locappci-Token` header, hash stored in user meta; not Simple JWT Login | Simple JWT Login needs auth codes configured on the site and reads `Authorization` on every REST call; a small self-contained token has nothing to configure and nothing secret in the app |
 | 2026-11-10 | Login by phone **or** e-mail; account creation asks name, Ivorian phone and password, e-mail optional | The 38 website customers sign in with their existing account; many new customers have no e-mail |

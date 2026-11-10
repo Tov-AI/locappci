@@ -83,6 +83,11 @@ boutique($communev, 'Boutique Commune', ['commune' => 'Port-Bouët', 'ville' => 
 // A commune that is not in the app's list: the town is tried next.
 $communex = vendor('communex', 'Boutique Ailleurs', '07 00 00 00 08', '');
 boutique($communex, 'Boutique Ailleurs', ['commune' => 'Ailleurs', 'ville' => 'Abobo', 'statut' => 'validee']);
+// A service posted as a product, with no price: not in the app. A rental without a price stays (« Prix à confirmer »).
+$sansprix = prod($kone, 'Plombier professionnel', 0, [cat('Divers')], 'simple', null);
+$sansprix2 = prod($kone, 'Article au prix oublié', '', [cat('Divers')], 'simple', null);
+$locsansprix = prod($loc, 'Sono à prix à confirmer', 0, [$location], 'simple', null);
+$ids += ['sansprix' => $sansprix, 'sansprix2' => $sansprix2, 'locsansprix' => $locsansprix];
 // Accounts for the login tests (passwords are test values).
 function person($login, $email, $pass, $role, $name, $phone) {
 	$id = wp_insert_user(['user_login' => $login, 'user_email' => $email, 'user_pass' => $pass, 'role' => $role, 'display_name' => $name]);
