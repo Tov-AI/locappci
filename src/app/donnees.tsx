@@ -17,7 +17,7 @@ import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { Skeleton } from '@/components/Skeleton';
 import { showToast } from '@/components/Toast';
-import { saveAccount, useAccount } from '@/data/account';
+import { saveSession, useAccount } from '@/data/account';
 import { clearCart, useCartCount } from '@/data/cart';
 import { clearFavourites, useFavourite, useFavouriteIds } from '@/data/favourites';
 import { isForcedOffline, setForcedOffline, useOnline } from '@/data/online';
@@ -143,7 +143,7 @@ export default function DonneesScreen() {
             icon="user"
             disabled={!!account}
             onPress={() => {
-              saveAccount(createTestAccount());
+              saveSession(createTestAccount());
               showToast('Compte test : 07 00 00 00 01, mot de passe test1234.');
             }}
           />

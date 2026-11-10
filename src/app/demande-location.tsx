@@ -73,7 +73,7 @@ export default function DemandeLocationScreen() {
 
   const [name, setName] = useState(account?.name ?? customer?.name ?? '');
   const [phone, setPhone] = useState(() => {
-    const p = account?.phone ?? customer?.phone;
+    const p = account?.phone || customer?.phone;
     return p ? formatCiPhone(p) : '';
   });
   const [whatsapp, setWhatsapp] = useState('');

@@ -149,7 +149,7 @@ export const useOrder = (id: string) =>
     staleTime: 0,
   });
 
-/** "Créer mon compte" after an order. */
+/** "Créer un compte" (Compte tab) or "Créer mon compte" after an order. */
 export const useCreateAccount = () =>
   useMutation({
     mutationFn: (request: AccountRequest) => api.createAccount(request),
@@ -182,4 +182,4 @@ export const useLogin = () =>
   useMutation({ mutationFn: (r: LoginRequest) => api.login(r), networkMode: 'online' });
 
 export const useDeleteAccount = () =>
-  useMutation({ mutationFn: (r: LoginRequest) => api.deleteAccount(r), networkMode: 'online' });
+  useMutation({ mutationFn: (r: { password: string }) => api.deleteAccount(r), networkMode: 'online' });

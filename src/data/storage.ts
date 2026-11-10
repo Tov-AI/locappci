@@ -20,6 +20,8 @@ export const storageKeys = {
   cart: 'locappci.cart.v1',
   customer: 'locappci.customer.v1',
   account: 'locappci.account.v1',
+  /** Secure storage key (letters, digits, dots only). */
+  sessionToken: 'locappci.session.v1',
   notifications: 'locappci.notifications.v1',
   orders: 'locappci.orders.v1',
   rentalRequest: 'locappci.rentalRequest.v1',

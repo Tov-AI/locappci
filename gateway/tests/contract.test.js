@@ -102,5 +102,76 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   // settings and requests
   assert.deepStrictEqual(await api.getConfig(), { whatsapp: '447748039794' });
   await assert.rejects(api.sendRentalRequest({ idempotencyKey: 'k', items: [], contact: { name: 'A', phone: '1' } }), e => e.code === 'unauthorized' && /WhatsApp/.test(e.message));
+
+  // ---- accounts: sign in with the website's account, create, sign out, delete ----
+  const { setSessionToken } = require('@/api/token');
+  const BASE = (process.env.API_URL || 'http://127.0.0.1:8098/wp-json/locappci/').replace(/\/+$/, '');
+  const me = async (token) => { const r = await fetch(BASE + '/v1/account', { headers: token ? { 'X-Locappci-Token': token } : {} }); return [r.status, await r.json()]; };
+  const BAD = 'Identifiant ou mot de passe incorrect.';
+  const bad = (e) => e.code === 'unauthorized' && e.message === BAD;
+  await assert.rejects(api.login({ identifier: 'awa@example.com', password: 'wrong' }), bad, 'wrong password');
+  await assert.rejects(api.login({ identifier: 'nobody@example.com', password: 'site-pass-1' }), bad, 'unknown e-mail: same answer');
+  await assert.rejects(api.login({ identifier: '2250799999999', password: 'site-pass-1' }), bad, 'unknown number: same answer');
+  await assert.rejects(api.login({ identifier: '', password: '' }), bad);
+  const s1 = await api.login({ identifier: 'awa@example.com', password: 'site-pass-1' });
+  assert.deepStrictEqual(s1.account, { name: 'Awa Koné', phone: '2250708091011', email: 'awa@example.com' });
+  assert.ok(/^\d+\.[a-f0-9]{64}$/.test(s1.token));
+  assert.strictEqual((await api.login({ identifier: 'uk@example.com', password: 'uk-pass-1234' })).account.phone, '', 'no Ivorian number: empty phone');
+  await assert.rejects(api.login({ identifier: '0555555555', password: 'pass-jumeau-1' }), bad, 'two accounts share the number: refused');
+  assert.strictEqual((await api.login({ identifier: 'j1@example.com', password: 'pass-jumeau-1' })).account.name, 'Jumeau Un', '…but the e-mail works');
+  await assert.rejects(api.login({ identifier: 'a@example.com', password: 'admin-pass-1' }), bad, 'administrators never sign in through the app');
+  await assert.rejects(api.login({ identifier: 'admin', password: 'admin-pass-1' }), bad);
+  // session: who am I, signed-in endpoints, sign out ends this phone only
+  assert.deepStrictEqual(await me(s1.token), [200, s1.account]);
+  assert.strictEqual((await me(null))[0], 401);
+  assert.strictEqual((await me('1.' + 'a'.repeat(64)))[0], 401, 'made-up token');
+  assert.strictEqual((await me(s1.token.replace(/^\d+/, '1')))[0], 401, 'token of one account never opens another');
+  const s2 = await api.login({ identifier: 'awa@example.com', password: 'site-pass-1' });
+  setSessionToken(s1.token);
+  await assert.rejects(api.sendRentalRequest({ idempotencyKey: 'k', items: [], contact: { name: 'A', phone: '1' } }), e => e.code === 'unavailable' && /WhatsApp/.test(e.message), 'signed in: not built yet');
+  await api.logout();
+  assert.strictEqual((await me(s1.token))[0], 401, 'signed out');
+  assert.strictEqual((await me(s2.token))[0], 200, 'the other phone stays signed in');
+  for (const typed of ['2250708091011', '07 08 09 10 11', '+225 0708091011', '00225 07 08 09 10 11']) {
+    assert.strictEqual((await api.login({ identifier: typed, password: 'site-pass-1' })).account.name, 'Awa Koné', 'phone as typed: ' + typed);
+  }
+  // at most 5 phones signed in per account: the oldest session ends
+  assert.strictEqual((await me(s2.token))[0], 200, 'five sessions: all valid');
+  await api.login({ identifier: 'awa@example.com', password: 'site-pass-1' });
+  assert.strictEqual((await me(s2.token))[0], 401, 'a sixth sign-in ends the oldest session');
+  // create an account
+  setSessionToken(null);
+  const val = (re) => (e) => e.code === 'validation' && re.test(e.message);
+  await assert.rejects(api.createAccount({ name: 'A', phone: '2250712121212', password: 'longenough1' }), val(/nom/));
+  await assert.rejects(api.createAccount({ name: 'Yao Bi', phone: '0612121212', password: 'longenough1' }), val(/Numéro/));
+  await assert.rejects(api.createAccount({ name: 'Yao Bi', phone: '2250712121212', password: 'short' }), val(/8 caractères/));
+  await assert.rejects(api.createAccount({ name: 'Yao Bi', phone: '2250712121212', password: 'longenough1', email: 'not-an-email' }), val(/e-mail/));
+  await assert.rejects(api.createAccount({ name: 'Yao Bi', phone: '2250708091011', password: 'longenough1' }), val(/existe déjà pour ce numéro/));
+  await assert.rejects(api.createAccount({ name: 'Yao Bi', phone: '2250712121212', password: 'longenough1', email: 'awa@example.com' }), val(/existe déjà pour cette adresse/));
+  const created = await api.createAccount({ name: '  Yao   <b>Bi</b> ', phone: '2250712121212', password: 'longenough1' });
+  assert.deepStrictEqual(created.account, { name: 'Yao Bi', phone: '2250712121212', email: null }, 'no e-mail needed; name cleaned');
+  assert.strictEqual((await me(created.token))[0], 200);
+  await assert.rejects(api.createAccount({ name: 'Yao Bi', phone: '07 12 12 12 12', password: 'longenough1' }), val(/existe déjà/), 'same number typed another way');
+  assert.strictEqual((await api.login({ identifier: '0712121212', password: 'longenough1' })).account.name, 'Yao Bi', 'new account signs in by phone');
+  const withMail = await api.createAccount({ name: 'Mariam Touré', phone: '2250513131313', password: 'longenough2', email: 'Mariam@Example.com' });
+  assert.strictEqual(withMail.account.email.toLowerCase(), 'mariam@example.com');
+  // delete: needs the session and the password again
+  setSessionToken(null);
+  await assert.rejects(api.deleteAccount({ password: 'longenough1' }), e => e.code === 'unauthorized', 'not signed in');
+  setSessionToken(created.token);
+  await assert.rejects(api.deleteAccount({ password: 'wrong-password' }), e => e.code === 'unauthorized' && /Mot de passe incorrect/.test(e.message));
+  assert.strictEqual((await me(created.token))[0], 200, 'a wrong password does not sign out');
+  await api.deleteAccount({ password: 'longenough1' });
+  assert.strictEqual((await me(created.token))[0], 401, 'deleted: session gone');
+  await assert.rejects(api.login({ identifier: '0712121212', password: 'longenough1' }), bad, 'deleted: cannot sign in');
+  const vend = await api.login({ identifier: 'vendeur@example.com', password: 'vend-pass-1' });
+  setSessionToken(vend.token);
+  await assert.rejects(api.deleteAccount({ password: 'vend-pass-1' }), val(/boutique/), 'a seller account is not deleted from the app');
+  assert.strictEqual((await me(vend.token))[0], 200);
+  // too many wrong passwords: locked for a while, even with the right one
+  setSessionToken(null);
+  for (let i = 0; i < 5; i++) await assert.rejects(api.login({ identifier: 'bloque@example.com', password: 'nope' + i }), bad);
+  await assert.rejects(api.login({ identifier: 'bloque@example.com', password: 'bloque-pass-1' }), e => e.code === 'rate_limited', 'sixth try is refused');
+  assert.strictEqual((await api.login({ identifier: 'awa@example.com', password: 'site-pass-1' })).account.name, 'Awa Koné', 'other accounts are not locked');
   console.log('ALL GATEWAY CONTRACT TESTS PASSED');
 })().catch(e => { console.error('FAIL', e); process.exit(1); });

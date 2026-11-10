@@ -129,7 +129,8 @@ export type StockCheck = {
 /** Standard error body returned by the gateway. Messages are user-safe French. */
 export type ApiErrorBody = {
   /** `cart_changed`: stock, dates or prices changed since the cart check; check again. */
-  code: 'not_found' | 'unavailable' | 'validation' | 'unauthorized' | 'server_error' | 'cart_changed';
+  /** `rate_limited`: too many tries (login, account creation); wait a few minutes. */
+  code: 'not_found' | 'unavailable' | 'validation' | 'unauthorized' | 'server_error' | 'cart_changed' | 'rate_limited';
   message: string;
 };
 
@@ -290,12 +291,22 @@ export type Order = {
   shops: OrderShop[];
 };
 
-/** "Gardez le suivi": turns the guest order into an account (name and phone from the order). */
-export type AccountRequest = { orderId: string; password: string };
-export type Account = { name: string; phone: string };
+/**
+ * "Créer un compte" (Compte tab) or "Gardez le suivi" after an order (then `orderId` links that order).
+ * `phone` is an Ivorian number ("2250700000000"); `email` is optional: many customers have none.
+ */
+export type AccountRequest = { name: string; phone: string; password: string; email?: string; orderId?: string };
+/** `phone` is "" when a website account has no Ivorian number; `email` is null when it has none. */
+export type Account = { name: string; phone: string; email: string | null };
 
-/** Sign in on another phone, or again after "Se déconnecter". Session tokens come with Feature 14. */
-export type LoginRequest = { phone: string; password: string };
+/** Sign in with the website's account: `identifier` is a phone number or an e-mail address. */
+export type LoginRequest = { identifier: string; password: string };
+
+/**
+ * What login and account creation return. The app keeps `token` in the phone's secure storage and
+ * sends it back in the `X-Locappci-Token` header on the calls that need a signed-in customer.
+ */
+export type Session = { account: Account; token: string };
 
 export type ReportReason = 'scam' | 'forbidden' | 'wrong_info' | 'other';
 
@@ -325,8 +336,10 @@ export interface LocappciApi {
   submitPaymentReference(orderId: string, reference: string): Promise<Order>;
   createOrder(request: OrderRequest): Promise<Order>;
   getOrder(id: string): Promise<Order>;
-  createAccount(request: AccountRequest): Promise<Account>;
-  login(request: LoginRequest): Promise<Account>;
-  /** Store rules (Apple, Google): people must be able to delete their account from the app. */
-  deleteAccount(request: LoginRequest): Promise<void>;
+  createAccount(request: AccountRequest): Promise<Session>;
+  login(request: LoginRequest): Promise<Session>;
+  /** Ends this phone's session on the server. */
+  logout(): Promise<void>;
+  /** Store rules (Apple, Google): people must be able to delete their account from the app. Signed-in only. */
+  deleteAccount(request: { password: string }): Promise<void>;
 }
