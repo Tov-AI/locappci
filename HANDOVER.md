@@ -15,7 +15,7 @@ Everything here is in the repository; nothing depends on a conversation you were
 - **The gateway** is a WordPress plugin, **LOCAPPCI API** (`gateway/locappci-api`), that runs on locappci.fr itself.
   It is **read-only** today: catalogue, shops, stock, cart check, config. Orders, accounts and rental requests are not
   written to WordPress yet.
-- **Plugin 0.3.0 is installed on the live site** (10 Nov), WhatsApp number set. Products marked waiting or masked
+- **Plugin 0.3.1 is installed on the live site** (10 Nov), WhatsApp number set. Products marked waiting or masked
   are hidden (3 of 159, PR #18). Shops read the site's boutique record (PR #19): 7 sellers, 6 with a record,
   6 with WhatsApp and logo, none hides the phone. **No shop matches a commune yet** (open point, see SITE-MAP).
 - **The next big piece of work is accounts (login with Simple JWT Login).** Sending rental requests to loueurs and
@@ -210,6 +210,9 @@ Leo relays these to the client. Answers so far are at the bottom of `docs/FEATUR
 - The real **delivery tariff** (sample: 1 000 FCFA + 150 FCFA/km).
 - **Late-return penalty** amounts.
 - **Support WhatsApp:** the client said +44 7748 039794, but the site's code uses 225 07 88 72 73 19. To confirm.
+- **Communes or towns?** The app asks for an Abidjan commune, but the 7 live shops say Abidjan, San-Pedro,
+  Rainham/London or nothing (10 Nov). Should the app list towns (Abidjan, San-Pedro…) instead, or should sellers
+  pick a commune on the site? Until then « Plus proches » has no effect.
 - **Other universes** (Immobilier, Services, Emploi…): in v1 or later?
 - **Music / downloads** in the app?
 - **Seller tools** ("Ma boutique") in v1 or v1.1?

@@ -57,7 +57,10 @@ The seller account also has WCFM settings (`wcfmmp_profile_settings`): `store_na
 `store_hide_phone = yes` → no WhatsApp at all. `store_hide_address = yes` → the WCFM address is not used for the
 commune (the record's `ville` still is: it is the shop's public town). Live result (10 Nov, 0.3.0): 7 sellers with published products, 6 with a validated record, 6 with WhatsApp and a
 logo, none hides the phone. **None matches a commune** of the app's list (the sample `ville` is outside Abidjan), so
-« Plus proches » and the commune filter have nothing to work with yet. 0.3.1 shows the town text per shop to decide.
+« Plus proches » and the commune filter have nothing to work with yet. 0.3.1 shows the town text per shop: **Abidjan** (1), **San-Pedro** (2), **Rainham / Londres, UK** (2), empty (2).
+Sellers write a town, not an Abidjan commune, and several are outside Abidjan. The list of places is editable in
+Outils → LOCAPPCI API (section 3), so towns can be added without code, but whether the app should ask for a
+commune or a town is a decision for the client (open question in HANDOVER section 9).
 
 ## Where the custom code is (Code Snippets export, 1 Nov)
 
