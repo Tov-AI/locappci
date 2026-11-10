@@ -26,7 +26,7 @@ Same steps as Install, with the new `locappci-api.zip`. WordPress then shows
 ## Check it answers
 
 1. In a browser, open `https://locappci.fr/wp-json/locappci/v1/health`.
-   You should see something like `{"ok":true,"version":"0.2.3","plugins":{...}}`.
+   You should see something like `{"ok":true,"version":"0.3.1","plugins":{...}}`.
 2. Open `https://locappci.fr/wp-json/locappci/v1/products?page_size=3`: three of your real products as JSON.
 
 ## Diagnostics (send this to the app team)
@@ -35,7 +35,8 @@ Same steps as Install, with the new `locappci-api.zip`. WordPress then shows
 2. Take screenshots of section **1. Diagnostic** (including the table **Validation et visibilité des produits**: how many
    products the app shows and hides, and the values found in each approval field): plugins found, product types, LOCAPPCI modules
    (`_locappci_module`) with counts, the site's content types, user roles, the fields of one product per
-   module, and one shop (its linked "boutique" record if any, and its WCFM settings).
+   module, the table **Toutes les boutiques** (per seller: record used, commune, WhatsApp, logo, phone hidden),
+   and one shop (its linked "boutique" record if any, and its WCFM settings).
    Phone numbers, e-mails, addresses and file links are **masked** (« (rempli) »): screenshots can be shared.
 3. Section **2. WhatsApp LOCAPPCI dans l’appli**: the number the app uses for help and for rental requests sent on WhatsApp.
    Type it with the country code (e.g. `+44 7748 039794` or `+225 07 00 00 00 00`) and click **Enregistrer le numéro**.

@@ -343,18 +343,39 @@ final class Locappci_Catalogue {
 		}
 		$settings = get_user_meta($vendor_id, 'wcfmmp_profile_settings', true);
 		$settings = is_array($settings) ? $settings : [];
+		// The site's own shop record (« Boutiques LOCAPPCI »), when the team has validated it.
+		$boutique = self::boutique_id($vendor_id);
+		$field = function (string $key) use ($boutique): string {
+			return $boutique ? trim((string) get_post_meta($boutique, '_locappci_boutique_' . $key, true)) : '';
+		};
+		// What the seller chose to hide on their shop page stays hidden in the app.
+		$hide_phone = self::flag($settings['store_hide_phone'] ?? '');
+		$hide_address = self::flag($settings['store_hide_address'] ?? '');
 
 		$name = function_exists('wcfm_get_vendor_store_name') ? (string) wcfm_get_vendor_store_name($vendor_id) : '';
-		$name = $name ?: ($settings['store_name'] ?? '') ?: $user->display_name;
-		$phone = ($settings['phone'] ?? '') ?: get_user_meta($vendor_id, 'billing_phone', true);
-		$city = ($settings['address']['city'] ?? '') ?: get_user_meta($vendor_id, 'billing_city', true);
+		$name = $name ?: ($settings['store_name'] ?? '') ?: ($boutique ? get_the_title($boutique) : '') ?: $user->display_name;
+
+		$phone = '';
+		if (!$hide_phone) {
+			$phone = $field('whatsapp') ?: $field('telephone') ?: ($settings['phone'] ?? '') ?: get_user_meta($vendor_id, 'billing_phone', true);
+		}
+		// The record's town is the shop's public town; the WCFM address is the seller's own address.
+		$city = self::match_city($field('ville'));
+		if ($city === '' && !$hide_address) {
+			$city = self::match_city((string) (($settings['address']['city'] ?? '') ?: get_user_meta($vendor_id, 'billing_city', true)));
+		}
+		$logo = null;
+		$logo_id = (int) $field('logo_id');
+		if ($logo_id > 0) {
+			$logo = wp_get_attachment_image_url($logo_id, 'thumbnail') ?: null;
+		}
 
 		$shop = [
 			'id'       => (string) $vendor_id,
 			'name'     => html_entity_decode(wp_strip_all_tags((string) $name), ENT_QUOTES, 'UTF-8'),
 			'initials' => self::initials((string) $name),
-			'logoUrl'  => self::logo_url($settings),
-			'cityId'   => self::match_city((string) $city),
+			'logoUrl'  => $logo ?: self::logo_url($settings),
+			'cityId'   => $city,
 			'whatsapp' => self::whatsapp((string) $phone),
 			'role'     => self::vendor_has_rentals($vendor_id) ? 'loueur' : 'vendeur',
 		];
@@ -370,6 +391,40 @@ final class Locappci_Catalogue {
 			$letters .= mb_strtoupper(mb_substr($w, 0, 1));
 		}
 		return $letters ?: '?';
+	}
+
+	/** WCFM stores its « hide » switches as yes / no. */
+	public static function flag($value): bool {
+		return in_array(strtolower(trim((string) $value)), ['yes', '1', 'on', 'true', 'oui'], true);
+	}
+
+	/**
+	 * The seller's validated « locappci_boutique » record, or 0. Found through the seller's products
+	 * (_locappci_boutique_id, the link the site itself writes), then through the record's author.
+	 */
+	public static function boutique_id(int $vendor_id): int {
+		global $wpdb;
+		$ids = array_map('intval', (array) $wpdb->get_col($wpdb->prepare(
+			"SELECT pm.meta_value FROM {$wpdb->postmeta} pm
+			 JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+			 WHERE pm.meta_key = '_locappci_boutique_id' AND pm.meta_value <> '' AND p.post_type = 'product'
+			 AND p.post_status = 'publish' AND p.post_author = %d
+			 GROUP BY pm.meta_value ORDER BY COUNT(*) DESC LIMIT 5",
+			$vendor_id
+		)));
+		$own = get_posts(['post_type' => 'locappci_boutique', 'post_status' => 'publish', 'author' => $vendor_id,
+			'posts_per_page' => 5, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC', 'suppress_filters' => true]);
+		foreach (array_unique(array_merge($ids, array_map('intval', $own))) as $id) {
+			$post = $id ? get_post($id) : null;
+			if (!$post || $post->post_type !== 'locappci_boutique' || $post->post_status !== 'publish') {
+				continue;
+			}
+			$status = (string) get_post_meta($id, '_locappci_boutique_statut', true);
+			if ($status === '' || $status === 'validee') {
+				return (int) apply_filters('locappci_boutique_id', $id, $vendor_id);
+			}
+		}
+		return (int) apply_filters('locappci_boutique_id', 0, $vendor_id);
 	}
 
 	private static function logo_url(array $settings): ?string {

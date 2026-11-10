@@ -43,11 +43,24 @@ User roles: customer 38, wcfm_vendor 7, prestataire 5, loueur_bailleur 2, agence
 
 ## Shops
 
-`locappci_boutique` record: logo, banner, type (`professionnel`), ville, pays, téléphone, WhatsApp, e-mail, site web,
-statut (`validee`), verified, featured, refusal reason. The seller account also has WCFM settings
-(store name, address, geolocation lat/lng, shipping by distance, **store_hide_phone / store_hide_address**).
-The sample shop's city was outside Abidjan, so no commune matched: the app must read the boutique record and
-respect the hide flags.
+`locappci_boutique` record (field names from the live diagnostics, 10 Nov), all prefixed `_locappci_boutique_`:
+`logo_id` and `banner_id` (media ids), `type` (`professionnel`), `ville`, `pays`, `telephone`, `whatsapp`, `email`,
+`site_web`, `statut` (`validee`), `verified` (`oui`/`non`), `featured`, `motif_refus`.
+Products point to their record with `_locappci_boutique_id`; the seller is the product author (also copied into
+`_locappci_vendor_id`, `_wcfm_product_author` and several other fields).
+
+The seller account also has WCFM settings (`wcfmmp_profile_settings`): `store_name`, `gravatar` (logo), `phone`,
+`address` (street, city…), `geolocation`, shipping by distance, and the switches `store_hide_email`,
+`store_hide_phone`, `store_hide_address`, `store_hide_map`.
+
+**Rule since plugin 0.3.0:** the app reads logo, town and WhatsApp from the validated record first, then WCFM.
+`store_hide_phone = yes` → no WhatsApp at all. `store_hide_address = yes` → the WCFM address is not used for the
+commune (the record's `ville` still is: it is the shop's public town). Live result (10 Nov, 0.3.0): 7 sellers with published products, 6 with a validated record, 6 with WhatsApp and a
+logo, none hides the phone. **None matches a commune** of the app's list (the sample `ville` is outside Abidjan), so
+« Plus proches » and the commune filter have nothing to work with yet. 0.3.1 shows the town text per shop: **Abidjan** (1), **San-Pedro** (2), **Rainham / Londres, UK** (2), empty (2).
+Sellers write a town, not an Abidjan commune, and several are outside Abidjan. The list of places is editable in
+Outils → LOCAPPCI API (section 3), so towns can be added without code, but whether the app should ask for a
+commune or a town is a decision for the client (open question in HANDOVER section 9).
 
 ## Where the custom code is (Code Snippets export, 1 Nov)
 

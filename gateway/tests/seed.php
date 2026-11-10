@@ -50,4 +50,31 @@ $attente = cat('En attente seulement');
 $newloc = vendor('nouveau', 'Nouveau Loueur', '07 00 00 00 09', 'Yopougon');
 $pending_cat = prod($kone, 'Lampe en attente', 4000, [$attente], 'simple', 2, ['_locappci_validation_status' => 'en_attente']);
 $pending_rental = prod($newloc, 'Sono en attente', 20000, [$location], 'simple', null, ['_locappci_validation_status' => 'en_attente']);
-echo json_encode($ids + ['pending' => $pending, 'masked' => $masked, 'nofields' => $nofields, 'pendingCat' => $attente, 'pendingRental' => $pending_rental, 'newLoueur' => $newloc] + ['song' => $song, 'hidden' => $hidden, 'chaises' => $chaises, 'tente' => $tente]);
+// Shops with the site's own « locappci_boutique » record, and sellers who hide their phone or address.
+function boutique($author, $title, $meta) {
+	$id = wp_insert_post(['post_type' => 'locappci_boutique', 'post_status' => 'publish', 'post_title' => $title, 'post_author' => $author]);
+	foreach ($meta as $k => $v) update_post_meta($id, '_locappci_boutique_' . $k, $v);
+	return $id;
+}
+function wcfm_set($uid, $changes) { update_user_meta($uid, 'wcfmmp_profile_settings', array_merge((array) get_user_meta($uid, 'wcfmmp_profile_settings', true), $changes)); }
+$logo = wp_insert_post(['post_type' => 'attachment', 'post_status' => 'inherit', 'post_title' => 'logo', 'post_mime_type' => 'image/png']);
+update_post_meta($logo, '_wp_attached_file', '2026/11/logo-bazar.png');
+// Record linked from a product (and written by the admin, not the seller): record wins over WCFM.
+$bazar = vendor('bazar', 'Bazar Ivoire Market', '07 00 00 00 03', 'Rainham');
+$fiche = boutique(1, 'Bazar Ivoire Market', ['logo_id' => $logo, 'ville' => 'TREICHVILLE', 'pays' => "Côte d'Ivoire", 'telephone' => '07 11 11 11 11',
+	'whatsapp' => '+225 07 22 22 22 22', 'statut' => 'validee', 'verified' => 'oui']);
+$savon = prod($bazar, 'Savon noir', 2000, [cat('Divers')], 'simple', 5, ['_locappci_boutique_id' => $fiche]);
+// Record found through its author, phone only.
+$auteur = vendor('auteur', 'Chez Auteur', '', '');
+boutique($auteur, 'Chez Auteur', ['ville' => 'Adjamé', 'telephone' => '0733333333', 'statut' => 'validee']);
+// Record not validated yet: ignored, WCFM settings are used.
+$attenteb = vendor('attenteb', 'Boutique Attente', '07 00 00 00 04', 'Koumassi');
+boutique($attenteb, 'Boutique Attente', ['ville' => 'Plateau', 'whatsapp' => '0744444444', 'statut' => 'en_attente']);
+// Seller who hides phone and address: no WhatsApp, no town from the WCFM address.
+$discret = vendor('discret', 'Boutique Discrète', '07 00 00 00 05', 'Cocody');
+wcfm_set($discret, ['store_hide_phone' => 'yes', 'store_hide_address' => 'yes']);
+// Hidden phone, but a validated record with a town: town shown, still no WhatsApp.
+$discret2 = vendor('discret2', 'Boutique Réservée', '07 00 00 00 06', 'Cocody');
+wcfm_set($discret2, ['store_hide_phone' => 'yes', 'store_hide_address' => 'yes']);
+boutique($discret2, 'Boutique Réservée', ['ville' => 'Marcory', 'whatsapp' => '0755555555', 'statut' => 'validee']);
+echo json_encode($ids + ['savon' => $savon, 'bazar' => $bazar, 'auteur' => $auteur, 'attenteb' => $attenteb, 'discret' => $discret, 'discret2' => $discret2] + ['pending' => $pending, 'masked' => $masked, 'nofields' => $nofields, 'pendingCat' => $attente, 'pendingRental' => $pending_rental, 'newLoueur' => $newloc] + ['song' => $song, 'hidden' => $hidden, 'chaises' => $chaises, 'tente' => $tente]);
