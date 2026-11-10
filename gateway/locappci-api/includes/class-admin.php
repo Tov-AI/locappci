@@ -280,7 +280,7 @@ final class Locappci_Admin {
 	/** One line per seller with published products: what the app will show. No personal value is printed. */
 	private static function shops_overview(): void {
 		$authors = get_users(['has_published_posts' => ['product'], 'fields' => 'ID', 'number' => 200]);
-		echo '<table class="widefat striped" style="max-width:900px"><thead><tr><th>Boutique</th><th>Fiche LOCAPPCI</th><th>Commune</th><th>WhatsApp</th><th>Logo</th><th>Téléphone masqué</th></tr></thead><tbody>';
+		echo '<table class="widefat striped" style="max-width:900px"><thead><tr><th>Boutique</th><th>Fiche LOCAPPCI</th><th>Ville écrite sur la fiche</th><th>Ville WCFM</th><th>Commune reconnue</th><th>WhatsApp</th><th>Logo</th><th>Téléphone masqué</th></tr></thead><tbody>';
 		foreach ($authors as $uid) {
 			$shop = Locappci_Catalogue::shop((int) $uid);
 			if (!$shop) {
@@ -288,7 +288,12 @@ final class Locappci_Admin {
 			}
 			$settings = get_user_meta((int) $uid, 'wcfmmp_profile_settings', true);
 			$hidden = is_array($settings) && Locappci_Catalogue::flag($settings['store_hide_phone'] ?? '');
-			echo '<tr><td>' . esc_html($shop['name']) . '</td><td>' . (Locappci_Catalogue::boutique_id((int) $uid) ? 'oui' : 'non') . '</td><td>'
+			$fiche = Locappci_Catalogue::boutique_id((int) $uid);
+			// Town names only (never the street): needed to see why a commune is not recognised.
+			$ville = $fiche ? trim((string) get_post_meta($fiche, '_locappci_boutique_ville', true)) : '';
+			$wcfm_city = is_array($settings) && !Locappci_Catalogue::flag($settings['store_hide_address'] ?? '') ? trim((string) ($settings['address']['city'] ?? '')) : '';
+			echo '<tr><td>' . esc_html($shop['name']) . '</td><td>' . ($fiche ? 'oui' : 'non') . '</td><td>'
+				. esc_html($ville !== '' ? $ville : '—') . '</td><td>' . esc_html($wcfm_city !== '' ? $wcfm_city : '—') . '</td><td>'
 				. esc_html($shop['cityId'] ?: 'aucune') . '</td><td>' . ($shop['whatsapp'] ? 'oui' : 'non') . '</td><td>'
 				. ($shop['logoUrl'] ? 'oui' : 'non') . '</td><td>' . ($hidden ? 'oui' : 'non') . '</td></tr>';
 		}

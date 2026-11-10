@@ -26,7 +26,7 @@ Same steps as Install, with the new `locappci-api.zip`. WordPress then shows
 ## Check it answers
 
 1. In a browser, open `https://locappci.fr/wp-json/locappci/v1/health`.
-   You should see something like `{"ok":true,"version":"0.3.0","plugins":{...}}`.
+   You should see something like `{"ok":true,"version":"0.3.1","plugins":{...}}`.
 2. Open `https://locappci.fr/wp-json/locappci/v1/products?page_size=3`: three of your real products as JSON.
 
 ## Diagnostics (send this to the app team)
