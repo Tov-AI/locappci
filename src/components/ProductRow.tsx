@@ -1,11 +1,11 @@
-import Feather from '@expo/vector-icons/Feather';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { ProductSummary } from '@/api';
 import { AppText } from '@/components/AppText';
 import { Tag } from '@/components/Badge';
 import { FavouriteButton } from '@/components/FavouriteButton';
 import { Skeleton } from '@/components/Skeleton';
+import { ProductPhoto } from '@/components/ProductPhoto';
 import { useFavourite } from '@/data/favourites';
 import { colors, fontFamily, radius, space } from '@/theme';
 import { formatFcfa } from '@/utils/format';
@@ -31,12 +31,8 @@ export function ProductRow({ item, cityName, onPress }: Props) {
       accessibilityLabel={`${item.name}, ${price}${rental ? ' par jour' : ''}, ${place}`}
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-      <View style={[styles.thumb, { backgroundColor: rental ? colors.brand.orangeTint : colors.brand.navyTint }]}>
-        {/* Stays visible if the photo is missing or fails to load. */}
-        <Feather name="image" size={26} color={rental ? colors.brand.orangeBorder : colors.brand.navyMuted} />
-        {item.coverUrl ? (
-          <Image source={{ uri: item.coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : null}
+      <View style={styles.thumb}>
+        <ProductPhoto uri={item.coverUrl} iconSize={26} rental={rental} />
       </View>
 
       <View style={styles.texts}>

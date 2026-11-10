@@ -1,5 +1,6 @@
 import type { ApiErrorBody, LocappciApi, ProductQuery } from '@/api/contract';
 import { ApiError, networkError } from '@/api/errors';
+import { getSessionToken, sessionExpired } from '@/api/token';
 
 const TIMEOUT_MS = 10_000;
 
@@ -13,6 +14,8 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     path: string,
     params?: Record<string, string | number | undefined>,
     body?: unknown,
+    /** Send the session token: only on calls that need a signed-in customer. */
+    signedIn = false,
   ): Promise<T> {
     // Join, don't resolve: new URL('/v1/x', 'https://site/wp-json/locappci') would drop '/wp-json/locappci'.
     const url = new URL(`${baseUrl.replace(/\/+$/, '')}${path}`);
@@ -20,6 +23,8 @@ export function createHttpApi(baseUrl: string): LocappciApi {
       if (v !== undefined && v !== '') url.searchParams.set(k, String(v));
     });
 
+    // Not the Authorization header: the site's JWT plugin reads that one and would reject our token.
+    const token = signedIn ? getSessionToken() : null;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     let res: Response;
@@ -30,6 +35,7 @@ export function createHttpApi(baseUrl: string): LocappciApi {
           Accept: 'application/json',
           'Accept-Language': 'fr',
           ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          ...(token ? { 'X-Locappci-Token': token } : {}),
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
         signal: controller.signal,
@@ -42,6 +48,8 @@ export function createHttpApi(baseUrl: string): LocappciApi {
 
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
+      // The session ended on the server (expired, password changed, account removed): sign out here too.
+      if (token && res.status === 401 && path !== '/v1/accounts/delete') sessionExpired();
       throw new ApiError(
         body?.code ?? 'server_error',
         body?.message ?? 'Un problème est survenu. Réessayez dans un instant.',
@@ -77,13 +85,14 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     checkStock: (productId, shownPrice) =>
       get(`/v1/products/${encodeURIComponent(productId)}/stock`, { shown_price: shownPrice }),
     getConfig: () => get('/v1/config'),
-    sendRentalRequest: (req) => request('POST', '/v1/rental-requests', undefined, req),
+    sendRentalRequest: (req) => request('POST', '/v1/rental-requests', undefined, req, true),
     getDeliveryOptions: (shopIds, cityId) => get('/v1/delivery-options', { shops: shopIds.join(','), city: cityId }),
     submitPaymentReference: (orderId, reference) =>
       request('POST', `/v1/orders/${encodeURIComponent(orderId)}/payment-reference`, undefined, { reference }),
     createOrder: (order) => request('POST', '/v1/orders', undefined, order),
     login: (req) => request('POST', '/v1/session', undefined, req),
-    deleteAccount: (req) => request('POST', '/v1/accounts/delete', undefined, req),
+    logout: () => request('POST', '/v1/session/logout', undefined, {}, true),
+    deleteAccount: (req) => request('POST', '/v1/accounts/delete', undefined, req, true),
     createAccount: (req) => request('POST', '/v1/accounts', undefined, req),
     getOrder: (id) => get(`/v1/orders/${encodeURIComponent(id)}`),
     checkCart: (lines) => request('POST', '/v1/cart/check', undefined, { lines }),

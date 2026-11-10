@@ -1,8 +1,9 @@
 import Feather from '@expo/vector-icons/Feather';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/AppText';
 import { Stepper } from '@/components/Stepper';
+import { ProductPhoto } from '@/components/ProductPhoto';
 import type { CartItem } from '@/data/cart';
 import { colors, radius, space } from '@/theme';
 import { formatFcfa } from '@/utils/format';
@@ -29,9 +30,8 @@ export function CartLine({ item, message, onOpen, onQuantity, onRemove }: Props)
         accessibilityLabel={`Voir ${item.name}`}
         onPress={onOpen}
         style={({ pressed }) => [styles.top, pressed && styles.pressed]}>
-        <View style={[styles.thumb, { backgroundColor: colors.brand.navyTint }]}>
-          <Feather name="image" size={22} color={colors.brand.navyMuted} />
-          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.image} resizeMode="cover" /> : null}
+        <View style={styles.thumb}>
+          <ProductPhoto uri={item.coverUrl} iconSize={22} />
         </View>
         <View style={styles.texts}>
           <AppText variant="secondaryStrong" numberOfLines={2}>
@@ -106,7 +106,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  image: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   texts: { flex: 1, gap: 2 },
   flex: { flex: 1 },
   message: { flexDirection: 'row', gap: space.sm, padding: 10, borderRadius: radius.sm },

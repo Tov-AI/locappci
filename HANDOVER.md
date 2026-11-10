@@ -13,13 +13,13 @@ Everything here is in the repository; nothing depends on a conversation you were
 - **It runs on mock data by default** (`src/api/mock/`). Every screen talks to one interface,
   `src/api/contract.ts`. Point the app at the real site and the same screens use real data.
 - **The gateway** is a WordPress plugin, **LOCAPPCI API** (`gateway/locappci-api`), that runs on locappci.fr itself.
-  It is **read-only** today: catalogue, shops, stock, cart check, config. Orders, accounts and rental requests are not
-  written to WordPress yet.
+  It is **read-only except customer accounts** (0.4.0: sign in with the website's account, create, sign out,
+  delete). Orders and rental requests are not written to WordPress yet.
 - **Plugin 0.3.2 is installed on the live site** (10 Nov), WhatsApp number set. Products marked waiting or masked
   are hidden (3 of 159, PR #18). Shops read the site's boutique record (PR #19): 7 sellers, 6 with a record,
   6 with WhatsApp and logo, none hides the phone. **No shop matches a commune yet** (open point, see SITE-MAP).
-- **The next big piece of work is accounts (login with Simple JWT Login).** Sending rental requests to loueurs and
-  creating real orders both depend on it. See section 8.
+- **Accounts are built** (plugin 0.4.0 + app, PR `feature/18-comptes`), with our own session token, not Simple JWT
+  Login. Next: sending rental requests to loueurs, then real orders. See section 8.
 
 ---
 
@@ -197,9 +197,9 @@ on mock data. Each PR description (#2 to #16) lists exactly what was tested.
 3. ✅ **Done in 0.3.0** (PR `feature/16-fiches-boutiques`): shops read the validated `locappci_boutique` record
    (logo, town, WhatsApp), then WCFM, and respect `store_hide_phone` / `store_hide_address`. Field names in
    `docs/SITE-MAP.md`.
-4. **Feature 14: login with WordPress accounts** (Simple JWT Login is already installed on the site).
-   Contract: `POST /v1/session`, `POST /v1/accounts`, `POST /v1/accounts/delete`. The app's login sheet and
-   "Supprimer mon compte" already exist against the mock.
+4. ✅ **Done in 0.4.0** (PR `feature/18-comptes`): login with the website's account (phone or e-mail), account
+   creation, sign-out, account deletion. Rules in `docs/API.md`. The app needs a **new build** (it adds
+   `expo-secure-store`, a native module, for the session token).
 5. **Rental requests to loueurs:** `POST /v1/rental-requests` writes `locappci_loc_req` records, the same ones the
    website creates (fields `_locappci_req_*`, linked to the product's author). Rules in `docs/API.md`.
 6. **Orders:** `GET /v1/delivery-options`, `POST /v1/orders` (idempotent, re-checks the cart, `409 cart_changed`),

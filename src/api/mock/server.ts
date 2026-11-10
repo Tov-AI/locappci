@@ -9,13 +9,16 @@ import type {
   ProductQuery,
   ProductSummary,
   RentalRequestReceipt,
+  Session,
   StockCheck,
 } from '@/api/contract';
 import { onlineManager } from '@tanstack/react-query';
 
 import { ApiError, networkError } from '@/api/errors';
+import { getSessionToken } from '@/api/token';
 import { categories, cities, products, shops } from '@/api/mock/data';
 import { today } from '@/utils/dates';
+import { normalizeCiPhone } from '@/utils/phone';
 
 /**
  * Developer switches to test loading, error and offline behaviour on a real phone.
@@ -286,32 +289,49 @@ export const mockApi: LocappciApi = {
       return order;
     }),
 
-  createAccount: ({ orderId, password }) =>
-    respond((): Account => {
-      const o = orders.get(orderId);
-      if (!o) throw new ApiError('not_found', 'Commande introuvable.');
+  createAccount: ({ name, phone, password, email, orderId }) =>
+    respond((): Session => {
+      if (orderId && !orders.has(orderId)) throw new ApiError('not_found', 'Commande introuvable.');
+      const cleanName = name.trim().replace(/\s+/g, ' ');
+      if (cleanName.length < 2 || cleanName.length > 80) throw new ApiError('validation', 'Indiquez votre nom (2 à 80 caractères).');
+      if (!CI_PHONE.test(phone)) throw new ApiError('validation', 'Numéro ivoirien à 10 chiffres, ex. 07 00 00 00 00.');
       if (password.length < 8) throw new ApiError('validation', 'Le mot de passe doit faire au moins 8 caractères.');
-      if (accounts.has(o.customer.phone)) {
-        throw new ApiError('validation', 'Un compte existe déjà pour ce numéro. Connectez-vous depuis l’onglet Compte.');
+      const mail = email?.trim().toLowerCase() || null;
+      if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) throw new ApiError('validation', 'Cette adresse e-mail n’est pas valide.');
+      if (accounts.has(phone)) throw new ApiError('validation', 'Un compte existe déjà pour ce numéro. Connectez-vous.');
+      if (mail && [...accounts.values()].some((a) => a.email === mail)) {
+        throw new ApiError('validation', 'Un compte existe déjà pour cette adresse e-mail. Connectez-vous.');
       }
-      const account = { name: o.customer.name, phone: o.customer.phone };
-      accounts.set(o.customer.phone, { ...account, password });
-      return account;
+      const account: Account = { name: cleanName, phone, email: mail };
+      accounts.set(phone, { ...account, password });
+      return { account, token: openSession(phone) };
     }),
 
-  login: ({ phone, password }) =>
-    respond((): Account => {
-      const a = accounts.get(phone);
+  login: ({ identifier, password }) =>
+    respond((): Session => {
+      const id = identifier.trim().toLowerCase();
+      const phone = normalizeCiPhone(identifier);
+      const a = id.includes('@') ? [...accounts.values()].find((x) => x.email === id) : phone ? accounts.get(phone) : undefined;
       // Same message for both cases: never tell a stranger whether a number has an account.
-      if (!a || a.password !== password) throw new ApiError('unauthorized', 'Numéro ou mot de passe incorrect.');
-      return { name: a.name, phone: a.phone };
+      if (!a || a.password !== password) throw new ApiError('unauthorized', 'Identifiant ou mot de passe incorrect.');
+      return { account: { name: a.name, phone: a.phone, email: a.email }, token: openSession(a.phone) };
     }),
 
-  deleteAccount: ({ phone, password }) =>
+  logout: () =>
     respond(() => {
-      const a = accounts.get(phone);
-      if (!a || a.password !== password) throw new ApiError('unauthorized', 'Mot de passe incorrect.');
-      accounts.delete(phone);
+      const token = getSessionToken();
+      if (token) sessions.delete(token);
+    }),
+
+  deleteAccount: ({ password }) =>
+    respond(() => {
+      const token = getSessionToken();
+      const phone = token ? sessions.get(token) : undefined;
+      const a = phone ? accounts.get(phone) : undefined;
+      if (!a) throw new ApiError('unauthorized', 'Votre session a expiré. Reconnectez-vous.');
+      if (a.password !== password) throw new ApiError('unauthorized', 'Mot de passe incorrect.');
+      accounts.delete(a.phone);
+      for (const [t, p] of sessions) if (p === a.phone) sessions.delete(t);
     }),
 
   getOrder: (id) =>
@@ -431,10 +451,19 @@ const CI_PHONE = /^225(01|05|07|21|25|27)\d{8}$/;
  * Mock only (Données dev screen): an account to test "Envoyer aux loueurs" without placing
  * an order first. Phone 07 00 00 00 01, password test1234.
  */
-export function createTestAccount(): Account {
-  const account = { name: 'Compte Test', phone: '2250700000001' };
+export function createTestAccount(): Session {
+  const account: Account = { name: 'Compte Test', phone: '2250700000001', email: null };
   accounts.set(account.phone, { ...account, password: 'test1234' });
-  return account;
+  return { account, token: openSession(account.phone) };
+}
+
+/** Open sessions in the mock: token → phone of the account. */
+const sessions = new Map<string, string>();
+let nextSession = 1;
+function openSession(phone: string): string {
+  const token = `mock-session-${nextSession++}`;
+  sessions.set(token, phone);
+  return token;
 }
 
 /** Rental requests received by the mock (what loueurs would see), and which key sent which. */

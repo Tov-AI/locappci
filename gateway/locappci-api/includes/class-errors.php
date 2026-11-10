@@ -13,6 +13,7 @@ final class Locappci_Errors {
 		'validation'   => 400,
 		'unauthorized' => 401,
 		'cart_changed' => 409,
+		'rate_limited' => 429,
 		'unavailable'  => 503,
 		'server_error' => 500,
 	];

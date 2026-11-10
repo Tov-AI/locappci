@@ -58,6 +58,12 @@ final class Locappci_Admin {
 
 		echo '<h3>Modules LOCAPPCI des produits</h3>';
 		self::module_counts();
+		echo '<h3>Comptes clients de l’appli</h3>';
+		[$created, $open] = Locappci_Accounts::counts();
+		echo '<table class="widefat striped" style="max-width:900px"><tbody>';
+		self::row('Comptes créés depuis l’appli', (string) $created);
+		self::row('Comptes avec une session ouverte dans l’appli', (string) $open);
+		echo '</tbody></table>';
 		echo '<h3>Validation et visibilité des produits</h3>';
 		self::approval_counts();
 		echo '<h3>Types de contenu du site</h3>';

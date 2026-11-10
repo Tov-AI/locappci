@@ -1,10 +1,10 @@
-import { Share, StyleSheet, View } from 'react-native';
+import { Share, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Tag } from '@/components/Badge';
 import { FavouriteButton } from '@/components/FavouriteButton';
 import { IconButton } from '@/components/IconButton';
-import { PHOTO_HEIGHT, PhotoCarousel } from '@/components/PhotoCarousel';
+import { photoHeight, PhotoCarousel } from '@/components/PhotoCarousel';
 import { Skeleton } from '@/components/Skeleton';
 import { useFavourite } from '@/data/favourites';
 import { colors, space } from '@/theme';
@@ -35,9 +35,10 @@ export function PhotoHeader({ productId, images, name, shareMessage, onBack, ren
       <PhotoCarousel images={images} name={name} rental={rental} />
       {rental ? <Tag label="Location" style={styles.tag} /> : null}
       <View style={[styles.buttons, { top: insets.top + space.sm }]} pointerEvents="box-none">
-        <IconButton icon="arrow-left" accessibilityLabel="Retour" onPress={onBack} />
+        {/* Bordered: photos now sit on white, where a plain white button would disappear. */}
+        <IconButton icon="arrow-left" accessibilityLabel="Retour" onPress={onBack} bordered />
         <View style={styles.row}>
-          <IconButton icon="share-2" accessibilityLabel="Partager" onPress={share} />
+          <IconButton icon="share-2" accessibilityLabel="Partager" onPress={share} bordered />
           <FavouriteButton saved={saved} onToggle={toggleSaved} />
         </View>
       </View>
@@ -48,11 +49,12 @@ export function PhotoHeader({ productId, images, name, shareMessage, onBack, ren
 /** Same shape while the product loads; back already works. */
 export function PhotoHeaderSkeleton({ onBack }: { onBack: () => void }) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   return (
     <View>
-      <Skeleton height={PHOTO_HEIGHT} borderRadius={0} />
+      <Skeleton height={photoHeight(width)} borderRadius={0} />
       <View style={[styles.buttons, { top: insets.top + space.sm }]}>
-        <IconButton icon="arrow-left" accessibilityLabel="Retour" onPress={onBack} />
+        <IconButton icon="arrow-left" accessibilityLabel="Retour" onPress={onBack} bordered />
       </View>
     </View>
   );

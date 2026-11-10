@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/AppText';
@@ -15,6 +15,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { SectionCard } from '@/components/SectionCard';
 import { TextField } from '@/components/TextField';
 import { showToast } from '@/components/Toast';
+import { ProductPhoto } from '@/components/ProductPhoto';
 import { useAccount } from '@/data/account';
 import { useSavedCustomer } from '@/data/customer';
 import { useOnline } from '@/data/online';
@@ -73,7 +74,7 @@ export default function DemandeLocationScreen() {
 
   const [name, setName] = useState(account?.name ?? customer?.name ?? '');
   const [phone, setPhone] = useState(() => {
-    const p = account?.phone ?? customer?.phone;
+    const p = account?.phone || customer?.phone;
     return p ? formatCiPhone(p) : '';
   });
   const [whatsapp, setWhatsapp] = useState('');
@@ -358,8 +359,7 @@ function RequestRow({
         onPress={onOpen}
         style={({ pressed }) => [styles.lineTop, pressed && styles.pressed]}>
         <View style={styles.thumb}>
-          <Feather name="image" size={22} color={colors.brand.orangeBorder} />
-          {l.coverUrl ? <Image source={{ uri: l.coverUrl }} style={styles.image} resizeMode="cover" /> : null}
+          <ProductPhoto uri={l.coverUrl} iconSize={22} rental />
         </View>
         <View style={styles.flex}>
           <AppText variant="secondaryStrong" numberOfLines={2}>
@@ -455,7 +455,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  image: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   lineAlert: { flexDirection: 'row', gap: space.xs, alignItems: 'flex-start' },
   lineActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: space.xl },
   undo: {

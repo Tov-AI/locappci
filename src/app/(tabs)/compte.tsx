@@ -14,7 +14,7 @@ import { SectionCard } from '@/components/SectionCard';
 import { TextField } from '@/components/TextField';
 import { showToast } from '@/components/Toast';
 import { config } from '@/config';
-import { saveAccount, useAccount } from '@/data/account';
+import { clearSession, useAccount } from '@/data/account';
 import { clearCustomer, useSavedCustomer } from '@/data/customer';
 import { useFavouriteIds } from '@/data/favourites';
 import { answerNotifications, useNotificationAnswer } from '@/data/notifications';
@@ -60,8 +60,8 @@ export default function CompteScreen() {
   const notifyOn = notifications?.answer === 'yes';
 
   /** Leave no personal data on a shared phone. Favourites and the cart are not personal: they stay. */
-  const signOut = () => {
-    saveAccount(null);
+  const signOut = (tellServer: boolean) => {
+    clearSession(tellServer);
     clearCustomer();
     forgetOrders();
   };
@@ -89,7 +89,7 @@ export default function CompteScreen() {
           <View style={styles.flex}>
             <AppText variant="cardTitle">{account.name}</AppText>
             <AppText variant="meta" color={colors.text.muted}>
-              {[maskPhone(account.phone), commune].filter(Boolean).join(' · ')}
+              {[account.phone ? maskPhone(account.phone) : account.email, commune].filter(Boolean).join(' · ')}
             </AppText>
           </View>
         </View>
@@ -102,11 +102,11 @@ export default function CompteScreen() {
             <View style={styles.flex}>
               <AppText variant="cardTitle">Bienvenue sur LOCAPPCI</AppText>
               <AppText variant="meta" color={colors.text.muted}>
-                Pas besoin de compte pour commander. Connectez-vous pour retrouver vos commandes partout.
+                Pas besoin de compte pour commander. Connectez-vous ou créez un compte pour retrouver vos commandes partout.
               </AppText>
             </View>
           </View>
-          <Button label="Se connecter" onPress={() => setLoginOpen(true)} />
+          <Button label="Se connecter ou créer un compte" onPress={() => setLoginOpen(true)} />
         </SectionCard>
       )}
 
@@ -200,7 +200,7 @@ export default function CompteScreen() {
         message="Vos coordonnées et la liste de vos commandes seront effacées de ce téléphone. Vos favoris et votre panier restent."
         confirmLabel="Se déconnecter"
         onConfirm={() => {
-          signOut();
+          signOut(true);
           setLogoutOpen(false);
           showToast('Vous êtes déconnecté.');
         }}
@@ -217,10 +217,11 @@ export default function CompteScreen() {
         onConfirm={() => {
           if (!account) return;
           deleteAccount.mutate(
-            { phone: account.phone, password },
+            { password },
             {
               onSuccess: () => {
-                signOut();
+                // The account and its sessions are already gone on the server.
+                signOut(false);
                 setDeleteOpen(false);
                 showToast('Votre compte a été supprimé.');
               },

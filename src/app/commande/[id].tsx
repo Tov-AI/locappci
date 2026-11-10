@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/Skeleton';
 import { TextField } from '@/components/TextField';
 import { showToast } from '@/components/Toast';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
-import { saveAccount, useAccount } from '@/data/account';
+import { saveSession, useAccount } from '@/data/account';
 import { answerNotifications, shouldAskNotifications, useNotificationAnswer } from '@/data/notifications';
 import { useOnline } from '@/data/online';
 import { rememberOrder } from '@/data/orders';
@@ -243,10 +243,10 @@ function AccountOffer({ order }: { order: Order }) {
     }
     setError(undefined);
     create.mutate(
-      { orderId: order.id, password },
+      { orderId: order.id, name: order.customer.name, phone: order.customer.phone, password },
       {
-        onSuccess: (a) => {
-          saveAccount(a);
+        onSuccess: (s) => {
+          saveSession(s);
           setPassword('');
           setJustCreated(true);
         },

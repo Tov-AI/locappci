@@ -83,4 +83,17 @@ boutique($communev, 'Boutique Commune', ['commune' => 'Port-Bouët', 'ville' => 
 // A commune that is not in the app's list: the town is tried next.
 $communex = vendor('communex', 'Boutique Ailleurs', '07 00 00 00 08', '');
 boutique($communex, 'Boutique Ailleurs', ['commune' => 'Ailleurs', 'ville' => 'Abobo', 'statut' => 'validee']);
-echo json_encode($ids + ['communev' => $communev, 'communex' => $communex, 'savon' => $savon, 'bazar' => $bazar, 'auteur' => $auteur, 'attenteb' => $attenteb, 'discret' => $discret, 'discret2' => $discret2] + ['pending' => $pending, 'masked' => $masked, 'nofields' => $nofields, 'pendingCat' => $attente, 'pendingRental' => $pending_rental, 'newLoueur' => $newloc] + ['song' => $song, 'hidden' => $hidden, 'chaises' => $chaises, 'tente' => $tente]);
+// Accounts for the login tests (passwords are test values).
+function person($login, $email, $pass, $role, $name, $phone) {
+	$id = wp_insert_user(['user_login' => $login, 'user_email' => $email, 'user_pass' => $pass, 'role' => $role, 'display_name' => $name]);
+	if ($phone !== '') update_user_meta($id, 'billing_phone', $phone);
+	return $id;
+}
+if (!get_role('wcfm_vendor')) add_role('wcfm_vendor', 'Vendeur', ['read' => true]);
+$client = person('awa', 'awa@example.com', 'site-pass-1', 'customer', 'Awa Koné', '07 08 09 10 11');   // website customer
+person('jumeau1', 'j1@example.com', 'pass-jumeau-1', 'customer', 'Jumeau Un', '+225 05 55 55 55 55'); // two accounts, one number
+person('jumeau2', 'j2@example.com', 'pass-jumeau-2', 'customer', 'Jumeau Deux', '0555555555');
+person('vendlogin', 'vendeur@example.com', 'vend-pass-1', 'wcfm_vendor', 'Vendeur Test', '0101010101'); // may sign in, may not self-delete
+person('bloque', 'bloque@example.com', 'bloque-pass-1', 'customer', 'Compte Bloqué', '0102030405');  // for the attempt limit
+person('etranger', 'uk@example.com', 'uk-pass-1234', 'customer', 'Client Londres', '+44 7700 900123');   // no Ivorian number
+echo json_encode($ids + ['client' => $client, 'communev' => $communev, 'communex' => $communex, 'savon' => $savon, 'bazar' => $bazar, 'auteur' => $auteur, 'attenteb' => $attenteb, 'discret' => $discret, 'discret2' => $discret2] + ['pending' => $pending, 'masked' => $masked, 'nofields' => $nofields, 'pendingCat' => $attente, 'pendingRental' => $pending_rental, 'newLoueur' => $newloc] + ['song' => $song, 'hidden' => $hidden, 'chaises' => $chaises, 'tente' => $tente]);
