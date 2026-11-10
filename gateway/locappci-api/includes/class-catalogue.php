@@ -124,17 +124,43 @@ final class Locappci_Catalogue {
 		return (bool) apply_filters('locappci_is_approved', $ok, $p);
 	}
 
-	/** Same rule as is_approved(), as a WP_Query meta_query clause. */
-	public static function approved_meta_query(): array {
-		$clause = ['relation' => 'AND'];
-		foreach (self::approval_fields() as $key => $value) {
-			$clause[] = [
-				'relation' => 'OR',
-				['key' => $key, 'compare' => 'NOT EXISTS'],
-				['key' => $key, 'value' => [(string) $value, ''], 'compare' => 'IN'],
-			];
+	/**
+	 * Ids of the posts the same rule hides: one small indexed query on the three fields, kept for the
+	 * request. (As a WP_Query meta_query, "missing or approved" on three fields joins the meta table
+	 * six times and multiplies rows by every field of every product: far too slow on a real site.)
+	 */
+	public static function hidden_ids(): array {
+		static $ids = null;
+		if ($ids === null) {
+			global $wpdb;
+			$where = [];
+			$values = [];
+			foreach (self::approval_fields() as $key => $value) {
+				$where[] = "(meta_key = %s AND meta_value NOT IN (%s, ''))";
+				$values[] = (string) $key;
+				$values[] = (string) $value;
+			}
+			$ids = $where
+				? array_map('intval', (array) $wpdb->get_col($wpdb->prepare(
+					"SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE " . implode(' OR ', $where), $values)))
+				: [];
 		}
-		return $clause;
+		return $ids;
+	}
+
+	/** Same rule as is_approved(), applied to WP_Query arguments. */
+	public static function without_hidden(array $args): array {
+		$hidden = self::hidden_ids();
+		if (!$hidden) {
+			return $args;
+		}
+		if (!empty($args['post__in'])) {
+			// WordPress ignores post__not_in when post__in is set.
+			$args['post__in'] = array_values(array_diff(array_map('intval', $args['post__in']), $hidden)) ?: [0];
+		} else {
+			$args['post__not_in'] = $hidden;
+		}
+		return $args;
 	}
 
 	/** Everything a product needs to appear in the app: published, not hidden, not a download, approved. */
@@ -371,7 +397,7 @@ final class Locappci_Catalogue {
 	}
 
 	private static function vendor_has_rentals(int $vendor_id): bool {
-		$q = new WP_Query([
+		$q = new WP_Query(self::without_hidden([
 			'post_type'      => 'product',
 			'post_status'    => 'publish',
 			'author'         => $vendor_id,
@@ -379,8 +405,7 @@ final class Locappci_Catalogue {
 			'fields'         => 'ids',
 			'no_found_rows'  => true,
 			'tax_query'      => [self::rental_tax_query(true)],
-			'meta_query'     => [self::approved_meta_query()],
-		]);
+		]));
 		return !empty($q->posts);
 	}
 
@@ -446,7 +471,7 @@ final class Locappci_Catalogue {
 			return 'location';
 		}
 		$count = function (bool $rentals) use ($t) {
-			$q = new WP_Query([
+			$q = new WP_Query(self::without_hidden([
 				'post_type'      => 'product',
 				'post_status'    => 'publish',
 				'posts_per_page' => 1,
@@ -456,8 +481,8 @@ final class Locappci_Catalogue {
 					['taxonomy' => 'product_cat', 'terms' => [$t->term_id]],
 					self::rental_tax_query($rentals),
 				],
-				'meta_query'     => ['relation' => 'AND', self::supported_meta_query(), self::approved_meta_query()],
-			]);
+				'meta_query'     => [self::supported_meta_query()],
+			]));
 			return (int) $q->found_posts;
 		};
 		$rentals = $count(true);
@@ -483,7 +508,7 @@ final class Locappci_Catalogue {
 			'post_type'   => 'product',
 			'post_status' => 'publish',
 			'tax_query'   => ['relation' => 'AND'],
-			'meta_query'  => ['relation' => 'AND', self::supported_meta_query(), self::approved_meta_query()],
+			'meta_query'  => ['relation' => 'AND', self::supported_meta_query()],
 		];
 		// Hidden from the catalogue in WooCommerce → hidden in the app too.
 		$args['tax_query'][] = ['taxonomy' => 'product_visibility', 'field' => 'name', 'terms' => ['exclude-from-catalog'], 'operator' => 'NOT IN'];
@@ -493,6 +518,8 @@ final class Locappci_Catalogue {
 			$args['post__in'] = $ids ?: [0];
 			$args['orderby'] = 'post__in';
 		}
+		// Waiting, refused or hidden on the site → not in the app.
+		$args = self::without_hidden($args);
 		if (($q['universe'] ?? '') === 'location' || ($q['universe'] ?? '') === 'vente') {
 			$args['tax_query'][] = self::rental_tax_query($q['universe'] === 'location');
 		}

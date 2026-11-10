@@ -4,6 +4,7 @@ One line per decision, newest first. Why we chose it matters more than what.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-11-10 | Gateway 0.2.3 finds hidden products with one indexed query on the three approval fields (`hidden_ids()` → `post__not_in`), not a `meta_query` | 0.2.2 used a nested "missing OR approved" `meta_query`: WordPress joined the meta table six times and the admin page hung on the live site (24 s vs 0.06 s on a local copy with 150 field-less products). Test with realistic data volumes, not only the small seed |
 | 2026-11-09 | Gateway 0.2.2 hides a product only when `_locappci_validation_status`, `_locappci_catalogue_visible` or `_locappci_public_visibility` is filled with a value other than `validee` / `yes` / `visible`; products without the fields are shown | 0.2.1 required all three fields and hid 141 of 159 live products: 129 predate the approval flow and have no fields, yet are on sale on the website. Filters `locappci_approval_fields` / `locappci_is_approved` can tighten it |
 | 2026-10-26 | Gateway 0.1 is read-only and ships an admin diagnostics page | Install on the live site with zero risk, and learn how RnB and WCFM really store their data before writing orders |
 | 2026-10-26 | Plugin tested on a local WordPress + WooCommerce 9.9 (SQLite) with the app's own HTTP client | Real WooCommerce code, real REST stack: the test caught a pagination bug and a URL-joining bug before the site saw them |

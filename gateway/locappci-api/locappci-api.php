@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       LOCAPPCI API
  * Description:       Passerelle entre l'appli mobile LOCAPPCI et le site (WooCommerce, WCFM, location). Lecture seule pour l'instant.
- * Version:           0.2.2
+ * Version:           0.2.3
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            LOCAPPCI
@@ -13,7 +13,7 @@
  *
  * 0.2: catalogue (rentals = the site's "location" category, downloads left out), shops, stock and
  * cart checks, app settings (WhatsApp), health, admin diagnostics. Still read-only.
- * 0.2.2: products the site marks as waiting, refused or hidden (_locappci_validation_status,
+ * 0.2.3: products the site marks as waiting, refused or hidden (_locappci_validation_status,
  * _catalogue_visible, _public_visibility) are not shown; counts in the diagnostics page.
  * Next: accounts (Simple JWT Login), then rental requests to loueurs, delivery and orders.
  */
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
 	exit; // Never run outside WordPress.
 }
 
-define('LOCAPPCI_API_VERSION', '0.2.2');
+define('LOCAPPCI_API_VERSION', '0.2.3');
 define('LOCAPPCI_API_DIR', __DIR__);
 
 require_once __DIR__ . '/includes/class-errors.php';

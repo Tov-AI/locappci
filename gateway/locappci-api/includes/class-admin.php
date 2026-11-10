@@ -161,9 +161,14 @@ final class Locappci_Admin {
 	private static function approval_counts(): void {
 		global $wpdb;
 		$total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'");
-		$shown = new WP_Query(['post_type' => 'product', 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids',
-			'meta_query' => [Locappci_Catalogue::approved_meta_query()]]);
-		$approved = (int) $shown->found_posts;
+		$hidden = Locappci_Catalogue::hidden_ids();
+		$hidden_published = 0;
+		if ($hidden) {
+			$hidden_published = (int) $wpdb->get_var(
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish' AND ID IN (" . implode(',', array_map('intval', $hidden)) . ')'
+			);
+		}
+		$approved = $total - $hidden_published;
 		$keys = array_keys(Locappci_Catalogue::approval_fields());
 		$none = $total;
 		if ($keys) {

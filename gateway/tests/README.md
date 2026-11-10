@@ -23,3 +23,9 @@ Needs PHP 8 with `pdo_sqlite`, Node 20+, git.
 6. Compile the app's client: `tsc` on `src/api/http.ts` to CommonJS (paths `@/*` → `src/*`), output in `OUT_DIR`.
 7. `OUT_DIR=… API_URL=http://127.0.0.1:8098/wp-json/locappci/ SEED_IDS='<json printed by seed.php>' node contract.test.js`
    → `ALL GATEWAY CONTRACT TESTS PASSED`.
+
+## Speed check (do this when a product query changes)
+
+The seed is tiny, so a slow query still passes. Before shipping a change to a product query, add ~150 products with
+~70 extra fields each (`add_post_meta`) and time `Locappci_Catalogue::list()` and the admin page with `wp eval`.
+Both should answer in well under a second (0.2.2 took 24 s here and hung on the live site).
