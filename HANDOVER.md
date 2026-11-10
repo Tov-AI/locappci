@@ -15,8 +15,8 @@ Everything here is in the repository; nothing depends on a conversation you were
 - **The gateway** is a WordPress plugin, **LOCAPPCI API** (`gateway/locappci-api`), that runs on locappci.fr itself.
   It is **read-only** today: catalogue, shops, stock, cart check, config. Orders, accounts and rental requests are not
   written to WordPress yet.
-- **Plugin 0.2.0 is installed on the live site** (9 Nov) and the WhatsApp number is set. **0.2.3** (products waiting for
-  validation or masked are hidden) is in PR #18, `feature/15-produits-valides`.
+- **Plugin 0.2.3 is installed on the live site** (10 Nov) and the WhatsApp number is set. It hides products the site
+  marks as waiting or masked: 3 hidden, 156 of 159 shown (PR #18, `feature/15-produits-valides`).
 - **The next big piece of work is accounts (login with Simple JWT Login).** Sending rental requests to loueurs and
   creating real orders both depend on it. See section 8.
 

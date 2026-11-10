@@ -21,7 +21,8 @@ Visibility fields on products: `_locappci_validation_status` (`validee`), `_loca
 18 are validated and visible, and about 6 are marked `en_attente` (3), `no` (1) or `hidden` (2).
 **Rule since plugin 0.2.3:** the app hides a product only when one of these fields is filled with another value;
 a product without the fields is shown, as on the website. Counts are in Outils → LOCAPPCI API →
-« Validation et visibilité des produits ». To confirm with the client: are the 129 field-less products all meant to be public?
+« Validation et visibilité des produits ». With 0.2.3 live (10 Nov): 3 products hidden, 156 shown before downloads are removed.
+To confirm with the client: are the 129 field-less products all meant to be public?
 
 ## Other content types (published)
 
