@@ -15,10 +15,10 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const cities = await api.listCities(); assert.ok(cities.length >= 7 && cities.every(c => isStr(c.id) && isStr(c.name)));
   const cats = await api.listCategories(); assert.ok(cats.every(c => isStr(c.id) && (c.parentId === null || isStr(c.parentId))));
   let page = await api.listProducts({}); page.items.forEach(checkSummary);
-  assert.strictEqual(page.total, 7); assert.ok(!page.items.some(i => i.name === 'Produit caché'));
+  assert.strictEqual(page.total, 8); assert.ok(!page.items.some(i => i.name === 'Produit caché'));
   console.log('list all:', page.items.map(i => i.name).join(' | '));
   assert.ok((await api.listProducts({ universe: 'location' })).items.some(i => i.id === ID.groupe), 'RnB rental type still counts');
-  assert.strictEqual((await api.listProducts({ universe: 'vente' })).total, 4);
+  assert.strictEqual((await api.listProducts({ universe: 'vente' })).total, 5);
   const elec = cats.find(c => c.name === 'Électroménager').id;
   assert.strictEqual((await api.listProducts({ categoryId: elec })).total, 4, 'parent includes children');
   assert.deepStrictEqual((await api.listProducts({ search: 'ventilateur' })).items.map(i => i.id), [ID.vent16]);
@@ -30,7 +30,7 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const p1 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 1, pageSize: 4 });
   const p2 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 2, pageSize: 4 });
   const both = [...p1.items, ...p2.items].map(i => i.id);
-  assert.deepStrictEqual([p1.hasMore, p2.hasMore, p1.total, new Set(both).size], [true, false, 7, 7]);
+  assert.deepStrictEqual([p1.hasMore, p2.hasMore, p1.total, new Set(both).size], [true, false, 8, 8]);
   assert.deepStrictEqual(both, near.map(i => i.id));
   assert.deepStrictEqual((await api.listProducts({ ids: [ID.pagne, ID.vent16, '999'] })).items.map(i => i.id), [ID.pagne, ID.vent16]);
   // detail
@@ -71,6 +71,18 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const tente = await api.getProduct(ID.tente); assert.deepStrictEqual([tente.pricePerDay, tente.deposit, tente.condition], [0, 0, null], 'price on request');
   const locCats = await api.listCategories('location');
   assert.deepStrictEqual(locCats.map(c => c.name).sort(), ['Chantier et outillage', 'Location', 'Événementiel'].sort());
+  // products the site marks as waiting or hidden are not shown; products without approval fields are
+  for (const k of ['pending', 'masked', 'pendingRental']) {
+    await assert.rejects(api.getProduct(ID[k]), e => e.code === 'not_found', 'not approved: ' + k);
+  }
+  for (const word of ['attente', 'masquée']) assert.strictEqual((await api.listProducts({ search: word })).total, 0, 'not approved is not listed: ' + word);
+  assert.deepStrictEqual((await api.listProducts({ ids: [ID.pending, ID.vent16, ID.nofields] })).items.map(i => i.id), [ID.vent16, ID.nofields], 'favourites drop unapproved');
+  assert.strictEqual((await api.getProduct(ID.nofields)).name, 'Ancien produit sans validation', 'old product without approval fields is shown');
+  assert.strictEqual((await api.listProducts({ search: 'Ancien' })).total, 1);
+  assert.deepStrictEqual((await api.checkCart([{ productId: ID.pending, quantity: 1, shownPrice: 9000 }])).lines.map(l => l.problem), ['gone']);
+  assert.strictEqual((await api.checkStock(ID.masked, 7000).catch(e => e.code)), 'not_found', 'no stock answer for a hidden product');
+  assert.ok(!(await api.listCategories()).some(c => c.name === 'En attente seulement'), 'category with only unapproved products');
+  assert.strictEqual((await api.getShop(ID.newLoueur)).role, 'vendeur', 'an unapproved rental does not make a loueur');
   // settings and requests
   assert.deepStrictEqual(await api.getConfig(), { whatsapp: '447748039794' });
   await assert.rejects(api.sendRentalRequest({ idempotencyKey: 'k', items: [], contact: { name: 'A', phone: '1' } }), e => e.code === 'unauthorized' && /WhatsApp/.test(e.message));

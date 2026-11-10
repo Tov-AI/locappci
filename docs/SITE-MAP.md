@@ -17,7 +17,12 @@ Most universes are **not WooCommerce products**: they are separate content types
 | (none) | 117 | Ordinary shop products |
 
 Visibility fields on products: `_locappci_validation_status` (`validee`), `_locappci_catalogue_visible` (`yes`),
-`_locappci_public_visibility` (`visible`). **The app must only show validated, visible products** (not done in 0.1).
+`_locappci_public_visibility` (`visible`). Live counts (9 Nov, 159 published products): **129 have none of these fields** (created before the approval flow),
+18 are validated and visible, and about 6 are marked `en_attente` (3), `no` (1) or `hidden` (2).
+**Rule since plugin 0.2.3:** the app hides a product only when one of these fields is filled with another value;
+a product without the fields is shown, as on the website. Counts are in Outils → LOCAPPCI API →
+« Validation et visibilité des produits ». With 0.2.3 live (10 Nov): 3 products hidden, 156 shown before downloads are removed.
+To confirm with the client: are the 129 field-less products all meant to be public?
 
 ## Other content types (published)
 

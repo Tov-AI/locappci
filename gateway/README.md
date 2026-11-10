@@ -11,7 +11,8 @@ shapes of `src/api/contract.ts`. Endpoints and rules: `docs/API.md`. Install: `d
 - `includes/class-admin.php`: Outils → LOCAPPCI API (diagnostics, communes)
 - `tests/`: end-to-end contract test with the app's own HTTP client
 
-**Version 0.2 is still read-only.** It never writes products, orders or users. Rental items are the products of
+**Version 0.2.3 is still read-only.** It hides products the site marks as waiting, refused or hidden
+(`Locappci_Catalogue::is_approved()`, adjustable with the `locappci_approval_fields` and `locappci_is_approved` filters). It never writes products, orders or users. Rental items are the products of
 the site's `location` category (see `docs/SITE-MAP.md`); downloads are left out; `GET /v1/config` gives the app the
 LOCAPPCI WhatsApp number set in Outils → LOCAPPCI API. Next: accounts (Simple JWT Login), then rental requests to
 loueurs (`locappci_loc_req`, same records as the website), delivery and orders.

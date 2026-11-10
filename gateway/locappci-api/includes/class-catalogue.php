@@ -97,6 +97,78 @@ final class Locappci_Catalogue {
 		];
 	}
 
+	/**
+	 * The site's own approval fields (set by the LOCAPPCI code when a seller submits a product and the
+	 * team validates it). Most products on locappci.fr were created before that flow and have none of
+	 * these fields: they are on sale on the website, so the app shows them too. A product is hidden
+	 * only when a field is filled with something other than the approved value (en_attente, no, hidden…).
+	 */
+	public static function approval_fields(): array {
+		return (array) apply_filters('locappci_approval_fields', [
+			'_locappci_validation_status' => 'validee',
+			'_locappci_catalogue_visible' => 'yes',
+			'_locappci_public_visibility' => 'visible',
+		]);
+	}
+
+	/** Not marked as waiting, refused or hidden: an empty or missing field does not hide the product. */
+	public static function is_approved(WC_Product $p): bool {
+		$ok = true;
+		foreach (self::approval_fields() as $key => $value) {
+			$found = (string) get_post_meta($p->get_id(), $key, true);
+			if ($found !== '' && $found !== (string) $value) {
+				$ok = false;
+				break;
+			}
+		}
+		return (bool) apply_filters('locappci_is_approved', $ok, $p);
+	}
+
+	/**
+	 * Ids of the posts the same rule hides: one small indexed query on the three fields, kept for the
+	 * request. (As a WP_Query meta_query, "missing or approved" on three fields joins the meta table
+	 * six times and multiplies rows by every field of every product: far too slow on a real site.)
+	 */
+	public static function hidden_ids(): array {
+		static $ids = null;
+		if ($ids === null) {
+			global $wpdb;
+			$where = [];
+			$values = [];
+			foreach (self::approval_fields() as $key => $value) {
+				$where[] = "(meta_key = %s AND meta_value NOT IN (%s, ''))";
+				$values[] = (string) $key;
+				$values[] = (string) $value;
+			}
+			$ids = $where
+				? array_map('intval', (array) $wpdb->get_col($wpdb->prepare(
+					"SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE " . implode(' OR ', $where), $values)))
+				: [];
+		}
+		return $ids;
+	}
+
+	/** Same rule as is_approved(), applied to WP_Query arguments. */
+	public static function without_hidden(array $args): array {
+		$hidden = self::hidden_ids();
+		if (!$hidden) {
+			return $args;
+		}
+		if (!empty($args['post__in'])) {
+			// WordPress ignores post__not_in when post__in is set.
+			$args['post__in'] = array_values(array_diff(array_map('intval', $args['post__in']), $hidden)) ?: [0];
+		} else {
+			$args['post__not_in'] = $hidden;
+		}
+		return $args;
+	}
+
+	/** Everything a product needs to appear in the app: published, not hidden, not a download, approved. */
+	public static function is_shown(WC_Product $p): bool {
+		return $p->get_status() === 'publish' && $p->get_catalog_visibility() !== 'hidden'
+			&& self::is_supported($p) && self::is_approved($p);
+	}
+
 	public static function is_rental(WC_Product $p): bool {
 		$cat = self::location_term_id();
 		if ($cat) {
@@ -325,7 +397,7 @@ final class Locappci_Catalogue {
 	}
 
 	private static function vendor_has_rentals(int $vendor_id): bool {
-		$q = new WP_Query([
+		$q = new WP_Query(self::without_hidden([
 			'post_type'      => 'product',
 			'post_status'    => 'publish',
 			'author'         => $vendor_id,
@@ -333,7 +405,7 @@ final class Locappci_Catalogue {
 			'fields'         => 'ids',
 			'no_found_rows'  => true,
 			'tax_query'      => [self::rental_tax_query(true)],
-		]);
+		]));
 		return !empty($q->posts);
 	}
 
@@ -399,7 +471,7 @@ final class Locappci_Catalogue {
 			return 'location';
 		}
 		$count = function (bool $rentals) use ($t) {
-			$q = new WP_Query([
+			$q = new WP_Query(self::without_hidden([
 				'post_type'      => 'product',
 				'post_status'    => 'publish',
 				'posts_per_page' => 1,
@@ -410,13 +482,13 @@ final class Locappci_Catalogue {
 					self::rental_tax_query($rentals),
 				],
 				'meta_query'     => [self::supported_meta_query()],
-			]);
+			]));
 			return (int) $q->found_posts;
 		};
 		$rentals = $count(true);
 		$sales = $count(false);
 		if ($rentals + $sales === 0) {
-			return ''; // Only downloads: not shown in the app.
+			return ''; // Only downloads or products not approved yet: not shown in the app.
 		}
 		return $rentals > $sales ? 'location' : 'vente';
 	}
@@ -446,6 +518,8 @@ final class Locappci_Catalogue {
 			$args['post__in'] = $ids ?: [0];
 			$args['orderby'] = 'post__in';
 		}
+		// Waiting, refused or hidden on the site → not in the app.
+		$args = self::without_hidden($args);
 		if (($q['universe'] ?? '') === 'location' || ($q['universe'] ?? '') === 'vente') {
 			$args['tax_query'][] = self::rental_tax_query($q['universe'] === 'location');
 		}
@@ -524,7 +598,7 @@ final class Locappci_Catalogue {
 		$out = [];
 		foreach ($posts as $post) {
 			$p = wc_get_product(is_object($post) ? $post->ID : (int) $post);
-			if ($p && $p->get_status() === 'publish' && self::is_supported($p)) {
+			if ($p && $p->get_status() === 'publish' && self::is_supported($p) && self::is_approved($p)) {
 				$out[] = self::summary($p);
 			}
 		}

@@ -58,6 +58,8 @@ final class Locappci_Admin {
 
 		echo '<h3>Modules LOCAPPCI des produits</h3>';
 		self::module_counts();
+		echo '<h3>Validation et visibilité des produits</h3>';
+		self::approval_counts();
 		echo '<h3>Types de contenu du site</h3>';
 		self::post_type_counts();
 		echo '<h3>Rôles des utilisateurs</h3>';
@@ -152,6 +154,55 @@ final class Locappci_Admin {
 			self::row((string) $r->module, (int) $r->n . ' produits publiés, dont ' . (int) $r->downloads . ' à télécharger');
 		}
 		self::row('(sans module)', $without . ' produits publiés');
+		echo '</tbody></table>';
+	}
+
+	/** How many published products the approval rule shows or hides, and the values found in each field. */
+	private static function approval_counts(): void {
+		global $wpdb;
+		$total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'");
+		$hidden = Locappci_Catalogue::hidden_ids();
+		$hidden_published = 0;
+		if ($hidden) {
+			$hidden_published = (int) $wpdb->get_var(
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish' AND ID IN (" . implode(',', array_map('intval', $hidden)) . ')'
+			);
+		}
+		$approved = $total - $hidden_published;
+		$keys = array_keys(Locappci_Catalogue::approval_fields());
+		$none = $total;
+		if ($keys) {
+			$in = implode(',', array_fill(0, count($keys), '%s'));
+			$none = (int) $wpdb->get_var($wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->posts} p WHERE p.post_type = 'product' AND p.post_status = 'publish'
+				 AND NOT EXISTS (SELECT 1 FROM {$wpdb->postmeta} pm WHERE pm.post_id = p.ID AND pm.meta_key IN ($in))",
+				$keys
+			));
+		}
+		echo '<p>L’appli cache un produit seulement si un des trois champs ci-dessous a une autre valeur que celle attendue (en attente, refusé, masqué). Un produit sans ces champs est montré, comme sur le site.</p>';
+		echo '<table class="widefat striped" style="max-width:900px"><tbody>';
+		self::row('Produits publiés', (string) $total);
+		self::row('Montrés dans l’appli (avant d’enlever les téléchargements)', (string) $approved);
+		self::row('Cachés : en attente, refusés ou masqués', (string) ($total - $approved));
+		self::row('Sans aucun champ de validation (montrés)', (string) $none);
+		foreach (Locappci_Catalogue::approval_fields() as $key => $value) {
+			$rows = $wpdb->get_results($wpdb->prepare(
+				"SELECT pm.meta_value AS v, COUNT(DISTINCT p.ID) AS n FROM {$wpdb->postmeta} pm
+				 JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+				 WHERE pm.meta_key = %s AND p.post_type = 'product' AND p.post_status = 'publish'
+				 GROUP BY pm.meta_value ORDER BY n DESC LIMIT 12",
+				$key
+			));
+			$with = 0;
+			$parts = [];
+			foreach ((array) $rows as $r) {
+				$with += (int) $r->n;
+				$label = (string) $r->v === '' ? '(vide)' : sanitize_key((string) $r->v);
+				$parts[] = $label . ' : ' . (int) $r->n;
+			}
+			$parts[] = '(absent) : ' . max(0, $total - $with);
+			self::row($key . ' (attendu : ' . $value . ')', implode(' · ', $parts));
+		}
 		echo '</tbody></table>';
 	}
 
