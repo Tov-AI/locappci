@@ -77,4 +77,10 @@ wcfm_set($discret, ['store_hide_phone' => 'yes', 'store_hide_address' => 'yes'])
 $discret2 = vendor('discret2', 'Boutique Réservée', '07 00 00 00 06', 'Cocody');
 wcfm_set($discret2, ['store_hide_phone' => 'yes', 'store_hide_address' => 'yes']);
 boutique($discret2, 'Boutique Réservée', ['ville' => 'Marcory', 'whatsapp' => '0755555555', 'statut' => 'validee']);
-echo json_encode($ids + ['savon' => $savon, 'bazar' => $bazar, 'auteur' => $auteur, 'attenteb' => $attenteb, 'discret' => $discret, 'discret2' => $discret2] + ['pending' => $pending, 'masked' => $masked, 'nofields' => $nofields, 'pendingCat' => $attente, 'pendingRental' => $pending_rental, 'newLoueur' => $newloc] + ['song' => $song, 'hidden' => $hidden, 'chaises' => $chaises, 'tente' => $tente]);
+// Record with the commune the seller chose on the site: it wins over the town typed on the record.
+$communev = vendor('communev', 'Boutique Commune', '07 00 00 00 07', 'Rainham');
+boutique($communev, 'Boutique Commune', ['commune' => 'Port-Bouët', 'ville' => 'San-Pedro', 'statut' => 'validee']);
+// A commune that is not in the app's list: the town is tried next.
+$communex = vendor('communex', 'Boutique Ailleurs', '07 00 00 00 08', '');
+boutique($communex, 'Boutique Ailleurs', ['commune' => 'Ailleurs', 'ville' => 'Abobo', 'statut' => 'validee']);
+echo json_encode($ids + ['communev' => $communev, 'communex' => $communex, 'savon' => $savon, 'bazar' => $bazar, 'auteur' => $auteur, 'attenteb' => $attenteb, 'discret' => $discret, 'discret2' => $discret2] + ['pending' => $pending, 'masked' => $masked, 'nofields' => $nofields, 'pendingCat' => $attente, 'pendingRental' => $pending_rental, 'newLoueur' => $newloc] + ['song' => $song, 'hidden' => $hidden, 'chaises' => $chaises, 'tente' => $tente]);

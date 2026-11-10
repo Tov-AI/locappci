@@ -15,7 +15,7 @@ Everything here is in the repository; nothing depends on a conversation you were
 - **The gateway** is a WordPress plugin, **LOCAPPCI API** (`gateway/locappci-api`), that runs on locappci.fr itself.
   It is **read-only** today: catalogue, shops, stock, cart check, config. Orders, accounts and rental requests are not
   written to WordPress yet.
-- **Plugin 0.3.1 is installed on the live site** (10 Nov), WhatsApp number set. Products marked waiting or masked
+- **Plugin 0.3.2 is installed on the live site** (10 Nov), WhatsApp number set. Products marked waiting or masked
   are hidden (3 of 159, PR #18). Shops read the site's boutique record (PR #19): 7 sellers, 6 with a record,
   6 with WhatsApp and logo, none hides the phone. **No shop matches a commune yet** (open point, see SITE-MAP).
 - **The next big piece of work is accounts (login with Simple JWT Login).** Sending rental requests to loueurs and
@@ -222,8 +222,9 @@ Leo relays these to the client. Answers so far are at the bottom of `docs/FEATUR
 - The real **delivery tariff** (sample: 1 000 FCFA + 150 FCFA/km).
 - **Late-return penalty** amounts.
 - **Support WhatsApp:** the client said +44 7748 039794, but the site's code uses 225 07 88 72 73 19. To confirm.
-- ✅ **Communes or towns?** Answered 10 Nov: **sellers choose a commune on the site.** To do: a commune field on the
-  shop record (site form + admin), read by the gateway before `ville`. Shops outside Abidjan (San-Pedro, London)
+- ✅ **Communes or towns?** Answered 10 Nov: **sellers choose a commune on the site.** The gateway reads
+  `_locappci_boutique_commune` before `ville` since 0.3.2. **Still to do, by the client (he maintains the site):**
+  a « Commune » dropdown in the shop form that writes that field, and a commune for the existing shops. Shops outside Abidjan (San-Pedro, London)
   have no commune: they stay visible, without « Plus proches ».
 - ✅ **London shops** (e.g. Bazar Ivoire Market): they **do deliver to Côte d'Ivoire**, so they stay in the app.
 - ✅ **129 products without approval fields:** they **stay visible** (the 0.2.3 rule is confirmed).

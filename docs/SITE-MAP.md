@@ -60,7 +60,8 @@ logo, none hides the phone. **None matches a commune** of the app's list (the sa
 « Plus proches » and the commune filter have nothing to work with yet. 0.3.1 shows the town text per shop: **Abidjan** (1), **San-Pedro** (2), **Rainham / Londres, UK** (2), empty (2).
 Sellers write a town, not an Abidjan commune, and several are outside Abidjan. The list of places is editable in
 Outils → LOCAPPCI API (section 3), so towns can be added without code, but the client decided (10 Nov) that **sellers will choose a commune on the site**: the shop record needs a commune
-field, which the gateway will read before `ville`.
+field, which the gateway reads before `ville` since 0.3.2: **`_locappci_boutique_commune`**, holding the commune's name
+exactly as in the app's list (Outils → LOCAPPCI API, section 3). The site's shop form still has to write it.
 
 ## Where the custom code is (Code Snippets export, 1 Nov)
 

@@ -359,8 +359,9 @@ final class Locappci_Catalogue {
 		if (!$hide_phone) {
 			$phone = $field('whatsapp') ?: $field('telephone') ?: ($settings['phone'] ?? '') ?: get_user_meta($vendor_id, 'billing_phone', true);
 		}
-		// The record's town is the shop's public town; the WCFM address is the seller's own address.
-		$city = self::match_city($field('ville'));
+		// The commune the seller chose on the site (client's decision, 10 Nov 2026), then the record's town.
+		// Both are the shop's public place; the WCFM address is the seller's own address.
+		$city = self::match_city($field('commune')) ?: self::match_city($field('ville'));
 		if ($city === '' && !$hide_address) {
 			$city = self::match_city((string) (($settings['address']['city'] ?? '') ?: get_user_meta($vendor_id, 'billing_city', true)));
 		}
