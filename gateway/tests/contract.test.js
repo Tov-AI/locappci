@@ -15,10 +15,10 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const cities = await api.listCities(); assert.ok(cities.length >= 7 && cities.every(c => isStr(c.id) && isStr(c.name)));
   const cats = await api.listCategories(); assert.ok(cats.every(c => isStr(c.id) && (c.parentId === null || isStr(c.parentId))));
   let page = await api.listProducts({}); page.items.forEach(checkSummary);
-  assert.strictEqual(page.total, 8); assert.ok(!page.items.some(i => i.name === 'Produit caché'));
+  assert.strictEqual(page.total, 9); assert.ok(!page.items.some(i => i.name === 'Produit caché'));
   console.log('list all:', page.items.map(i => i.name).join(' | '));
   assert.ok((await api.listProducts({ universe: 'location' })).items.some(i => i.id === ID.groupe), 'RnB rental type still counts');
-  assert.strictEqual((await api.listProducts({ universe: 'vente' })).total, 5);
+  assert.strictEqual((await api.listProducts({ universe: 'vente' })).total, 6);
   const elec = cats.find(c => c.name === 'Électroménager').id;
   assert.strictEqual((await api.listProducts({ categoryId: elec })).total, 4, 'parent includes children');
   assert.deepStrictEqual((await api.listProducts({ search: 'ventilateur' })).items.map(i => i.id), [ID.vent16]);
@@ -27,10 +27,10 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const near = (await api.listProducts({ cityId: 'cocody', sort: 'nearest' })).items; console.log('nearest cocody:', near.map(i => i.cityId).join(','));
   assert.ok(near[0].cityId === 'cocody' && near[1].cityId === 'cocody' && near.slice(2).every(i => i.cityId !== 'cocody'));
   // pagination across the two parts
-  const p1 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 1, pageSize: 4 });
-  const p2 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 2, pageSize: 4 });
+  const p1 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 1, pageSize: 5 });
+  const p2 = await api.listProducts({ cityId: 'cocody', sort: 'nearest', page: 2, pageSize: 5 });
   const both = [...p1.items, ...p2.items].map(i => i.id);
-  assert.deepStrictEqual([p1.hasMore, p2.hasMore, p1.total, new Set(both).size], [true, false, 8, 8]);
+  assert.deepStrictEqual([p1.hasMore, p2.hasMore, p1.total, new Set(both).size], [true, false, 9, 9]);
   assert.deepStrictEqual(both, near.map(i => i.id));
   assert.deepStrictEqual((await api.listProducts({ ids: [ID.pagne, ID.vent16, '999'] })).items.map(i => i.id), [ID.pagne, ID.vent16]);
   // detail
@@ -83,6 +83,20 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   assert.strictEqual((await api.checkStock(ID.masked, 7000).catch(e => e.code)), 'not_found', 'no stock answer for a hidden product');
   assert.ok(!(await api.listCategories()).some(c => c.name === 'En attente seulement'), 'category with only unapproved products');
   assert.strictEqual((await api.getShop(ID.newLoueur)).role, 'vendeur', 'an unapproved rental does not make a loueur');
+  // shops: the site's own boutique record first, and what the seller hides stays hidden
+  const bazar = await api.getShop(ID.bazar);
+  assert.deepStrictEqual([bazar.name, bazar.cityId, bazar.whatsapp], ['Bazar Ivoire Market', 'treichville', '2250722222222'], 'record linked from a product');
+  assert.ok(/logo-bazar\.png$/.test(bazar.logoUrl), 'logo from the record');
+  assert.strictEqual((await api.getProduct(ID.savon)).cityId, 'treichville', 'product town follows the record');
+  assert.strictEqual((await api.listProducts({ cityId: 'treichville', sort: 'nearest' })).items[0].id, ID.savon, 'nearest uses the record town');
+  const auteur = await api.getShop(ID.auteur);
+  assert.deepStrictEqual([auteur.cityId, auteur.whatsapp, auteur.logoUrl], ['adjame', '2250733333333', null], 'record found by its author, telephone as WhatsApp');
+  const att = await api.getShop(ID.attenteb);
+  assert.deepStrictEqual([att.cityId, att.whatsapp], ['koumassi', '2250700000004'], 'record not validated: WCFM settings');
+  const dis = await api.getShop(ID.discret);
+  assert.deepStrictEqual([dis.cityId, dis.whatsapp], ['', null], 'hidden phone and address');
+  const dis2 = await api.getShop(ID.discret2);
+  assert.deepStrictEqual([dis2.cityId, dis2.whatsapp], ['marcory', null], 'hidden phone wins over the record, record town is public');
   // settings and requests
   assert.deepStrictEqual(await api.getConfig(), { whatsapp: '447748039794' });
   await assert.rejects(api.sendRentalRequest({ idempotencyKey: 'k', items: [], contact: { name: 'A', phone: '1' } }), e => e.code === 'unauthorized' && /WhatsApp/.test(e.message));

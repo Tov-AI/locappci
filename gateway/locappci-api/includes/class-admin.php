@@ -84,6 +84,8 @@ final class Locappci_Admin {
 		echo '<h3>Un produit en location RnB (champs enregistrés)</h3>';
 		self::sample_meta(Locappci_Catalogue::rental_types(), 'IN');
 
+		echo '<h3>Toutes les boutiques (vendeurs avec des produits publiés)</h3>';
+		self::shops_overview();
 		echo '<h3>Une boutique</h3>';
 		self::sample_vendor($vendor_from);
 
@@ -275,6 +277,24 @@ final class Locappci_Admin {
 	}
 
 	/** Shop of a sample product: the seller account, WCFM settings and the linked "boutique" post if any. */
+	/** One line per seller with published products: what the app will show. No personal value is printed. */
+	private static function shops_overview(): void {
+		$authors = get_users(['has_published_posts' => ['product'], 'fields' => 'ID', 'number' => 200]);
+		echo '<table class="widefat striped" style="max-width:900px"><thead><tr><th>Boutique</th><th>Fiche LOCAPPCI</th><th>Commune</th><th>WhatsApp</th><th>Logo</th><th>Téléphone masqué</th></tr></thead><tbody>';
+		foreach ($authors as $uid) {
+			$shop = Locappci_Catalogue::shop((int) $uid);
+			if (!$shop) {
+				continue;
+			}
+			$settings = get_user_meta((int) $uid, 'wcfmmp_profile_settings', true);
+			$hidden = is_array($settings) && Locappci_Catalogue::flag($settings['store_hide_phone'] ?? '');
+			echo '<tr><td>' . esc_html($shop['name']) . '</td><td>' . (Locappci_Catalogue::boutique_id((int) $uid) ? 'oui' : 'non') . '</td><td>'
+				. esc_html($shop['cityId'] ?: 'aucune') . '</td><td>' . ($shop['whatsapp'] ? 'oui' : 'non') . '</td><td>'
+				. ($shop['logoUrl'] ? 'oui' : 'non') . '</td><td>' . ($hidden ? 'oui' : 'non') . '</td></tr>';
+		}
+		echo '</tbody></table>';
+	}
+
 	private static function sample_vendor(int $product_id): void {
 		$uid = 0;
 		if ($product_id) {
@@ -313,6 +333,11 @@ final class Locappci_Admin {
 			self::row('wcfmmp_profile_settings', 'non trouvé');
 		}
 		$shop = Locappci_Catalogue::shop($u->ID);
+		$used = Locappci_Catalogue::boutique_id($u->ID);
+		self::row('→ Fiche boutique utilisée par l’appli', $used ? 'oui (n° ' . $used . ')' : 'non (réglages WCFM seulement)');
+		self::row('→ Téléphone masqué par le vendeur (store_hide_phone)', is_array($settings) && Locappci_Catalogue::flag($settings['store_hide_phone'] ?? '') ? 'oui : pas de WhatsApp dans l’appli' : 'non');
+		self::row('→ Adresse masquée par le vendeur (store_hide_address)', is_array($settings) && Locappci_Catalogue::flag($settings['store_hide_address'] ?? '') ? 'oui' : 'non');
+		self::row('→ Logo lu', ($shop['logoUrl'] ?? null) ? 'oui' : 'non');
 		self::row('→ Nom de boutique lu', $shop['name'] ?? '—');
 		self::row('→ Commune reconnue', ($shop['cityId'] ?? '') ?: 'aucune');
 		self::row('→ WhatsApp reconnu', ($shop['whatsapp'] ?? null) ? 'oui' : 'non');

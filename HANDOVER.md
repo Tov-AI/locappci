@@ -181,8 +181,9 @@ on mock data. Each PR description (#2 to #16) lists exactly what was tested.
    reading the live counts: 129 of 159 products have none of these fields, so the app hides only products marked
    otherwise (`en_attente`, `no`, `hidden`). See `docs/SITE-MAP.md`.
    This matters before anyone uses the app with real data.
-3. **Gateway: read shops from the `locappci_boutique` record** (logo, city, WhatsApp, status) and respect WCFM's
-   `store_hide_phone` / `store_hide_address`. Today it reads WCFM settings only.
+3. ✅ **Done in 0.3.0** (PR `feature/16-fiches-boutiques`): shops read the validated `locappci_boutique` record
+   (logo, town, WhatsApp), then WCFM, and respect `store_hide_phone` / `store_hide_address`. Field names in
+   `docs/SITE-MAP.md`.
 4. **Feature 14: login with WordPress accounts** (Simple JWT Login is already installed on the site).
    Contract: `POST /v1/session`, `POST /v1/accounts`, `POST /v1/accounts/delete`. The app's login sheet and
    "Supprimer mon compte" already exist against the mock.

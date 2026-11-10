@@ -43,11 +43,20 @@ User roles: customer 38, wcfm_vendor 7, prestataire 5, loueur_bailleur 2, agence
 
 ## Shops
 
-`locappci_boutique` record: logo, banner, type (`professionnel`), ville, pays, téléphone, WhatsApp, e-mail, site web,
-statut (`validee`), verified, featured, refusal reason. The seller account also has WCFM settings
-(store name, address, geolocation lat/lng, shipping by distance, **store_hide_phone / store_hide_address**).
-The sample shop's city was outside Abidjan, so no commune matched: the app must read the boutique record and
-respect the hide flags.
+`locappci_boutique` record (field names from the live diagnostics, 10 Nov), all prefixed `_locappci_boutique_`:
+`logo_id` and `banner_id` (media ids), `type` (`professionnel`), `ville`, `pays`, `telephone`, `whatsapp`, `email`,
+`site_web`, `statut` (`validee`), `verified` (`oui`/`non`), `featured`, `motif_refus`.
+Products point to their record with `_locappci_boutique_id`; the seller is the product author (also copied into
+`_locappci_vendor_id`, `_wcfm_product_author` and several other fields).
+
+The seller account also has WCFM settings (`wcfmmp_profile_settings`): `store_name`, `gravatar` (logo), `phone`,
+`address` (street, city…), `geolocation`, shipping by distance, and the switches `store_hide_email`,
+`store_hide_phone`, `store_hide_address`, `store_hide_map`.
+
+**Rule since plugin 0.3.0:** the app reads logo, town and WhatsApp from the validated record first, then WCFM.
+`store_hide_phone = yes` → no WhatsApp at all. `store_hide_address = yes` → the WCFM address is not used for the
+commune (the record's `ville` still is: it is the shop's public town). The sample shop's `ville` is outside Abidjan,
+so no commune matches: expected.
 
 ## Where the custom code is (Code Snippets export, 1 Nov)
 
