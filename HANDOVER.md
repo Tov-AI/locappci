@@ -222,9 +222,11 @@ Leo relays these to the client. Answers so far are at the bottom of `docs/FEATUR
 - The real **delivery tariff** (sample: 1 000 FCFA + 150 FCFA/km).
 - **Late-return penalty** amounts.
 - **Support WhatsApp:** the client said +44 7748 039794, but the site's code uses 225 07 88 72 73 19. To confirm.
-- **Communes or towns?** The app asks for an Abidjan commune, but the 7 live shops say Abidjan, San-Pedro,
-  Rainham/London or nothing (10 Nov). Should the app list towns (Abidjan, San-Pedro…) instead, or should sellers
-  pick a commune on the site? Until then « Plus proches » has no effect.
+- ✅ **Communes or towns?** Answered 10 Nov: **sellers choose a commune on the site.** To do: a commune field on the
+  shop record (site form + admin), read by the gateway before `ville`. Shops outside Abidjan (San-Pedro, London)
+  have no commune: they stay visible, without « Plus proches ».
+- ✅ **London shops** (e.g. Bazar Ivoire Market): they **do deliver to Côte d'Ivoire**, so they stay in the app.
+- ✅ **129 products without approval fields:** they **stay visible** (the 0.2.3 rule is confirmed).
 - **Other universes** (Immobilier, Services, Emploi…): in v1 or later?
 - **Music / downloads** in the app?
 - **Seller tools** ("Ma boutique") in v1 or v1.1?
