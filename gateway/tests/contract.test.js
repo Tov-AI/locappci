@@ -97,6 +97,8 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   assert.deepStrictEqual([dis.cityId, dis.whatsapp], ['', null], 'hidden phone and address');
   const dis2 = await api.getShop(ID.discret2);
   assert.deepStrictEqual([dis2.cityId, dis2.whatsapp], ['marcory', null], 'hidden phone wins over the record, record town is public');
+  assert.strictEqual((await api.getShop(ID.communev)).cityId, 'port-bouet', 'commune chosen on the record wins over its town');
+  assert.strictEqual((await api.getShop(ID.communex)).cityId, 'abobo', 'unknown commune: the town is tried next');
   // settings and requests
   assert.deepStrictEqual(await api.getConfig(), { whatsapp: '447748039794' });
   await assert.rejects(api.sendRentalRequest({ idempotencyKey: 'k', items: [], contact: { name: 'A', phone: '1' } }), e => e.code === 'unauthorized' && /WhatsApp/.test(e.message));
