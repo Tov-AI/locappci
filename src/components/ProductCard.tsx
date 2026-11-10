@@ -1,16 +1,17 @@
-import Feather from '@expo/vector-icons/Feather';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { ProductSummary } from '@/api';
 import { AppText } from '@/components/AppText';
 import { Tag } from '@/components/Badge';
 import { FavouriteButton } from '@/components/FavouriteButton';
 import { Skeleton } from '@/components/Skeleton';
+import { ProductPhoto } from '@/components/ProductPhoto';
 import { useFavourite } from '@/data/favourites';
 import { colors, fontFamily, radius, space } from '@/theme';
 import { formatFcfa } from '@/utils/format';
 
-const PHOTO_HEIGHT = 140;
+/** Skeleton only: close to the square photo of a card on a 360-wide phone. */
+const PHOTO_HEIGHT = 158;
 
 type Props = {
   item: ProductSummary;
@@ -35,12 +36,9 @@ export function ProductCard({ item, cityName, onPress }: Props) {
       accessibilityLabel={`${item.name}, ${price}${rental ? ' par jour' : ''}, ${cityName}${soldOut ? ', épuisé' : ''}`}
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-      <View style={[styles.photo, { backgroundColor: rental ? colors.brand.orangeTint : colors.brand.navyTint }]}>
-        {/* Stays visible if the photo is missing or fails to load. */}
-        <Feather name="image" size={36} color={rental ? colors.brand.orangeBorder : colors.brand.navyMuted} />
-        {item.coverUrl ? (
-          <Image source={{ uri: item.coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : null}
+      <View style={styles.photo}>
+        {/* Whole photo, never cropped; a tinted placeholder when it is missing or fails to load. */}
+        <ProductPhoto uri={item.coverUrl} iconSize={36} rental={rental} />
         {rental ? <Tag label="Location" style={styles.tag} /> : null}
         {soldOut ? <Tag label="Épuisé" tone="neutral" style={styles.tag} /> : null}
         <FavouriteButton saved={saved} onToggle={toggle} small style={styles.heart} />
@@ -90,7 +88,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   pressed: { opacity: 0.85 },
-  photo: { height: PHOTO_HEIGHT, alignItems: 'center', justifyContent: 'center' },
+  // Square on every phone width, with a hairline under it: a white photo must not melt into the white card.
+  photo: { aspectRatio: 1, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.default },
   tag: { position: 'absolute', top: space.sm, left: space.sm },
   heart: { position: 'absolute', top: space.sm, right: space.sm },
   body: { padding: space.md, paddingTop: 10, gap: space.xs },

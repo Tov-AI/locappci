@@ -43,6 +43,9 @@ export function FavouriteButton({ saved, onToggle, small = false, style }: Props
 const styles = StyleSheet.create({
   base: {
     backgroundColor: colors.surface.card,
+    // Visible on a white photo as well as on a dark one.
+    borderWidth: 1,
+    borderColor: colors.border.default,
     alignItems: 'center',
     justifyContent: 'center',
   },

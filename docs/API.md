@@ -6,12 +6,13 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 ## Basics
 
 - **Base URL:** set in the app with `EXPO_PUBLIC_API_URL`. The gateway is the WordPress plugin in `gateway/locappci-api`, so the value is `https://locappci.fr/wp-json/locappci` (the app adds `/v1/…`). With no value, the app uses the mock in `src/api/mock/`.
-- **Implementation status:** plugin 0.3.2 implements `health`, `config`, `cities`, `categories`, `products` (list, `ids`, detail, `stock`), `shops`, `cart/check`. `rental-requests` answers `401` until accounts (Simple JWT Login) are connected; delivery options, orders, payment reference, accounts and reports come next.
+- **Implementation status:** plugin 0.4.0 implements `health`, `config`, `cities`, `categories`, `products` (list, `ids`, detail, `stock`), `shops`, `cart/check` and **accounts** (`session`, `session/logout`, `account`, `accounts`, `accounts/delete`). `rental-requests` answers `401` without a session and `503` with one (not built yet); delivery options, orders, payment reference and reports come next.
 - **Format:** JSON, UTF-8. Field names in camelCase, exactly as in `contract.ts`.
 - **Money:** whole FCFA as integers (`18500`, never `"18 500"` or `18500.00`).
 - **Dates:** ISO 8601 UTC strings.
 - **Language:** the app sends `Accept-Language: fr`. Error messages must be French and safe to show to users.
-- **Errors:** non-2xx status with body `{ "code": "...", "message": "..." }`. Codes: `not_found` (404), `validation` (400), `unauthorized` (401), `unavailable` (503), `server_error` (500).
+- **Errors:** non-2xx status with body `{ "code": "...", "message": "..." }`. Codes: `not_found` (404), `validation` (400), `unauthorized` (401), `unavailable` (503), `server_error` (500), `cart_changed` (409), `rate_limited` (429).
+- **Signed-in calls** send the session token in the header **`X-Locappci-Token`** (not `Authorization`: the site's Simple JWT Login plugin reads that header and would reject our token).
 - **Speed:** lists use `ProductSummary` (small) so they load fast on mobile data. Full `Product` only on the detail endpoint.
 - **Keys:** WooCommerce keys stay on the gateway. The app never sees them.
 
@@ -32,9 +33,11 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 | POST | `/v1/orders/{id}/payment-reference` | — · JSON body `{ "reference" }` | `Order` (status `awaiting_confirmation`) |
 | POST | `/v1/orders` | — · JSON body `OrderRequest` | `Order` |
 | GET | `/v1/orders/{id}` | — | `Order` |
-| POST | `/v1/accounts` | — · JSON body `{ "orderId", "password" }` (min 8 characters) | `Account` (`name`, `phone`) |
-| POST | `/v1/session` | — · JSON body `{ "phone", "password" }` | `Account` (session token added in Feature 14) |
-| POST | `/v1/accounts/delete` | — · JSON body `{ "phone", "password" }` | `204 No Content` |
+| POST | `/v1/session` | — · JSON body `LoginRequest`: `{ "identifier", "password" }` (`identifier` = phone or e-mail) | `Session`: `{ "account": Account, "token" }` |
+| POST | `/v1/session/logout` | — · signed in | `204 No Content` (ends this phone's session only) |
+| GET | `/v1/account` | — · signed in | `Account`: `{ "name", "phone", "email" }` (`401` when the session is over) |
+| POST | `/v1/accounts` | — · JSON body `AccountRequest`: `{ "name", "phone", "password", "email"?, "orderId"? }` (password min 8 characters) | `201` `Session` |
+| POST | `/v1/accounts/delete` | — · signed in · JSON body `{ "password" }` | `204 No Content` |
 | POST | `/v1/products/{id}/reports` | — · JSON body `ProductReport`: `{ "reason": "scam" \| "forbidden" \| "wrong_info" \| "other", "details"?: string (max 500) }` | `204 No Content` |
 
 ### Behaviour the app relies on
@@ -53,10 +56,12 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - **`POST /v1/orders`** re-checks stock and prices; if anything changed it returns `409` with code `cart_changed` and creates nothing. It validates the Ivorian phone (`225` + 10 digits starting 01, 05, 07, 21, 25, 27), one delivery choice per shop, and an address when any choice is home delivery.
 - **Statuses**: cash → `confirmed` at once; Wave / Orange Money → `pending_payment` with a `paymentUrl` to open, then `paid` or `payment_failed` once the provider tells the gateway (Feature 15). The app reads the result with `GET /v1/orders/{id}`.
 - **`Order.shops`** tells each shop's items and delivery choice; **`Order.step`** (`confirmed` → `preparing` → `delivered`) drives "Suivi". The gateway maps WooCommerce statuses to these steps.
-- **Account from an order** creates a WordPress customer with the order's name and phone and the given password (sent over HTTPS, never stored by the app). `422 validation` if the phone already has an account. Login and session tokens come with Feature 14.
+- **Accounts are the website's accounts** (WordPress users). `POST /v1/accounts` creates a `customer` with the name, an Ivorian phone (also the login name) and the password; the e-mail is optional. `400 validation` if the phone or the e-mail already has an account. `orderId` (account offered after an order) is accepted and will link the order once orders exist.
+- **Login** accepts a phone number typed any way (`07 08 09 10 11`, `+225…`, `00225…`) or an e-mail. It matches `billing_phone`; when two accounts share a number, only the e-mail works. **Administrators and shop managers cannot sign in through the app.**
+- **Sessions**: the token is `userId.secret`; only a SHA-256 hash of the secret is stored (user meta `_locappci_app_tokens`). A session ends 90 days after its last use, on sign-out, when the password changes, or when a sixth phone signs in (the oldest ends). The app keeps the token in the phone's secure storage (`expo-secure-store`) and never stores the password.
 - **`GET /v1/products?ids=a,b,c`** returns only those products, in that order (favourites). Unknown ids are skipped.
-- **Login errors** use one message for "unknown number" and "wrong password" (`401 unauthorized`), so nobody can test which numbers have an account. Rate-limit attempts.
-- **Account deletion** (required by Apple and Google): removes the WordPress customer and personal data; orders already placed stay with the shops for delivery and invoices.
+- **Login errors** use one message for "unknown account" and "wrong password" (`401 unauthorized`), so nobody can test which numbers have an account. After 5 wrong passwords for one identifier (or 30 from one address) in 15 minutes: `429 rate_limited`. Account creation: 5 per hour per address.
+- **Account deletion** (required by Apple and Google): removes the WordPress customer and personal data; orders already placed stay with the shops for delivery and invoices. It needs the session **and** the password again. Seller, loueur and agency accounts are refused (`400 validation`): their shop depends on the account, the team removes those.
 - **Payment v1 (no merchant accounts yet)**: Wave / Orange Money orders come back `pending_payment` with `transferTo` (the LOCAPPCI number and name, from the gateway settings). The customer transfers `total`, then sends the transaction reference → `awaiting_confirmation`. The team checks it in WordPress and sets `paid` (or `payment_failed`). With merchant accounts later, `paymentUrl` replaces `transferTo` (Feature 15).
 - **Delivery price** depends on the distance between the shop and the delivery commune (`city`); `detail` shows "≈ 14 km · 24–48 h". The real tariff is to confirm with the client.
 - **No cash on delivery** in v1 (client's answer); `cash` stays in the contract for later.
