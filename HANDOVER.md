@@ -15,9 +15,12 @@ Everything here is in the repository; nothing depends on a conversation you were
 - **The gateway** is a WordPress plugin, **LOCAPPCI API** (`gateway/locappci-api`), that runs on locappci.fr itself.
   It is **read-only except customer accounts** (0.4.0: sign in with the website's account, create, sign out,
   delete). Orders and rental requests are not written to WordPress yet.
-- **Plugin 0.3.2 is installed on the live site** (10 Nov), WhatsApp number set. Products marked waiting or masked
-  are hidden (3 of 159, PR #18). Shops read the site's boutique record (PR #19): 7 sellers, 6 with a record,
-  6 with WhatsApp and logo, none hides the phone. **No shop matches a commune yet** (open point, see SITE-MAP).
+- **Plugin 0.4.1 is installed on the live site** (10 Nov): accounts, shops from the boutique record, products
+  waiting or masked hidden, products for sale without a price hidden (the list went from about 126 to 101: the
+  names are in Outils → LOCAPPCI API, **to review**). **No shop matches a commune yet**: the client will add a
+  « Commune » field to the shop form (`_locappci_boutique_commune`).
+- **A test APK** (EAS `preview` profile, 11 Nov) runs on an OPPO A79 with the real site: real products, whole
+  photos, account creation and login work. The client receives the build link to review.
 - **Accounts are built** (plugin 0.4.0 + app, PR `feature/18-comptes`), with our own session token, not Simple JWT
   Login. Next: sending rental requests to loueurs, then real orders. See section 8.
 
