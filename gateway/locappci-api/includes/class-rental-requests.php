@@ -22,10 +22,9 @@ final class Locappci_Rental_Requests {
 		return Locappci_Errors::response('validation', $message);
 	}
 
-	/** "+225 07 00 00 00 00" for an Ivorian number (as people read it), or '' . */
+	/** The number as the loueur reads it ("+225 07 00 00 00 00", "+447700900123"), or '' when it is not valid. */
 	private static function readable_phone(string $input): string {
-		$local = Locappci_Accounts::local_phone($input);
-		return $local === '' ? '' : '+225 ' . implode(' ', str_split($local, 2));
+		return Locappci_Accounts::readable_phone(Locappci_Accounts::phone($input));
 	}
 
 	/** Today's date on the site's clock (Africa/Abidjan in production). */
@@ -88,15 +87,14 @@ final class Locappci_Rental_Requests {
 		}
 		$phone = self::readable_phone(is_string($contact['phone'] ?? null) ? $contact['phone'] : '');
 		if ($phone === '') {
-			return self::fail('Numéro de téléphone invalide.');
+			return self::fail(Locappci_Accounts::BAD_PHONE);
 		}
 		$whatsapp = '';
 		if (isset($contact['whatsapp']) && $contact['whatsapp'] !== '') {
-			$digits = is_string($contact['whatsapp']) ? preg_replace('/\D+/', '', $contact['whatsapp']) : '';
-			if (!preg_match('/^\d{10,15}$/', $digits)) {
+			$whatsapp = self::readable_phone(is_string($contact['whatsapp']) ? $contact['whatsapp'] : '');
+			if ($whatsapp === '') {
 				return self::fail('Numéro WhatsApp invalide.');
 			}
-			$whatsapp = self::readable_phone($digits) ?: '+' . $digits;
 		}
 		$message = is_string($contact['message'] ?? null) ? trim(sanitize_textarea_field($contact['message'])) : '';
 		if ((function_exists('mb_strlen') ? mb_strlen($message) : strlen($message)) > 500) {

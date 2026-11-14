@@ -37,20 +37,57 @@ final class Locappci_Accounts {
 		return preg_match('/^(01|05|07|21|25|27)\d{8}$/', $digits) ? $digits : '';
 	}
 
-	/** The app's format: "2250700000001", or '' when the account has no valid Ivorian number. */
+	const BAD_PHONE = 'Numéro invalide. Ex. 07 00 00 00 00, ou +33 6 12 34 56 78 depuis l’étranger.';
+
+	/**
+	 * Digits with the country code and no "+" ("2250700000001", "447700900123"), or '' .
+	 * Ivorian numbers in any form; other countries with "+" or "00", or as bare digits with the country
+	 * code (what the app sends). Customers abroad buy and rent for family in Côte d'Ivoire.
+	 */
+	public static function phone(string $input): string {
+		$local = self::local_phone($input);
+		if ($local !== '') {
+			return '225' . $local;
+		}
+		$typed = trim($input);
+		$digits = preg_replace('/\D+/', '', $typed);
+		$marked = (bool) preg_match('/^(\+|00)/', $typed);
+		if ($marked && strpos($digits, '00') === 0) {
+			$digits = substr($digits, 2);
+		}
+		if (strpos($digits, '225') === 0) {
+			return ''; // +225 with a wrong number
+		}
+		$min = $marked ? 8 : 11; // bare digits: long enough to carry a country code
+		return preg_match('/^[1-9]\d{' . ($min - 1) . ',14}$/', $digits) ? $digits : '';
+	}
+
+	/** "+225 07 00 00 00 01" / "+447700900123": how a number is stored and shown on the site. */
+	public static function readable_phone(string $full): string {
+		$local = self::local_phone($full);
+		return $local !== '' ? '+225 ' . implode(' ', str_split($local, 2)) : ($full !== '' ? '+' . $full : '');
+	}
+
+	/** The app's format, or '' when the account's number has no recognisable country code. */
 	private static function app_phone(int $user_id): string {
 		foreach (['billing_phone', 'phone'] as $key) {
-			$local = self::local_phone((string) get_user_meta($user_id, $key, true));
-			if ($local !== '') {
-				return '225' . $local;
+			$full = self::phone((string) get_user_meta($user_id, $key, true));
+			if ($full !== '') {
+				return $full;
 			}
 		}
 		return '';
 	}
 
+	/** The login name of an account created with this number (Ivorian: the 10 local digits, as before). */
+	private static function login_for(string $full): string {
+		return self::local_phone($full) ?: $full;
+	}
+
 	/** Ids of the users whose phone (billing_phone, phone) or login is this number, however it was typed. */
-	private static function users_by_phone(string $local): array {
+	private static function users_by_phone(string $full): array {
 		global $wpdb;
+		$tail = self::local_phone($full) ?: $full; // Ivorian numbers are often saved without 225
 		$clean = 'meta_value';
 		foreach ([' ', '-', '.', '(', ')', '+'] as $ch) {
 			$clean = "REPLACE($clean, '" . esc_sql($ch) . "', '')";
@@ -58,25 +95,26 @@ final class Locappci_Accounts {
 		$ids = (array) $wpdb->get_col($wpdb->prepare(
 			"SELECT DISTINCT user_id FROM {$wpdb->usermeta}
 			 WHERE meta_key IN ('billing_phone', 'phone') AND meta_value <> '' AND $clean LIKE %s LIMIT 5",
-			'%' . $wpdb->esc_like($local)
+			'%' . $wpdb->esc_like($tail)
 		));
-		foreach ([$local, '225' . $local] as $login) {
+		$logins = array_unique([$tail, $full]);
+		foreach ($logins as $login) {
 			$u = get_user_by('login', $login);
 			if ($u) {
 				$ids[] = $u->ID;
 			}
 		}
-		// A longer foreign number can end with the same digits: keep exact Ivorian matches only.
-		$ids = array_filter(array_unique(array_map('intval', $ids)), function ($id) use ($local) {
+		// Another number can end with the same digits: keep exact matches only.
+		$ids = array_filter(array_unique(array_map('intval', $ids)), function ($id) use ($full, $logins) {
 			$u = get_userdata($id);
 			if (!$u) {
 				return false;
 			}
-			if (in_array($u->user_login, [$local, '225' . $local], true)) {
+			if (in_array($u->user_login, $logins, true)) {
 				return true;
 			}
 			foreach (['billing_phone', 'phone'] as $key) {
-				if (self::local_phone((string) get_user_meta($id, $key, true)) === $local) {
+				if (self::phone((string) get_user_meta($id, $key, true)) === $full) {
 					return true;
 				}
 			}
@@ -95,9 +133,9 @@ final class Locappci_Accounts {
 			$u = get_user_by('email', sanitize_email($identifier));
 			return $u ?: null;
 		}
-		$local = self::local_phone($identifier);
-		if ($local !== '') {
-			$ids = self::users_by_phone($local);
+		$full = self::phone($identifier);
+		if ($full !== '') {
+			$ids = self::users_by_phone($full);
 			return count($ids) === 1 ? (get_userdata($ids[0]) ?: null) : null;
 		}
 		$u = get_user_by('login', sanitize_user($identifier, true));
@@ -226,7 +264,7 @@ final class Locappci_Accounts {
 		if ($identifier === '' || $password === '' || strlen($identifier) > 190 || strlen($password) > 4096) {
 			return Locappci_Errors::response('unauthorized', self::BAD_LOGIN);
 		}
-		$who = 'login:' . strtolower(self::local_phone($identifier) ?: $identifier);
+		$who = 'login:' . strtolower(self::phone($identifier) ?: $identifier);
 		$where = 'login-ip:' . self::ip();
 		if (self::count($who) >= (int) apply_filters('locappci_login_attempts', 5) || self::count($where) >= (int) apply_filters('locappci_login_attempts_ip', 30)) {
 			return Locappci_Errors::response('rate_limited', self::TOO_MANY);
@@ -250,7 +288,8 @@ final class Locappci_Accounts {
 		$body = self::json($r);
 		$name = is_string($body['name'] ?? null) ? trim(wp_strip_all_tags($body['name'])) : '';
 		$name = preg_replace('/\s+/u', ' ', $name);
-		$local = self::local_phone(is_string($body['phone'] ?? null) ? $body['phone'] : '');
+		$full = self::phone(is_string($body['phone'] ?? null) ? $body['phone'] : '');
+		$login = self::login_for($full);
 		$password = is_string($body['password'] ?? null) ? $body['password'] : '';
 		$email = is_string($body['email'] ?? null) ? trim($body['email']) : '';
 
@@ -258,8 +297,8 @@ final class Locappci_Accounts {
 		if ($len < 2 || $len > 80) {
 			return Locappci_Errors::response('validation', 'Indiquez votre nom (2 à 80 caractères).');
 		}
-		if ($local === '') {
-			return Locappci_Errors::response('validation', 'Numéro ivoirien à 10 chiffres, ex. 07 00 00 00 00.');
+		if ($full === '') {
+			return Locappci_Errors::response('validation', self::BAD_PHONE);
 		}
 		if (strlen($password) < self::MIN_PASSWORD || strlen($password) > 4096) {
 			return Locappci_Errors::response('validation', 'Le mot de passe doit faire au moins 8 caractères.');
@@ -275,7 +314,7 @@ final class Locappci_Accounts {
 			return Locappci_Errors::response('rate_limited', 'Trop de comptes créés depuis cette connexion. Réessayez plus tard.');
 		}
 
-		if (self::users_by_phone($local) || username_exists($local)) {
+		if (self::users_by_phone($full) || username_exists($login)) {
 			return Locappci_Errors::response('validation', 'Un compte existe déjà pour ce numéro. Connectez-vous.');
 		}
 		if ($email !== '' && email_exists($email)) {
@@ -284,7 +323,7 @@ final class Locappci_Accounts {
 
 		$parts = explode(' ', $name, 2);
 		$user_id = wp_insert_user([
-			'user_login'   => $local,
+			'user_login'   => $login,
 			'user_pass'    => $password,
 			'user_email'   => $email,
 			'display_name' => $name,
@@ -295,10 +334,12 @@ final class Locappci_Accounts {
 		if (is_wp_error($user_id)) {
 			return Locappci_Errors::response('server_error', 'Le compte n’a pas pu être créé. Réessayez dans un instant.');
 		}
-		update_user_meta($user_id, 'billing_phone', '+225' . $local);
+		update_user_meta($user_id, 'billing_phone', '+' . $full);
 		update_user_meta($user_id, 'billing_first_name', $parts[0]);
 		update_user_meta($user_id, 'billing_last_name', $parts[1] ?? '');
-		update_user_meta($user_id, 'billing_country', 'CI');
+		if (self::local_phone($full) !== '') {
+			update_user_meta($user_id, 'billing_country', 'CI');
+		}
 		update_user_meta($user_id, self::SIGNUP_META, gmdate('c'));
 		self::hit($where, HOUR_IN_SECONDS);
 		self::hit($today, DAY_IN_SECONDS);

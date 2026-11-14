@@ -293,10 +293,11 @@ export type Order = {
 
 /**
  * "Créer un compte" (Compte tab) or "Gardez le suivi" after an order (then `orderId` links that order).
- * `phone` is an Ivorian number ("2250700000000"); `email` is optional: many customers have none.
+ * `phone`: digits with country code, Ivorian ("2250700000000") or from another country ("447700900123");
+ * `email` is optional: many customers have none.
  */
 export type AccountRequest = { name: string; phone: string; password: string; email?: string; orderId?: string };
-/** `phone` is "" when a website account has no Ivorian number; `email` is null when it has none. */
+/** `phone` is "" when a website account has no number with a country code; `email` is null when it has none. */
 export type Account = { name: string; phone: string; email: string | null };
 
 /** Sign in with the website's account: `identifier` is a phone number or an e-mail address. */
