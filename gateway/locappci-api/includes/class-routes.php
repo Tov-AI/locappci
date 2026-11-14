@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * REST routes under /wp-json/locappci/v1. Read-only except customer accounts (class-accounts.php).
+ * REST routes under /wp-json/locappci/v1. Read-only except customer accounts (class-accounts.php) and rental requests (class-rental-requests.php).
  * The app's base URL is https://<site>/wp-json/locappci (it adds /v1/...).
  */
 final class Locappci_Routes {
@@ -22,7 +22,7 @@ final class Locappci_Routes {
 		register_rest_route(self::NS, '/shops/(?P<id>\d+)', ['methods' => 'GET', 'callback' => [self::class, 'shop'], 'permission_callback' => $public]);
 		register_rest_route(self::NS, '/cart/check', ['methods' => 'POST', 'callback' => [self::class, 'cart_check'], 'permission_callback' => $public]);
 		register_rest_route(self::NS, '/config', ['methods' => 'GET', 'callback' => [self::class, 'config'], 'permission_callback' => $public]);
-		register_rest_route(self::NS, '/rental-requests', ['methods' => 'POST', 'callback' => [self::class, 'rental_requests'], 'permission_callback' => $public]);
+		register_rest_route(self::NS, '/rental-requests', ['methods' => 'POST', 'callback' => ['Locappci_Rental_Requests', 'send'], 'permission_callback' => $public]);
 
 		// Accounts. "Public" here means "no WordPress cookie": each callback checks the password or the app session itself.
 		register_rest_route(self::NS, '/session', ['methods' => 'POST', 'callback' => ['Locappci_Accounts', 'login'], 'permission_callback' => $public]);
@@ -38,17 +38,6 @@ final class Locappci_Routes {
 		return Locappci_Errors::no_cache(new WP_REST_Response(['whatsapp' => $wa !== '' ? $wa : null], 200));
 	}
 
-	/**
-	 * "Envoyer aux loueurs". Like on the website, it needs a signed-in LOCAPPCI account.
-	 * Writing the request records comes with the next step; until then the app offers WhatsApp.
-	 */
-	public static function rental_requests(WP_REST_Request $r): WP_REST_Response {
-		if (!Locappci_Accounts::current_user($r)) {
-			return Locappci_Errors::response('unauthorized', 'Connectez-vous pour envoyer votre demande aux loueurs, ou envoyez-la sur WhatsApp.');
-		}
-		return Locappci_Errors::response('unavailable', 'L’envoi aux loueurs arrive bientôt. En attendant, envoyez votre demande sur WhatsApp.');
-	}
-
 	/** Quick check that the plugin answers and which plugins it found. */
 	public static function health(): WP_REST_Response {
 		return Locappci_Errors::no_cache(new WP_REST_Response([
@@ -59,6 +48,7 @@ final class Locappci_Routes {
 				'wcfm'        => function_exists('wcfm_get_vendor_id_by_post'),
 				'rental'      => class_exists('RedQ_Rental_And_Bookings') || post_type_exists('inventory') || term_exists('redq_rental', 'product_type') !== null,
 				'accounts'    => true,
+				'rentalRequests' => true,
 				'jwt'         => defined('SIMPLE_JWT_LOGIN_PLUGIN_PATH') || class_exists('SimpleJWTLogin\\Modules\\SimpleJWTLoginSettings'),
 			],
 		], 200));

@@ -63,6 +63,7 @@ final class Locappci_Admin {
 		echo '<table class="widefat striped" style="max-width:900px"><tbody>';
 		self::row('Comptes créés depuis l’appli', (string) $created);
 		self::row('Comptes avec une session ouverte dans l’appli', (string) $open);
+		self::row('Demandes de location envoyées aux loueurs depuis l’appli', (string) Locappci_Rental_Requests::count());
 		echo '</tbody></table>';
 		echo '<h3>Validation et visibilité des produits</h3>';
 		self::approval_counts();

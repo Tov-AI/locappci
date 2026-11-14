@@ -85,6 +85,13 @@ Services, Annonces, central onboarding flow. Musique, Librairie and Immobilier a
   2. **Request to each loueur** (logged-in users only): one `locappci_loc_req` record per item, linked to the product's
      author. Fields `_locappci_req_*`: product, start_date, days, qty, city, customer name/phone/WhatsApp/e-mail, notes,
      batch id. Phone or WhatsApp is required.
+  Exact record, from the snippet « LOCAPPCI – Demandes Location OFFICIEL STABLE » (14 Nov export): post type
+  `locappci_loc_req`, `publish`, **author = the customer**, title « Demande location – {matériel} – {d/m/Y H:i} ».
+  Fields `_locappci_req_`: `status` (`new`), `batch_id` (`LOCREQ-{time}-{6 chars}`), `product_id`, `product_title`,
+  `product_url`, `product_image`, **`loueur_id` (the product's `post_author`; the loueur's page filters on it)**,
+  `customer_id`, `customer_name`, `customer_email`, `customer_phone`, `customer_whatsapp`, `qty`, `days`,
+  `start_date` (`YYYY-MM-DD`; the calendar reads it as a DATE), `city` (text), `notes`, `price` (text), `created_at`.
+  The site sends **no e-mail** to the loueur. The app's gateway writes the same fields plus `source` = `app`.
 - The loueur sees the requests ("Mes demandes location") and sets a status: `new` → `processing` → `done` / `archived`.
 - The loueur's calendar only **shows** requested periods; nothing is booked automatically.
 
