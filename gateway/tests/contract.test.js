@@ -133,7 +133,33 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   assert.strictEqual((await me(s1.token.replace(/^\d+/, '1')))[0], 401, 'token of one account never opens another');
   const s2 = await api.login({ identifier: 'awa@example.com', password: 'site-pass-1' });
   setSessionToken(s1.token);
-  await assert.rejects(api.sendRentalRequest({ idempotencyKey: 'k', items: [], contact: { name: 'A', phone: '1' } }), e => e.code === 'unavailable' && /WhatsApp/.test(e.message), 'signed in: not built yet');
+  // « Envoyer aux loueurs »: signed in, one request per item, the website's own records
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const contact = { name: 'Awa Koné', phone: '2250708091011', message: 'Livraison possible le matin ?' };
+  const line = (id, extra = {}) => ({ productId: String(id), startDate: tomorrow, days: 2, quantity: 3, cityId: 'cocody', ...extra });
+  const refused = (re) => (e) => e.code === 'validation' && re.test(e.message);
+  const send = (key, items, c = contact) => api.sendRentalRequest({ idempotencyKey: key, items, contact: c });
+  await assert.rejects(send('v1', []), refused(/vide/));
+  await assert.rejects(send('v2', [line(ID.chaises)], { name: 'A', phone: '2250708091011' }), refused(/nom/));
+  await assert.rejects(send('v3', [line(ID.chaises)], { name: 'Awa', phone: '12345' }), refused(/téléphone/));
+  await assert.rejects(send('v4', [line(ID.chaises)], { ...contact, whatsapp: '123' }), refused(/WhatsApp/));
+  await assert.rejects(send('v5', [line(ID.chaises)], { ...contact, message: 'x'.repeat(501) }), refused(/500/));
+  await assert.rejects(send('v6', [line(ID.chaises, { startDate: yesterday })]), refused(/date/));
+  await assert.rejects(send('v7', [line(ID.chaises, { startDate: '2026-02-31' })]), refused(/date/));
+  await assert.rejects(send('v8', [line(ID.groupe, { days: 31 })]), refused(/1 à 30 jours/));
+  await assert.rejects(send('v9', [line(ID.chaises, { quantity: 0 })]), refused(/quantité/));
+  await assert.rejects(send('v10', [line(ID.chaises, { cityId: 'paris' })]), refused(/commune/));
+  await assert.rejects(send('v11', [line(ID.vent16), line(ID.pendingRental), line(999999)]), refused(/plus proposés/), 'a sale product, an unapproved rental and an unknown id');
+  // a refused list writes nothing, even when its first item was valid
+  await assert.rejects(send('v12', [line(ID.chaises), line(ID.tente, { quantity: 100 })]), refused(/quantité/));
+  const receipt = await send('ok-1', [line(ID.chaises), line(ID.groupe, { days: 5, quantity: 1, cityId: 'marcory' }), line(ID.vent16)]);
+  assert.ok(/^LOCREQ-\d+-[A-Za-z0-9]{6}$/.test(receipt.reference));
+  assert.deepStrictEqual(receipt.sent.map(s => s.productId), [String(ID.chaises), String(ID.groupe)]);
+  assert.ok(receipt.sent.every(s => s.shopName.length > 0));
+  assert.deepStrictEqual(receipt.skipped, [String(ID.vent16)], 'the sale product is skipped, the rest is sent');
+  assert.deepStrictEqual(await send('ok-1', [line(ID.chaises)]), receipt, 'same key again: same answer, nothing new');
+  global.RENTAL_REFERENCE = receipt.reference;
   await api.logout();
   assert.strictEqual((await me(s1.token))[0], 401, 'signed out');
   assert.strictEqual((await me(s2.token))[0], 200, 'the other phone stays signed in');
