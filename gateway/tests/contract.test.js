@@ -121,7 +121,13 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const s1 = await api.login({ identifier: 'awa@example.com', password: 'site-pass-1' });
   assert.deepStrictEqual(s1.account, { name: 'Awa Koné', phone: '2250708091011', email: 'awa@example.com' });
   assert.ok(/^\d+\.[a-f0-9]{64}$/.test(s1.token));
-  assert.strictEqual((await api.login({ identifier: 'uk@example.com', password: 'uk-pass-1234' })).account.phone, '', 'no Ivorian number: empty phone');
+  // numbers from other countries: customers abroad who buy or rent for family in Côte d'Ivoire
+  assert.strictEqual((await api.login({ identifier: 'uk@example.com', password: 'uk-pass-1234' })).account.phone, '447700900123', 'website account with a UK number');
+  for (const typed of ['+44 7700 900123', '0044 7700 900123', '447700900123']) {
+    assert.strictEqual((await api.login({ identifier: typed, password: 'uk-pass-1234' })).account.name, 'Client Londres', 'UK number as typed: ' + typed);
+  }
+  await assert.rejects(api.login({ identifier: '+44 7700 900124', password: 'uk-pass-1234' }), bad, 'one digit off');
+  await assert.rejects(api.login({ identifier: '900123', password: 'uk-pass-1234' }), bad, 'the end of a number is not the number');
   await assert.rejects(api.login({ identifier: '0555555555', password: 'pass-jumeau-1' }), bad, 'two accounts share the number: refused');
   assert.strictEqual((await api.login({ identifier: 'j1@example.com', password: 'pass-jumeau-1' })).account.name, 'Jumeau Un', '…but the e-mail works');
   await assert.rejects(api.login({ identifier: 'a@example.com', password: 'admin-pass-1' }), bad, 'administrators never sign in through the app');
@@ -142,7 +148,8 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   const send = (key, items, c = contact) => api.sendRentalRequest({ idempotencyKey: key, items, contact: c });
   await assert.rejects(send('v1', []), refused(/vide/));
   await assert.rejects(send('v2', [line(ID.chaises)], { name: 'A', phone: '2250708091011' }), refused(/nom/));
-  await assert.rejects(send('v3', [line(ID.chaises)], { name: 'Awa', phone: '12345' }), refused(/téléphone/));
+  await assert.rejects(send('v3', [line(ID.chaises)], { name: 'Awa', phone: '12345' }), refused(/Numéro invalide/));
+  await assert.rejects(send('v3b', [line(ID.chaises)], { name: 'Awa', phone: '+225 12 34 56 78 90' }), refused(/Numéro invalide/), '+225 with a wrong number');
   await assert.rejects(send('v4', [line(ID.chaises)], { ...contact, whatsapp: '123' }), refused(/WhatsApp/));
   await assert.rejects(send('v5', [line(ID.chaises)], { ...contact, message: 'x'.repeat(501) }), refused(/500/));
   await assert.rejects(send('v6', [line(ID.chaises, { startDate: yesterday })]), refused(/date/));
@@ -159,6 +166,8 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   assert.ok(receipt.sent.every(s => s.shopName.length > 0));
   assert.deepStrictEqual(receipt.skipped, [String(ID.vent16)], 'the sale product is skipped, the rest is sent');
   assert.deepStrictEqual(await send('ok-1', [line(ID.chaises)]), receipt, 'same key again: same answer, nothing new');
+  const abroad = await send('ok-abroad', [line(ID.tente)], { name: 'Cousin de Paris', phone: '33612345678', whatsapp: '+44 7700 900123' });
+  assert.deepStrictEqual(abroad.sent.map(s => s.productId), [String(ID.tente)], 'a customer abroad can send a request');
   global.RENTAL_REFERENCE = receipt.reference;
   await api.logout();
   assert.strictEqual((await me(s1.token))[0], 401, 'signed out');
@@ -186,6 +195,11 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   assert.strictEqual((await api.login({ identifier: '0712121212', password: 'longenough1' })).account.name, 'Yao Bi', 'new account signs in by phone');
   const withMail = await api.createAccount({ name: 'Mariam Touré', phone: '2250513131313', password: 'longenough2', email: 'Mariam@Example.com' });
   assert.strictEqual(withMail.account.email.toLowerCase(), 'mariam@example.com');
+  const paris = await api.createAccount({ name: 'Fatou Diallo', phone: '33612345678', password: 'longenough3' });
+  assert.deepStrictEqual(paris.account, { name: 'Fatou Diallo', phone: '33612345678', email: null }, 'account with a French number');
+  assert.strictEqual((await api.login({ identifier: '+33 6 12 34 56 78', password: 'longenough3' })).account.name, 'Fatou Diallo');
+  await assert.rejects(api.createAccount({ name: 'Autre', phone: '+33 6 12 34 56 78', password: 'longenough4' }), val(/existe déjà/), 'same French number typed another way');
+  await assert.rejects(api.createAccount({ name: 'Autre', phone: '123', password: 'longenough4' }), val(/Numéro invalide/));
   // delete: needs the session and the password again
   setSessionToken(null);
   await assert.rejects(api.deleteAccount({ password: 'longenough1' }), e => e.code === 'unauthorized', 'not signed in');

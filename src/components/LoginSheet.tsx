@@ -11,7 +11,7 @@ import { saveSession } from '@/data/account';
 import { useOnline } from '@/data/online';
 import { useCreateAccount, useLogin } from '@/data/queries';
 import { colors, size } from '@/theme';
-import { normalizeCiPhone } from '@/utils/phone';
+import { normalizePhone, PHONE_HELP, PHONE_PLACEHOLDER } from '@/utils/phone';
 
 type Props = { visible: boolean; onClose: () => void };
 
@@ -56,7 +56,7 @@ export function LoginSheet({ visible, onClose }: Props) {
   const submitLogin = () => {
     const typed = identifier.trim();
     // A phone number is sent in one format; an e-mail goes as typed.
-    const value = typed.includes('@') ? typed : (normalizeCiPhone(typed) ?? typed);
+    const value = typed.includes('@') ? typed : (normalizePhone(typed) ?? typed);
     login.mutate(
       { identifier: value, password },
       {
@@ -71,10 +71,10 @@ export function LoginSheet({ visible, onClose }: Props) {
 
   const submitSignup = () => {
     const cleanName = name.trim().replace(/\s+/g, ' ');
-    const normalized = normalizeCiPhone(phone);
+    const normalized = normalizePhone(phone);
     const mail = email.trim();
     if (cleanName.length < 2) return setError('Indiquez votre nom.');
-    if (!normalized) return setError('Numéro ivoirien à 10 chiffres, ex. 07 00 00 00 00.');
+    if (!normalized) return setError(PHONE_HELP);
     if (mail && !EMAIL.test(mail)) return setError('Cette adresse e-mail n’est pas valide.');
     if (password.length < MIN_PASSWORD) return setError(`Mot de passe : ${MIN_PASSWORD} caractères minimum.`);
     create.mutate(
@@ -140,7 +140,7 @@ export function LoginSheet({ visible, onClose }: Props) {
         <TextField label="Nom et prénom" autoComplete="name" autoCapitalize="words" value={name} onChangeText={clear(setName)} />
         <TextField
           label="Téléphone"
-          placeholder="07 00 00 00 00"
+          placeholder={PHONE_PLACEHOLDER}
           keyboardType="phone-pad"
           autoComplete="tel"
           value={phone}

@@ -18,7 +18,7 @@ import { ApiError, networkError } from '@/api/errors';
 import { getSessionToken } from '@/api/token';
 import { categories, cities, products, shops } from '@/api/mock/data';
 import { today } from '@/utils/dates';
-import { normalizeCiPhone } from '@/utils/phone';
+import { normalizePhone, PHONE_HELP } from '@/utils/phone';
 
 /**
  * Developer switches to test loading, error and offline behaviour on a real phone.
@@ -161,7 +161,7 @@ export const mockApi: LocappciApi = {
       if (done) return done;
       const { contact } = req;
       if (contact.name.trim().length < 2) throw new ApiError('validation', 'Indiquez votre nom.');
-      if (!CI_PHONE.test(contact.phone)) throw new ApiError('validation', 'Numéro de téléphone invalide.');
+      if (!VALID_PHONE(contact.phone)) throw new ApiError('validation', 'Numéro de téléphone invalide.');
       if (contact.whatsapp && !/^\d{10,15}$/.test(contact.whatsapp)) throw new ApiError('validation', 'Numéro WhatsApp invalide.');
       if ((contact.message?.length ?? 0) > 500) throw new ApiError('validation', 'Le message ne doit pas dépasser 500 caractères.');
       if (req.items.length === 0) throw new ApiError('validation', 'Votre demande est vide.');
@@ -228,7 +228,7 @@ export const mockApi: LocappciApi = {
 
       const { customer } = req;
       if (customer.name.trim().length < 2) throw new ApiError('validation', 'Indiquez votre nom.');
-      if (!CI_PHONE.test(customer.phone)) throw new ApiError('validation', 'Numéro de téléphone invalide.');
+      if (!VALID_PHONE(customer.phone)) throw new ApiError('validation', 'Numéro de téléphone invalide.');
       if (req.lines.length === 0) throw new ApiError('validation', 'Votre panier est vide.');
 
       const results = req.lines.map((l) => checkCartLine(l, 'normal'));
@@ -294,7 +294,7 @@ export const mockApi: LocappciApi = {
       if (orderId && !orders.has(orderId)) throw new ApiError('not_found', 'Commande introuvable.');
       const cleanName = name.trim().replace(/\s+/g, ' ');
       if (cleanName.length < 2 || cleanName.length > 80) throw new ApiError('validation', 'Indiquez votre nom (2 à 80 caractères).');
-      if (!CI_PHONE.test(phone)) throw new ApiError('validation', 'Numéro ivoirien à 10 chiffres, ex. 07 00 00 00 00.');
+      if (!VALID_PHONE(phone)) throw new ApiError('validation', PHONE_HELP);
       if (password.length < 8) throw new ApiError('validation', 'Le mot de passe doit faire au moins 8 caractères.');
       const mail = email?.trim().toLowerCase() || null;
       if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) throw new ApiError('validation', 'Cette adresse e-mail n’est pas valide.');
@@ -310,7 +310,7 @@ export const mockApi: LocappciApi = {
   login: ({ identifier, password }) =>
     respond((): Session => {
       const id = identifier.trim().toLowerCase();
-      const phone = normalizeCiPhone(identifier);
+      const phone = normalizePhone(identifier.startsWith('+') || !/^[1-9]\d{10,14}$/.test(identifier) ? identifier : `+${identifier}`);
       const a = id.includes('@') ? [...accounts.values()].find((x) => x.email === id) : phone ? accounts.get(phone) : undefined;
       // Same message for both cases: never tell a stranger whether a number has an account.
       if (!a || a.password !== password) throw new ApiError('unauthorized', 'Identifiant ou mot de passe incorrect.');
@@ -445,7 +445,8 @@ const REFERENCE = /^[A-Za-z0-9._-]{6,40}$/;
 /** Accounts created in the mock, by phone number. (The real gateway never keeps plain passwords: WordPress hashes them.) */
 const accounts = new Map<string, Account & { password: string }>();
 
-const CI_PHONE = /^225(01|05|07|21|25|27)\d{8}$/;
+/** Digits with country code, as the app sends them: Ivorian, or another country (8 to 15 digits). */
+const VALID_PHONE = (digits: string) => /^[1-9]\d{7,14}$/.test(digits) && normalizePhone(`+${digits}`) === digits;
 
 /**
  * Mock only (Données dev screen): an account to test "Envoyer aux loueurs" without placing

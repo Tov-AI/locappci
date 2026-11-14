@@ -11,7 +11,7 @@ shapes of `src/api/contract.ts`. Endpoints and rules: `docs/API.md`. Install: `d
 - `includes/class-admin.php`: Outils → LOCAPPCI API (diagnostics, communes)
 - `tests/`: end-to-end contract test with the app's own HTTP client
 
-**Version 0.5.0 is read-only except customer accounts** (`includes/class-accounts.php`: sign in, create, sign out,
+**Version 0.5.1 is read-only except customer accounts** (`includes/class-accounts.php`: sign in, create, sign out,
 delete; it creates and deletes WordPress `customer` users) **and rental requests** (`includes/class-rental-requests.php`:
 writes `locappci_loc_req` records, the ones the website's own form creates). Shops come from the site's `locappci_boutique` record when it is validated
 (`Locappci_Catalogue::boutique_id()`), then from WCFM; `store_hide_phone` / `store_hide_address` are respected. It hides products the site marks as waiting, refused or hidden

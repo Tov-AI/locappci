@@ -33,7 +33,7 @@ import { colors, radius, space } from '@/theme';
 import { addDays, formatDayCompact, formatDays, formatDayShort } from '@/utils/dates';
 import { formatFcfa } from '@/utils/format';
 import { useGoBack } from '@/utils/navigation';
-import { formatCiPhone, normalizeCiPhone } from '@/utils/phone';
+import { formatPhone, normalizePhone, PHONE_HELP, PHONE_PLACEHOLDER } from '@/utils/phone';
 
 type Errors = { name?: string; phone?: string; whatsapp?: string };
 const MAX_MESSAGE = 500;
@@ -47,13 +47,8 @@ function requestKey(lines: RequestLine[], phone: string) {
   return `req-${h.toString(36)}-${lines.length}`;
 }
 
-/** Any phone for WhatsApp: Ivorian 10 digits, or international with + / 00. */
-function normalizeWhatsapp(input: string): string | null {
-  const ci = normalizeCiPhone(input);
-  if (ci) return ci;
-  const digits = input.replace(/\D+/g, '').replace(/^00/, '');
-  return /^\+|^00/.test(input.trim()) && digits.length >= 10 && digits.length <= 15 ? digits : null;
-}
+/** WhatsApp follows the same rule as the phone: Ivorian, or another country with + / 00. */
+const normalizeWhatsapp = normalizePhone;
 
 /**
  * Ma demande de location (Feature 14), like the website's page: the rental items the person wants,
@@ -75,7 +70,7 @@ export default function DemandeLocationScreen() {
   const [name, setName] = useState(account?.name ?? customer?.name ?? '');
   const [phone, setPhone] = useState(() => {
     const p = account?.phone || customer?.phone;
-    return p ? formatCiPhone(p) : '';
+    return p ? formatPhone(p) : '';
   });
   const [whatsapp, setWhatsapp] = useState('');
   const [message, setMessage] = useState('');
@@ -92,11 +87,11 @@ export default function DemandeLocationScreen() {
 
   /** Checks the contact fields; returns them ready to send, or null with the errors shown. */
   const contact = () => {
-    const p = normalizeCiPhone(phone);
+    const p = normalizePhone(phone);
     const w = whatsapp.trim() ? normalizeWhatsapp(whatsapp) : undefined;
     const next: Errors = {
       name: name.trim().length < 2 ? 'Indiquez votre nom.' : undefined,
-      phone: p ? undefined : 'Numéro ivoirien à 10 chiffres, ex. 07 00 00 00 00.',
+      phone: p ? undefined : PHONE_HELP,
       whatsapp: w === null ? 'Numéro WhatsApp invalide (ex. 07 00 00 00 00 ou +33 6…).' : undefined,
     };
     setErrors(next);
@@ -148,7 +143,7 @@ export default function DemandeLocationScreen() {
       parts.push(`   Commune : ${cityNames.get(l.cityId) ?? l.cityId}`);
       parts.push(`   Prix indiqué : ${l.pricePerDay > 0 ? `${formatFcfa(l.pricePerDay)} / jour` : 'à confirmer'}`);
     });
-    parts.push('', `Nom : ${c.name}`, `Téléphone : ${formatCiPhone(c.phone)}`);
+    parts.push('', `Nom : ${c.name}`, `Téléphone : ${formatPhone(c.phone)}`);
     if (c.whatsapp) parts.push(`WhatsApp : +${c.whatsapp}`);
     if (c.message) parts.push(`Message : ${c.message}`);
     return parts.join('\n').replace(/ /g, ' ');
@@ -262,7 +257,7 @@ export default function DemandeLocationScreen() {
             />
             <TextField
               label="Téléphone"
-              placeholder="07 00 00 00 00"
+              placeholder={PHONE_PLACEHOLDER}
               keyboardType="phone-pad"
               value={phone}
               onChangeText={(v) => (setPhone(v), setErrors((e) => ({ ...e, phone: undefined })))}

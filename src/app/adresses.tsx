@@ -11,7 +11,7 @@ import { showToast } from '@/components/Toast';
 import { clearCustomer, saveCustomer, useSavedCustomer } from '@/data/customer';
 import { colors, space } from '@/theme';
 import { useGoBack } from '@/utils/navigation';
-import { formatCiPhone, normalizeCiPhone } from '@/utils/phone';
+import { formatPhone, normalizePhone, PHONE_HELP, PHONE_PLACEHOLDER } from '@/utils/phone';
 
 type Errors = { name?: string; phone?: string };
 
@@ -20,15 +20,15 @@ export default function AdressesScreen() {
   const goBack = useGoBack();
   const saved = useSavedCustomer();
   const [name, setName] = useState(saved?.name ?? '');
-  const [phone, setPhone] = useState(saved ? formatCiPhone(saved.phone) : '');
+  const [phone, setPhone] = useState(saved ? formatPhone(saved.phone) : '');
   const [address, setAddress] = useState(saved?.address ?? '');
   const [errors, setErrors] = useState<Errors>({});
 
   const save = () => {
-    const normalized = normalizeCiPhone(phone);
+    const normalized = normalizePhone(phone);
     const next: Errors = {
       name: name.trim().length < 2 ? 'Indiquez votre nom.' : undefined,
-      phone: normalized ? undefined : 'Numéro ivoirien à 10 chiffres, ex. 07 00 00 00 00.',
+      phone: normalized ? undefined : PHONE_HELP,
     };
     setErrors(next);
     if (next.name || !normalized) return;
@@ -52,7 +52,7 @@ export default function AdressesScreen() {
         <TextField label="Nom et prénom" placeholder="Aya Koné" value={name} onChangeText={(v) => (setName(v), setErrors((e) => ({ ...e, name: undefined })))} error={errors.name} />
         <TextField
           label="Téléphone"
-          placeholder="07 00 00 00 00"
+          placeholder={PHONE_PLACEHOLDER}
           keyboardType="phone-pad"
           value={phone}
           onChangeText={(v) => (setPhone(v), setErrors((e) => ({ ...e, phone: undefined })))}

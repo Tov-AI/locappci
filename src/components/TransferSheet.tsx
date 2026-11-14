@@ -8,7 +8,7 @@ import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { colors, radius, space } from '@/theme';
 import { formatFcfa } from '@/utils/format';
-import { formatCiPhone } from '@/utils/phone';
+import { formatPhone } from '@/utils/phone';
 
 type Props = {
   visible: boolean;
@@ -64,7 +64,7 @@ export function TransferSheet({ visible, onClose, order, onSubmit }: Props) {
         </AppText>
         <Step n={2} text="Au numéro :" />
         <AppText variant="headerTitle" style={styles.amount} selectable>
-          {to ? formatCiPhone(to.number) : '—'}
+          {to ? formatPhone(to.number) : '—'}
         </AppText>
         {to ? (
           <AppText variant="meta" color={colors.text.muted} style={styles.center}>

@@ -33,7 +33,7 @@ import { keys, useCartCheck, useCities, useCreateOrder, useDeliveryOptions, wait
 import { colors, radius, space } from '@/theme';
 import { formatFcfa } from '@/utils/format';
 import { useGoBack } from '@/utils/navigation';
-import { formatCiPhone, normalizeCiPhone } from '@/utils/phone';
+import { formatPhone, normalizePhone, PHONE_HELP, PHONE_PLACEHOLDER } from '@/utils/phone';
 
 const METHODS: { id: PaymentMethod; initial: string; label: string; hint: string }[] = [
   // No cash on delivery (client's answer). Transfer to the LOCAPPCI number until merchant accounts exist.
@@ -94,7 +94,7 @@ export default function PaiementScreen() {
   const delivery = useDeliveryOptions(shopIds, deliveryCityId);
 
   const [name, setName] = useState(savedCustomer?.name ?? '');
-  const [phone, setPhone] = useState(savedCustomer ? formatCiPhone(savedCustomer.phone) : '');
+  const [phone, setPhone] = useState(savedCustomer ? formatPhone(savedCustomer.phone) : '');
   const [method, setMethod] = useState<PaymentMethod>('wave');
   const [choices, setChoices] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Errors>({});
@@ -107,7 +107,7 @@ export default function PaiementScreen() {
   useEffect(() => {
     if (!savedCustomer) return;
     setName((v) => v || savedCustomer.name);
-    setPhone((v) => v || formatCiPhone(savedCustomer.phone));
+    setPhone((v) => v || formatPhone(savedCustomer.phone));
     setAddress((v) => v || savedCustomer.address);
   }, [savedCustomer]);
 
@@ -184,10 +184,10 @@ export default function PaiementScreen() {
 
   const pay = async () => {
     setNotice(null);
-    const normalizedPhone = normalizeCiPhone(phone);
+    const normalizedPhone = normalizePhone(phone);
     const nextErrors: Errors = {
       name: name.trim().length < 2 ? 'Indiquez votre nom.' : undefined,
-      phone: normalizedPhone ? undefined : 'Numéro ivoirien à 10 chiffres, ex. 07 00 00 00 00.',
+      phone: normalizedPhone ? undefined : PHONE_HELP,
       address: homeDelivery && !hasStreetDetails(address, cityNames) ? 'Ajoutez le quartier ou un repère.' : undefined,
     };
     setErrors(nextErrors);
@@ -296,7 +296,7 @@ export default function PaiementScreen() {
             />
             <TextField
               label="Téléphone"
-              placeholder="07 00 00 00 00"
+              placeholder={PHONE_PLACEHOLDER}
               keyboardType="phone-pad"
               autoComplete="tel"
               textContentType="telephoneNumber"
@@ -306,8 +306,8 @@ export default function PaiementScreen() {
                 setErrors((e) => ({ ...e, phone: undefined }));
               }}
               onBlur={() => {
-                const n = normalizeCiPhone(phone);
-                if (n) setPhone(formatCiPhone(n));
+                const n = normalizePhone(phone);
+                if (n) setPhone(formatPhone(n));
               }}
               error={errors.phone}
             />

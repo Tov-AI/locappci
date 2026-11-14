@@ -206,6 +206,8 @@ on mock data. Each PR description (#2 to #16) lists exactly what was tested.
 5. ✅ **Done in 0.5.0** (PR `feature/20-demandes-loueurs`): `POST /v1/rental-requests` writes the website's own
    `locappci_loc_req` records (exact fields in `docs/SITE-MAP.md`). No app change was needed: the screen was
    already built against the contract.
+   Since 0.5.1 the forms also accept **phone numbers from other countries** (`+33…`, `+44…`): the app needs a
+   new build for that.
 6. **Orders:** `GET /v1/delivery-options`, `POST /v1/orders` (idempotent, re-checks the cart, `409 cart_changed`),
    `GET /v1/orders/{id}`, `POST /v1/orders/{id}/payment-reference`. The team validates transfers in WordPress.
 7. **Reports:** `POST /v1/products/{id}/reports` (email to the admin is enough at first).

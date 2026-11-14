@@ -1,5 +1,5 @@
 import type { Order, OrderShop } from '@/api';
-import { formatCiPhone } from '@/utils/phone';
+import { formatPhone } from '@/utils/phone';
 
 /**
  * "Boutique Koné Électro prépare « Ventilateur… ». Livraison prévue sous 24 à 48 h à Cocody."
@@ -18,7 +18,7 @@ export function trackingText(s: OrderShop, o: Order): string {
       const delay = (s.delivery.detail.split('·').pop() ?? '').trim().replace('–', ' à ');
       parts.push(`${s.shopName} prépare ${what}. Livraison prévue sous ${delay}${commune ? ` à ${commune}` : ''}.`);
     } else {
-      parts.push(`${s.shopName} prépare ${what}. Retrait en boutique à ${s.delivery.detail} : la boutique vous appelle au ${formatCiPhone(o.customer.phone)} quand c’est prêt.`);
+      parts.push(`${s.shopName} prépare ${what}. Retrait en boutique à ${s.delivery.detail} : la boutique vous appelle au ${formatPhone(o.customer.phone)} quand c’est prêt.`);
     }
   }
   return parts.join(' ');
