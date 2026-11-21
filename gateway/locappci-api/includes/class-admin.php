@@ -45,6 +45,17 @@ final class Locappci_Admin {
 			echo '<div class="notice notice-success"><p>Tarif de livraison enregistré.</p></div>';
 		}
 
+		if (isset($_POST['locappci_transfer_number']) && check_admin_referer('locappci_transfer')) {
+			$digits = preg_replace('/\D+/', '', sanitize_text_field(wp_unslash($_POST['locappci_transfer_number'])));
+			if ($digits === '' || (strlen($digits) >= 10 && strlen($digits) <= 15)) {
+				update_option('locappci_transfer_number', $digits);
+				update_option('locappci_transfer_name', sanitize_text_field(wp_unslash($_POST['locappci_transfer_name'] ?? '')));
+				echo '<div class="notice notice-success"><p>Numéro de paiement enregistré.</p></div>';
+			} else {
+				echo '<div class="notice notice-error"><p>Numéro invalide : indiquez l’indicatif du pays, ex. +225 07 00 00 00 00.</p></div>';
+			}
+		}
+
 		$health = Locappci_Routes::health()->get_data();
 		$cities = array_column(Locappci_Catalogue::cities(), 'name');
 		echo '<div class="wrap"><h1>LOCAPPCI API</h1>';
@@ -132,6 +143,19 @@ final class Locappci_Admin {
 		echo '<p>Exemple : Cocody → Yopougon ≈ ' . esc_html((string) Locappci_Delivery::road_km('cocody', 'yopougon')) . ' km = '
 			. esc_html(number_format(Locappci_Delivery::price((int) Locappci_Delivery::road_km('cocody', 'yopougon')), 0, ',', ' ')) . ' FCFA.</p>';
 		submit_button('Enregistrer le tarif');
+		echo '</form>';
+
+		$tr = Locappci_Orders::transfer_to();
+		echo '<h2>5. Paiement des commandes de l’appli</h2>';
+		echo '<p>Le client envoie le total par transfert Wave ou Orange Money à ce numéro, puis saisit la référence reçue par SMS. '
+			. 'La commande arrive dans WooCommerce → Commandes « En attente » : vérifiez le transfert, puis passez-la « En cours » (payée), '
+			. 'puis « Terminée » quand elle est livrée. Le client voit chaque étape dans l’appli.</p>';
+		echo '<p><strong>Tant que ce numéro est vide, le paiement dans l’appli est désactivé.</strong></p>';
+		echo '<form method="post">';
+		wp_nonce_field('locappci_transfer');
+		echo '<p><label>Numéro qui reçoit les transferts <input name="locappci_transfer_number" value="' . esc_attr($tr ? '+' . $tr['number'] : '') . '" placeholder="+225 07 00 00 00 00"></label></p>';
+		echo '<p><label>Nom affiché <input name="locappci_transfer_name" value="' . esc_attr($tr ? $tr['name'] : 'LOCAPPCI') . '"></label></p>';
+		submit_button('Enregistrer le numéro de paiement');
 		echo '</form></div>';
 	}
 

@@ -1,9 +1,10 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 import { config } from '@/config';
-import { getRememberedOrder } from '@/data/orders';
+import { getRememberedOrder, rememberOrder } from '@/data/orders';
 
-import { api, type AccountRequest, type CartCheckLine, type LoginRequest, type Page, type ProductSummary, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequestSend, type Universe } from '@/api';
+import { api, type AccountRequest, type CartCheckLine, type LoginRequest, type Order, type Page, type ProductSummary, type OrderRequest, type ProductQuery, type ProductReport, type RentalRequestSend, type Universe } from '@/api';
 
 /**
  * Query keys: one name per kind of data, so the cache knows what to refresh.
@@ -183,3 +184,31 @@ export const useLogin = () =>
 
 export const useDeleteAccount = () =>
   useMutation({ mutationFn: (r: { password: string }) => api.deleteAccount(r), networkMode: 'online' });
+
+/**
+ * « Mes commandes »: asks the gateway again for every order still moving (not delivered, not cancelled),
+ * so a status changed in WooCommerce (transfer checked, order shipped) shows without opening each order.
+ * Each fresh copy replaces the one saved on the phone; offline, the saved copies stay.
+ */
+export function useRefreshOrders(orders: Order[]) {
+  const moving = orders.filter((o) => o.status !== 'cancelled' && o.step !== 'delivered').slice(0, 10);
+  const results = useQueries({
+    queries: moving.map((o) => ({
+      queryKey: keys.order(o.id),
+      queryFn: () => api.getOrder(o.id),
+      staleTime: 0,
+      retry: false,
+    })),
+  });
+  const fresh = results.map((r) => r.data).filter((o): o is Order => !!o);
+  const signature = fresh.map((o) => `${o.id}:${o.status}:${o.step}:${o.paymentReference ?? ''}`).join('|');
+  useEffect(() => {
+    for (const o of fresh) {
+      const saved = getRememberedOrder(o.id);
+      if (!saved || saved.status !== o.status || saved.step !== o.step || saved.paymentReference !== o.paymentReference) {
+        rememberOrder(o);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature]);
+}
