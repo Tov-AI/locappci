@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/api';
 import { EmptyState } from '@/components/EmptyState';
@@ -19,6 +20,8 @@ import { useGoBack } from '@/utils/navigation';
  * or the rental screen (Feature 7) depending on `universe`.
  */
 export default function ProduitScreen() {
+  // The photo starts below the status bar (time, battery), never under it.
+  const insets = useSafeAreaInsets();
   const goBack = useGoBack();
   const { id } = useLocalSearchParams<{ id: string }>();
   const product = useProduct(id);
@@ -37,7 +40,7 @@ export default function ProduitScreen() {
 
   if (product.isPending) {
     return (
-      <View style={styles.fill}>
+      <View style={[styles.fill, { paddingTop: insets.top }]}>
         <PhotoHeaderSkeleton onBack={goBack} />
         <View style={styles.body}>
           <Skeleton height={22} width="85%" />

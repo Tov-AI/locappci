@@ -2,6 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { RentalProduct } from '@/api';
 import { AppText } from '@/components/AppText';
@@ -43,6 +44,8 @@ const formatUnits = (n: number) => `${n} unité${n > 1 ? 's' : ''}`;
  * then "Ajouter à ma demande". The loueur confirms availability and price; nothing is paid here.
  */
 export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; savedAt: number }) {
+  // The photo starts below the status bar (time, battery), never under it.
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const goBack = useGoBack();
   const online = useOnline();
@@ -110,7 +113,7 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
       : `Du ${formatDayShort(start)} au ${formatDayShort(addDays(returnDate, -1))}`;
 
   return (
-    <View style={styles.fill}>
+    <View style={[styles.fill, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <PhotoHeader
           productId={p.id}
