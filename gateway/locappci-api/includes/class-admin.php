@@ -56,6 +56,12 @@ final class Locappci_Admin {
 			}
 		}
 
+		if (isset($_POST['locappci_report_email']) && check_admin_referer('locappci_reports')) {
+			$mail = sanitize_email(wp_unslash($_POST['locappci_report_email']));
+			update_option('locappci_report_email', $mail);
+			echo '<div class="notice notice-success"><p>Adresse des signalements enregistrée.</p></div>';
+		}
+
 		$health = Locappci_Routes::health()->get_data();
 		$cities = array_column(Locappci_Catalogue::cities(), 'name');
 		echo '<div class="wrap"><h1>LOCAPPCI API</h1>';
@@ -156,7 +162,29 @@ final class Locappci_Admin {
 		echo '<p><label>Numéro qui reçoit les transferts <input name="locappci_transfer_number" value="' . esc_attr($tr ? '+' . $tr['number'] : '') . '" placeholder="+225 07 00 00 00 00"></label></p>';
 		echo '<p><label>Nom affiché <input name="locappci_transfer_name" value="' . esc_attr($tr ? $tr['name'] : 'LOCAPPCI') . '"></label></p>';
 		submit_button('Enregistrer le numéro de paiement');
-		echo '</form></div>';
+		echo '</form>';
+
+		echo '<h2>6. Annonces signalées depuis l’appli</h2>';
+		echo '<p>Chaque signalement est envoyé par e-mail à cette adresse et gardé ci-dessous (les 100 derniers). L’annonce n’est jamais modifiée automatiquement.</p>';
+		echo '<form method="post">';
+		wp_nonce_field('locappci_reports');
+		echo '<p><label>E-mail <input type="email" name="locappci_report_email" value="' . esc_attr(Locappci_Reports::email()) . '"></label></p>';
+		submit_button('Enregistrer l’adresse');
+		echo '</form>';
+		$reports = Locappci_Reports::latest();
+		if (!$reports) {
+			echo '<p>Aucun signalement pour l’instant.</p>';
+		} else {
+			echo '<table class="widefat striped"><thead><tr><th>Date</th><th>Annonce</th><th>Raison</th><th>Détails</th></tr></thead><tbody>';
+			foreach (array_slice($reports, 0, 30) as $rep) {
+				$when = wp_date('d/m/Y H:i', strtotime($rep['at']));
+				$link = admin_url('post.php?post=' . (int) $rep['productId'] . '&action=edit');
+				echo '<tr><td>' . esc_html($when) . '</td><td><a href="' . esc_url($link) . '">' . esc_html($rep['product']) . '</a></td><td>'
+					. esc_html(Locappci_Reports::REASONS[$rep['reason']] ?? $rep['reason']) . '</td><td>' . esc_html($rep['details']) . '</td></tr>';
+			}
+			echo '</tbody></table>';
+		}
+		echo '</div>';
 	}
 
 	private static function row(string $label, string $value): void {

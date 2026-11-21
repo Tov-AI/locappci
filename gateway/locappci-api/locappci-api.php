@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       LOCAPPCI API
  * Description:       Passerelle entre l'appli mobile LOCAPPCI et le site (WooCommerce, WCFM, location). Lecture seule, sauf les comptes clients et les demandes de location envoyées aux loueurs.
- * Version:           0.7.0
+ * Version:           0.8.0
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            LOCAPPCI
@@ -26,14 +26,15 @@
  * 0.6.0: GET /v1/delivery-options (home delivery priced by distance, tariff in Outils → LOCAPPCI API; pickup).
  * 0.7.0: orders: POST /v1/orders (real WooCommerce orders), GET /v1/orders/{id}, POST …/payment-reference;
  *        transfer number in Outils → LOCAPPCI API (section 5).
- * Next: product reports.
+ * 0.8.0: « Signaler cette annonce »: POST /v1/products/{id}/reports, e-mailed to the team and listed in section 6.
+ * Next: Wave / Orange Money hand-off and push notifications (waiting on the client).
  */
 
 if (!defined('ABSPATH')) {
 	exit; // Never run outside WordPress.
 }
 
-define('LOCAPPCI_API_VERSION', '0.7.0');
+define('LOCAPPCI_API_VERSION', '0.8.0');
 define('LOCAPPCI_API_DIR', __DIR__);
 
 require_once __DIR__ . '/includes/class-errors.php';
@@ -42,6 +43,7 @@ require_once __DIR__ . '/includes/class-accounts.php';
 require_once __DIR__ . '/includes/class-rental-requests.php';
 require_once __DIR__ . '/includes/class-delivery.php';
 require_once __DIR__ . '/includes/class-orders.php';
+require_once __DIR__ . '/includes/class-reports.php';
 require_once __DIR__ . '/includes/class-routes.php';
 require_once __DIR__ . '/includes/class-admin.php';
 

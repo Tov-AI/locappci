@@ -212,7 +212,7 @@ on mock data. Each PR description (#2 to #16) lists exactly what was tested.
    `GET /v1/orders/{id}`, `POST /v1/orders/{id}/payment-reference` (0.7.0, PR `feature/25-commandes`). The team validates transfers in
    WooCommerce → Commandes (« En attente » → « En cours » → « Terminée »). **Set the transfer number first** (Outils → LOCAPPCI API, section 5).
    To check on the live site: that each order shows in the right seller's WCFM dashboard.
-7. **Reports:** `POST /v1/products/{id}/reports` (email to the admin is enough at first).
+7. ✅ **Reports (0.8.0, PR `feature/26-signalements`):** `POST /v1/products/{id}/reports`, e-mailed to the team and listed in Outils → LOCAPPCI API section 6.
 8. Later and blocked on the client: **Feature 15** Wave / Orange Money hand-off (needs merchant accounts),
    **Feature 16** push notifications (needs a development build; must ask permission of people who said
    "Oui, me prévenir").
