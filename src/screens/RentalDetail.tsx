@@ -33,7 +33,8 @@ import { useGoBack } from '@/utils/navigation';
 type StartChoice = 'today' | 'tomorrow' | 'other';
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
-const MAX_QUANTITY = 20;
+/** Safety cap only (client, 12 Nov: quantity must be « illimité »). Same cap in the gateway. */
+const MAX_QUANTITY = 10000;
 const formatUnits = (n: number) => `${n} unité${n > 1 ? 's' : ''}`;
 
 /**
@@ -202,6 +203,7 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
                 max={MAX_QUANTITY}
                 format={formatUnits}
                 accessibilityLabel="Quantité"
+                typeable
               />
             </View>
 

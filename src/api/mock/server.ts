@@ -180,7 +180,7 @@ export const mockApi: LocappciApi = {
         if (!Number.isInteger(item.days) || item.days < p.minDays || item.days > p.maxDays) {
           throw new ApiError('validation', `« ${p.name} » : durée possible de ${p.minDays} à ${p.maxDays} jours.`);
         }
-        if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
+        if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 10000) {
           throw new ApiError('validation', `« ${p.name} » : quantité invalide.`);
         }
         if (!cities.some((c) => c.id === item.cityId)) {

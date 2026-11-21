@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { AppText } from '@/components/AppText';
-import { colors, size, space } from '@/theme';
+import { colors, size, space, type } from '@/theme';
 
 type Props = {
   value: number;
@@ -12,13 +13,24 @@ type Props = {
   format?: (value: number) => string;
   /** What is being counted, read aloud: "Durée", "Quantité". */
   accessibilityLabel: string;
+  /** Lets the person type the number too (big quantities). The typed value is kept between min and max. */
+  typeable?: boolean;
 };
 
 /** − value + control. Buttons are 44 × 44 and disable at the limits. */
-export function Stepper({ value, onChange, min = 1, max = 99, format, accessibilityLabel }: Props) {
+export function Stepper({ value, onChange, min = 1, max = 99, format, accessibilityLabel, typeable = false }: Props) {
   const atMin = value <= min;
   const atMax = value >= max;
   const label = format ? format(value) : String(value);
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+
+  const commit = () => {
+    const n = parseInt(draft, 10);
+    const next = Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : value;
+    setDraft(String(next));
+    if (next !== value) onChange(next);
+  };
 
   return (
     <View
@@ -33,9 +45,24 @@ export function Stepper({ value, onChange, min = 1, max = 99, format, accessibil
         if (e.nativeEvent.actionName === 'decrement' && !atMin) onChange(value - 1);
       }}>
       <StepButton symbol="−" disabled={atMin} onPress={() => onChange(value - 1)} />
-      <AppText variant="bodyStrong" style={styles.value}>
-        {label}
-      </AppText>
+      {typeable ? (
+        <TextInput
+          value={draft}
+          onChangeText={(t) => setDraft(t.replace(/[^0-9]/g, ''))}
+          onBlur={commit}
+          onSubmitEditing={commit}
+          keyboardType="number-pad"
+          returnKeyType="done"
+          selectTextOnFocus
+          maxLength={String(max).length}
+          accessibilityLabel={`${accessibilityLabel} : ${label}. Saisir un nombre`}
+          style={[type.bodyStrong, styles.input]}
+        />
+      ) : (
+        <AppText variant="bodyStrong" style={styles.value}>
+          {label}
+        </AppText>
+      )}
       <StepButton symbol="+" disabled={atMax} onPress={() => onChange(value + 1)} />
     </View>
   );
@@ -59,6 +86,17 @@ function StepButton({ symbol, disabled, onPress }: { symbol: string; disabled: b
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   value: { minWidth: 76, textAlign: 'center' },
+  input: {
+    minWidth: 76,
+    minHeight: size.touch,
+    textAlign: 'center',
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.border.input,
+    borderRadius: size.touch / 2,
+    backgroundColor: colors.surface.card,
+    paddingHorizontal: space.xs,
+  },
   button: {
     width: size.touch,
     height: size.touch,
