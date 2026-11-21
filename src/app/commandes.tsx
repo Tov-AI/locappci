@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { IconButton } from '@/components/IconButton';
 import { Screen } from '@/components/Screen';
 import { isInProgress, useMyOrders } from '@/data/orders';
+import { useRefreshOrders } from '@/data/queries';
 import { colors, radius, space } from '@/theme';
 import { formatDayShort, toIsoDate } from '@/utils/dates';
 import { formatFcfa } from '@/utils/format';
@@ -28,6 +29,7 @@ export default function CommandesScreen() {
   const router = useRouter();
   const goBack = useGoBack();
   const orders = useMyOrders();
+  useRefreshOrders(orders);
 
   return (
     <Screen>
