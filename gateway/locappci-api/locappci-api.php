@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       LOCAPPCI API
  * Description:       Passerelle entre l'appli mobile LOCAPPCI et le site (WooCommerce, WCFM, location). Lecture seule, sauf les comptes clients et les demandes de location envoyées aux loueurs.
- * Version:           0.5.2
+ * Version:           0.6.0
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            LOCAPPCI
@@ -23,20 +23,22 @@
  * 0.5: « Envoyer aux loueurs »: POST /v1/rental-requests writes the website's own locappci_loc_req records.
  * 0.5.1: phone numbers from other countries are accepted (accounts, login, rental requests).
  * 0.5.2: rental quantity up to 10 000 (was 99); the app no longer stops at 20.
- * Next: delivery and orders.
+ * 0.6.0: GET /v1/delivery-options (home delivery priced by distance, tariff in Outils → LOCAPPCI API; pickup).
+ * Next: orders.
  */
 
 if (!defined('ABSPATH')) {
 	exit; // Never run outside WordPress.
 }
 
-define('LOCAPPCI_API_VERSION', '0.5.2');
+define('LOCAPPCI_API_VERSION', '0.6.0');
 define('LOCAPPCI_API_DIR', __DIR__);
 
 require_once __DIR__ . '/includes/class-errors.php';
 require_once __DIR__ . '/includes/class-catalogue.php';
 require_once __DIR__ . '/includes/class-accounts.php';
 require_once __DIR__ . '/includes/class-rental-requests.php';
+require_once __DIR__ . '/includes/class-delivery.php';
 require_once __DIR__ . '/includes/class-routes.php';
 require_once __DIR__ . '/includes/class-admin.php';
 
