@@ -231,6 +231,30 @@ export type ShopDelivery = { shopId: string; options: DeliveryOption[] };
 /** 'cash' stays in the contract for later; the client said no cash on delivery for v1. */
 export type PaymentMethod = 'wave' | 'orange_money' | 'cash';
 
+/** « Obtenir les coordonnées » (gateway 0.11.0): pay the fee to see one seller's WhatsApp. */
+export type ContactUnlockRequest = {
+  idempotencyKey: string;
+  shopId: string;
+  customer: { name: string; phone: string };
+  paymentMethod: Exclude<PaymentMethod, 'cash'>;
+};
+
+export type ContactUnlock = {
+  /** Opaque: only the phone that asked can read it. */
+  id: string;
+  shopId: string;
+  shopName: string;
+  status: 'pending_payment' | 'awaiting_confirmation' | 'paid' | 'cancelled';
+  paymentMethod: PaymentMethod;
+  /** The fee of the day it was asked, in FCFA. */
+  total: number;
+  transferTo: { number: string; name: string } | null;
+  paymentReference: string | null;
+  createdAt: string;
+  /** Filled once LOCAPPCI has checked the transfer. */
+  contact: { whatsapp: string | null } | null;
+};
+
 export type Customer = {
   name: string;
   /** Digits only, with country code: "2250700000000". */
@@ -344,6 +368,9 @@ export interface LocappciApi {
   submitPaymentReference(orderId: string, reference: string): Promise<Order>;
   createOrder(request: OrderRequest): Promise<Order>;
   getOrder(id: string): Promise<Order>;
+  createContactUnlock(request: ContactUnlockRequest): Promise<ContactUnlock>;
+  getContactUnlock(id: string): Promise<ContactUnlock>;
+  submitContactUnlockReference(id: string, reference: string): Promise<ContactUnlock>;
   createAccount(request: AccountRequest): Promise<Session>;
   login(request: LoginRequest): Promise<Session>;
   /** Ends this phone's session on the server. */

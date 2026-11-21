@@ -212,6 +212,8 @@ on mock data. Each PR description (#2 to #16) lists exactly what was tested.
    `GET /v1/orders/{id}`, `POST /v1/orders/{id}/payment-reference` (0.7.0, PR `feature/25-commandes`). The team validates transfers in
    WooCommerce → Commandes (« En attente » → « En cours » → « Terminée »). **Set the transfer number first** (Outils → LOCAPPCI API, section 5).
    To check on the live site: that each order shows in the right seller's WCFM dashboard.
+7c. ✅ **Paid seller contacts (0.11.0, PR `feature/30-coordonnees-payantes`):** « Obtenir les coordonnées » → transfer + reference →
+   team sets the small order « En cours » → the app shows the seller's WhatsApp.
 7b. ✅ **Marketplace rules (0.10.0, PR `feature/29-modele-marketplace`):** seller contacts hidden until a paid order,
    commission % and contact fee in section 8, delivery « à convenir avec le vendeur » or pickup. Next: paid contact unlock,
    then Espace vendeur (seller sign-up, verification by ID + WhatsApp, owner validation), then the owner dashboard in the app.
