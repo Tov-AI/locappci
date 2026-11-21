@@ -1,5 +1,4 @@
 import { Share, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Tag } from '@/components/Badge';
 import { FavouriteButton } from '@/components/FavouriteButton';
@@ -19,9 +18,11 @@ type Props = {
   rental?: boolean;
 };
 
-/** Top of a detail screen: photos with back, share and favourite on top, "Location" tag for rentals. */
+/**
+ * Top of a detail screen (the screen pads the status bar, so the photo starts below it):
+ * photos with back, share and favourite on top, "Location" tag for rentals.
+ */
 export function PhotoHeader({ productId, images, name, shareMessage, onBack, rental = false }: Props) {
-  const insets = useSafeAreaInsets();
   const [saved, toggleSaved] = useFavourite(productId);
 
   const share = () => {
@@ -34,7 +35,7 @@ export function PhotoHeader({ productId, images, name, shareMessage, onBack, ren
     <View>
       <PhotoCarousel images={images} name={name} rental={rental} />
       {rental ? <Tag label="Location" style={styles.tag} /> : null}
-      <View style={[styles.buttons, { top: insets.top + space.sm }]} pointerEvents="box-none">
+      <View style={[styles.buttons, { top: space.sm }]} pointerEvents="box-none">
         {/* Bordered: photos now sit on white, where a plain white button would disappear. */}
         <IconButton icon="arrow-left" accessibilityLabel="Retour" onPress={onBack} bordered />
         <View style={styles.row}>
@@ -48,12 +49,11 @@ export function PhotoHeader({ productId, images, name, shareMessage, onBack, ren
 
 /** Same shape while the product loads; back already works. */
 export function PhotoHeaderSkeleton({ onBack }: { onBack: () => void }) {
-  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   return (
     <View>
       <Skeleton height={photoHeight(width)} borderRadius={0} />
-      <View style={[styles.buttons, { top: insets.top + space.sm }]}>
+      <View style={[styles.buttons, { top: space.sm }]}>
         <IconButton icon="arrow-left" accessibilityLabel="Retour" onPress={onBack} bordered />
       </View>
     </View>

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { api, type SaleProduct } from '@/api';
 import { AppText } from '@/components/AppText';
@@ -29,6 +30,8 @@ const SIMILAR_CARD_WIDTH = 168;
 
 /** Produit (Feature 6): one product for sale. */
 export function SaleDetail({ product: p, savedAt }: { product: SaleProduct; savedAt: number }) {
+  // The photo starts below the status bar (time, battery), never under it.
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const goBack = useGoBack();
   const queryClient = useQueryClient();
@@ -108,7 +111,7 @@ export function SaleDetail({ product: p, savedAt }: { product: SaleProduct; save
   };
 
   return (
-    <View style={styles.fill}>
+    <View style={[styles.fill, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <PhotoHeader
           productId={p.id}
