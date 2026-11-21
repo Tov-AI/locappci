@@ -62,6 +62,21 @@ final class Locappci_Admin {
 			echo '<div class="notice notice-success"><p>Adresse des signalements enregistrée.</p></div>';
 		}
 
+		if (isset($_POST['locappci_commune']) && is_array($_POST['locappci_commune']) && check_admin_referer('locappci_communes')) {
+			$names = array_column(Locappci_Catalogue::cities(), 'name', 'id');
+			$changed = 0;
+			foreach (wp_unslash($_POST['locappci_commune']) as $vendor => $city_id) {
+				$city_id = sanitize_key((string) $city_id);
+				if ($city_id !== '' && !isset($names[$city_id])) {
+					continue;
+				}
+				Locappci_Catalogue::set_commune((int) $vendor, $city_id === '' ? '' : $names[$city_id]);
+				$changed++;
+			}
+			Locappci_Catalogue::flush_cache();
+			echo '<div class="notice notice-success"><p>Communes des boutiques enregistrées (' . (int) $changed . '). L’appli les utilise tout de suite.</p></div>';
+		}
+
 		$health = Locappci_Routes::health()->get_data();
 		$cities = array_column(Locappci_Catalogue::cities(), 'name');
 		echo '<div class="wrap"><h1>LOCAPPCI API</h1>';
@@ -184,6 +199,26 @@ final class Locappci_Admin {
 			}
 			echo '</tbody></table>';
 		}
+
+		echo '<h2>7. Commune de chaque boutique</h2>';
+		echo '<p>Sert au prix de livraison (distance), au « Retrait en boutique », au filtre par commune et à « Plus proches ». '
+			. 'Choisissez « Hors liste » pour une boutique hors d’Abidjan (ex. Londres) : la livraison y reste « Prix à confirmer ». '
+			. 'Le formulaire boutique du site pourra écrire le même champ plus tard (_locappci_boutique_commune).</p>';
+		$cities = Locappci_Catalogue::cities();
+		echo '<form method="post">';
+		wp_nonce_field('locappci_communes');
+		echo '<table class="widefat striped" style="max-width:900px"><thead><tr><th>Boutique</th><th>Ville saisie par le vendeur</th><th>Commune dans l’appli</th></tr></thead><tbody>';
+		foreach (Locappci_Catalogue::sellers() as $s) {
+			echo '<tr><td>' . esc_html($s['name']) . ($s['record'] ? '' : ' <em>(sans fiche boutique)</em>') . '</td><td>' . esc_html($s['town'] ?: '—') . '</td><td>';
+			echo '<select name="locappci_commune[' . (int) $s['id'] . ']"><option value="">Hors liste / non renseignée</option>';
+			foreach ($cities as $c) {
+				echo '<option value="' . esc_attr($c['id']) . '"' . selected($s['commune'], $c['id'], false) . '>' . esc_html($c['name']) . '</option>';
+			}
+			echo '</select></td></tr>';
+		}
+		echo '</tbody></table>';
+		submit_button('Enregistrer les communes des boutiques');
+		echo '</form>';
 		echo '</div>';
 	}
 
