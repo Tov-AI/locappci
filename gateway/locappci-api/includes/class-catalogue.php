@@ -17,6 +17,9 @@ final class Locappci_Catalogue {
 
 	const CACHE_GROUP = 'locappci';
 
+	/** Commune of a seller who has no validated shop record (set in Outils → LOCAPPCI API, section 7). */
+	const COMMUNE_META = '_locappci_boutique_commune';
+
 	// ---------------------------------------------------------------- cities
 
 	/** @return array<int, array{id: string, name: string, region: string}> */
@@ -400,7 +403,10 @@ final class Locappci_Catalogue {
 		}
 		// The commune the seller chose on the site (client's decision, 10 Nov 2026), then the record's town.
 		// Both are the shop's public place; the WCFM address is the seller's own address.
-		$city = self::match_city($field('commune')) ?: self::match_city($field('ville'));
+		// Outils → LOCAPPCI API section 7 writes the same field, or a user meta for a seller without a record.
+		$city = self::match_city($field('commune'))
+			?: self::match_city((string) get_user_meta($vendor_id, self::COMMUNE_META, true))
+			?: self::match_city($field('ville'));
 		if ($city === '' && !$hide_address) {
 			$city = self::match_city((string) (($settings['address']['city'] ?? '') ?: get_user_meta($vendor_id, 'billing_city', true)));
 		}
@@ -712,6 +718,40 @@ final class Locappci_Catalogue {
 	}
 
 	/** Clear cached shops and vendor lists after a change. */
+	/**
+	 * Every seller with published products, for section 7 of the settings page:
+	 * shop name, the town they typed, and the commune the app uses now.
+	 * @return array<int, array{id: int, name: string, town: string, commune: string, record: int}>
+	 */
+	public static function sellers(): array {
+		$out = [];
+		foreach (get_users(['has_published_posts' => ['product'], 'fields' => 'ID', 'number' => 500]) as $uid) {
+			$uid = (int) $uid;
+			$shop = self::shop($uid);
+			if (!$shop) {
+				continue;
+			}
+			$record = self::boutique_id($uid);
+			$settings = get_user_meta($uid, 'wcfmmp_profile_settings', true);
+			$town = $record ? trim((string) get_post_meta($record, '_locappci_boutique_ville', true)) : '';
+			$town = $town ?: (is_array($settings) ? (string) ($settings['address']['city'] ?? '') : '');
+			$out[] = ['id' => $uid, 'name' => $shop['name'], 'town' => $town, 'commune' => $shop['cityId'], 'record' => $record];
+		}
+		usort($out, fn($a, $b) => strcasecmp($a['name'], $b['name']));
+		return $out;
+	}
+
+	/** Saves a seller's commune (its name as in the list, or '' to clear) where shop() reads it. */
+	public static function set_commune(int $vendor_id, string $name): void {
+		$record = self::boutique_id($vendor_id);
+		if ($record) {
+			$name === '' ? delete_post_meta($record, '_locappci_boutique_commune') : update_post_meta($record, '_locappci_boutique_commune', $name);
+			delete_user_meta($vendor_id, self::COMMUNE_META);
+		} else {
+			$name === '' ? delete_user_meta($vendor_id, self::COMMUNE_META) : update_user_meta($vendor_id, self::COMMUNE_META, $name);
+		}
+	}
+
 	public static function flush_cache(): void {
 		foreach (['all', 'vente', 'location'] as $u) {
 			delete_transient('locappci_categories_' . $u);

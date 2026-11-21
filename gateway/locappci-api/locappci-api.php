@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       LOCAPPCI API
  * Description:       Passerelle entre l'appli mobile LOCAPPCI et le site (WooCommerce, WCFM, location). Lecture seule, sauf les comptes clients et les demandes de location envoyées aux loueurs.
- * Version:           0.8.0
+ * Version:           0.9.0
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            LOCAPPCI
@@ -27,6 +27,7 @@
  * 0.7.0: orders: POST /v1/orders (real WooCommerce orders), GET /v1/orders/{id}, POST …/payment-reference;
  *        transfer number in Outils → LOCAPPCI API (section 5).
  * 0.8.0: « Signaler cette annonce »: POST /v1/products/{id}/reports, e-mailed to the team and listed in section 6.
+ * 0.9.0: section 7 of Outils → LOCAPPCI API sets each shop's commune (delivery price, pickup, commune filter).
  * Next: Wave / Orange Money hand-off and push notifications (waiting on the client).
  */
 
@@ -34,7 +35,7 @@ if (!defined('ABSPATH')) {
 	exit; // Never run outside WordPress.
 }
 
-define('LOCAPPCI_API_VERSION', '0.8.0');
+define('LOCAPPCI_API_VERSION', '0.9.0');
 define('LOCAPPCI_API_DIR', __DIR__);
 
 require_once __DIR__ . '/includes/class-errors.php';

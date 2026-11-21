@@ -64,7 +64,7 @@ logo, none hides the phone. **None matches a commune** of the app's list (the sa
 Sellers write a town, not an Abidjan commune, and several are outside Abidjan. The list of places is editable in
 Outils → LOCAPPCI API (section 3), so towns can be added without code, but the client decided (10 Nov) that **sellers will choose a commune on the site**: the shop record needs a commune
 field, which the gateway reads before `ville` since 0.3.2: **`_locappci_boutique_commune`**, holding the commune's name
-exactly as in the app's list (Outils → LOCAPPCI API, section 3). The site's shop form still has to write it.
+exactly as in the app's list (Outils → LOCAPPCI API, section 3). The site's shop form still has to write it. **Since 0.9.0** the team can set it in Outils → LOCAPPCI API, section 7 (one dropdown per shop); for a seller without a validated record it is saved as the user meta `_locappci_boutique_commune`, read after the record's field and before `ville`.
 
 ## Where the custom code is (Code Snippets export, 1 Nov)
 
