@@ -24,7 +24,7 @@ import { clearToast, showToast } from '@/components/Toast';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { useCity } from '@/data/city';
 import { useOnline } from '@/data/online';
-import { useCities, useShop } from '@/data/queries';
+import { useCities, useLocappciWhatsapp, useShop } from '@/data/queries';
 import { putRequestLine, useRequestLine } from '@/data/rentalRequest';
 import { colors, radius, size, space } from '@/theme';
 import { addDays, formatDayCompact, formatDays, formatDayShort, today, type IsoDate } from '@/utils/dates';
@@ -50,6 +50,7 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
   const goBack = useGoBack();
   const online = useOnline();
   const shop = useShop(p.shopId);
+  const locappciWhatsapp = useLocappciWhatsapp();
   const cities = useCities();
   const myCity = useCity();
   const inRequest = useRequestLine(p.id);
@@ -255,14 +256,15 @@ export function RentalDetail({ product: p, savedAt }: { product: RentalProduct; 
       <BottomActionBar
         summary={`${formatDays(days)} · ${formatUnits(quantity)}`}
         total={priced ? `≈ ${formatFcfa(estimate)}` : 'Prix à confirmer'}>
-        {shop.data?.whatsapp ? (
+        {/* Seller contacts are paid (client, 21 Nov): questions go to LOCAPPCI, who knows the loueur. */}
+        {locappciWhatsapp ? (
           <WhatsAppButton
-            number={shop.data.whatsapp}
-            name={shop.data.name}
+            number={locappciWhatsapp}
+            name="LOCAPPCI"
             message={
-              `Bonjour ${shop.data.name}, je voudrais louer « ${p.name} »` +
+              `Bonjour LOCAPPCI, je voudrais louer « ${p.name} »${shop.data ? ` (${shop.data.name})` : ''}` +
               `${quantity > 1 ? ` (${formatUnits(quantity)})` : ''} ${formatDays(days)} à partir du ${formatDayShort(start)}` +
-              `${cityName ? ` à ${cityName}` : ''} sur LOCAPPCI. Est-ce disponible ?\n${p.webUrl}`
+              `${cityName ? ` à ${cityName}` : ''}. Est-ce disponible ?\n${p.webUrl}`
             }
           />
         ) : null}

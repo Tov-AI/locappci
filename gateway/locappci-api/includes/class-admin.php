@@ -37,6 +37,17 @@ final class Locappci_Admin {
 			}
 		}
 
+		if (isset($_POST['locappci_commission_rate']) && check_admin_referer('locappci_marketplace')) {
+			$rate = (float) str_replace(',', '.', sanitize_text_field(wp_unslash($_POST['locappci_commission_rate'])));
+			$fee = (int) preg_replace('/\D+/', '', sanitize_text_field(wp_unslash($_POST['locappci_contact_fee'] ?? '')));
+			if ($rate < 0 || $rate > 100) {
+				echo '<div class="notice notice-error"><p>La commission doit être entre 0 et 100 %.</p></div>';
+			} else {
+				update_option('locappci_commission_rate', round($rate, 2));
+				update_option('locappci_contact_fee', $fee);
+				echo '<div class="notice notice-success"><p>Commission et prix des coordonnées enregistrés.</p></div>';
+			}
+		}
 		if (isset($_POST['locappci_delivery_base']) && check_admin_referer('locappci_delivery')) {
 			$base = (int) preg_replace('/\D+/', '', sanitize_text_field(wp_unslash($_POST['locappci_delivery_base'])));
 			$per_km = (int) preg_replace('/\D+/', '', sanitize_text_field(wp_unslash($_POST['locappci_delivery_per_km'] ?? '')));
@@ -153,18 +164,8 @@ final class Locappci_Admin {
 		submit_button('Enregistrer les communes');
 		echo '</form>';
 
-		$t = Locappci_Delivery::tariff();
-		echo '<h2>4. Livraison à domicile (tarif)</h2>';
-		echo '<p>Prix = prise en charge + prix par km, arrondi à 100 FCFA. Distance estimée entre la commune de la boutique et celle du client. '
-			. 'Hors des communes connues (ex. boutique à Londres) : « Prix à confirmer », la boutique fixe le prix avec le client.</p>';
-		echo '<form method="post">';
-		wp_nonce_field('locappci_delivery');
-		echo '<p><label>Prise en charge (FCFA) <input type="number" min="0" step="100" name="locappci_delivery_base" value="' . esc_attr((string) $t['base']) . '"></label></p>';
-		echo '<p><label>Prix par km (FCFA) <input type="number" min="0" step="10" name="locappci_delivery_per_km" value="' . esc_attr((string) $t['perKm']) . '"></label></p>';
-		echo '<p>Exemple : Cocody → Yopougon ≈ ' . esc_html((string) Locappci_Delivery::road_km('cocody', 'yopougon')) . ' km = '
-			. esc_html(number_format(Locappci_Delivery::price((int) Locappci_Delivery::road_km('cocody', 'yopougon')), 0, ',', ' ')) . ' FCFA.</p>';
-		submit_button('Enregistrer le tarif');
-		echo '</form>';
+		echo '<h2>4. Livraison</h2><p>L’acheteur choisit « À domicile » (à convenir avec le vendeur) ou « Retrait en boutique ». '
+			. 'Le vendeur s’en occupe : LOCAPPCI ne calcule plus de prix de livraison.</p>';
 
 		$tr = Locappci_Orders::transfer_to();
 		echo '<h2>5. Paiement des commandes de l’appli</h2>';
@@ -201,7 +202,7 @@ final class Locappci_Admin {
 		}
 
 		echo '<h2>7. Commune de chaque boutique</h2>';
-		echo '<p>Sert au prix de livraison (distance), au « Retrait en boutique », au filtre par commune et à « Plus proches ». '
+		echo '<p>Sert au « Retrait en boutique », au filtre par commune et à « Plus proches ». '
 			. 'Choisissez « Hors liste » pour une boutique hors d’Abidjan (ex. Londres) : la livraison y reste « Prix à confirmer ». '
 			. 'Le formulaire boutique du site pourra écrire le même champ plus tard (_locappci_boutique_commune).</p>';
 		$cities = Locappci_Catalogue::cities();
@@ -218,6 +219,21 @@ final class Locappci_Admin {
 		}
 		echo '</tbody></table>';
 		submit_button('Enregistrer les communes des boutiques');
+		echo '</form>';
+
+		$rate = Locappci_Marketplace::commission_rate();
+		$fee = Locappci_Marketplace::contact_fee();
+		echo '<h2>8. Commission et coordonnées des vendeurs</h2>';
+		echo '<p>La commission est gardée par LOCAPPCI sur le prix des articles de chaque commande payée dans l’appli (le taux du jour est noté dans la commande). '
+			. 'Les coordonnées (téléphone, WhatsApp) des vendeurs ne sont pas affichées gratuitement : l’acheteur les voit après une commande payée chez ce vendeur, '
+			. 'ou en payant le prix ci-dessous (bientôt dans l’appli).</p>';
+		echo '<form method="post">';
+		wp_nonce_field('locappci_marketplace');
+		echo '<p><label>Commission LOCAPPCI (%) <input type="number" min="0" max="100" step="0.5" name="locappci_commission_rate" value="' . esc_attr((string) $rate) . '"></label></p>';
+		echo '<p><label>Prix des coordonnées d’un vendeur (FCFA) <input type="number" min="0" step="100" name="locappci_contact_fee" value="' . esc_attr((string) $fee) . '"></label></p>';
+		echo '<p>Exemple : une commande de 10 000 FCFA → LOCAPPCI garde ' . esc_html(number_format(Locappci_Marketplace::commission(10000), 0, ',', ' ')) . ' FCFA, le vendeur reçoit '
+			. esc_html(number_format(10000 - Locappci_Marketplace::commission(10000), 0, ',', ' ')) . ' FCFA.</p>';
+		submit_button('Enregistrer la commission et le prix');
 		echo '</form>';
 		echo '</div>';
 	}

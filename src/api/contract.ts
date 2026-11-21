@@ -182,6 +182,8 @@ export type RentalRequestReceipt = {
 export type AppConfig = {
   /** LOCAPPCI WhatsApp (support and rental requests), digits with country code. */
   whatsapp: string | null;
+  /** Price in FCFA to get a seller's contact details (gateway 0.10.0), null until the owner sets it. */
+  contactFee?: number | null;
 };
 
 /** One cart line sent for the check before payment (sale products only). */
