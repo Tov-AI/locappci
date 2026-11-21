@@ -137,7 +137,7 @@ final class Locappci_Rental_Requests {
 				return self::fail($label . ' : durée possible de ' . $rental['minDays'] . ' à ' . $rental['maxDays'] . ' jours.');
 			}
 			$qty = $item['quantity'] ?? null;
-			if (!is_int($qty) || $qty < 1 || $qty > 99) {
+			if (!is_int($qty) || $qty < 1 || $qty > 10000) {
 				return self::fail($label . ' : quantité invalide.');
 			}
 			$city = self::city_name(is_string($item['cityId'] ?? null) ? $item['cityId'] : '');
