@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * REST routes under /wp-json/locappci/v1. Read-only except customer accounts (class-accounts.php) and rental requests (class-rental-requests.php).
+ * REST routes under /wp-json/locappci/v1. Read-only except customer accounts (class-accounts.php) and rental requests (class-rental-requests.php). Delivery options: class-delivery.php.
  * The app's base URL is https://<site>/wp-json/locappci (it adds /v1/...).
  */
 final class Locappci_Routes {
@@ -22,6 +22,7 @@ final class Locappci_Routes {
 		register_rest_route(self::NS, '/shops/(?P<id>\d+)', ['methods' => 'GET', 'callback' => [self::class, 'shop'], 'permission_callback' => $public]);
 		register_rest_route(self::NS, '/cart/check', ['methods' => 'POST', 'callback' => [self::class, 'cart_check'], 'permission_callback' => $public]);
 		register_rest_route(self::NS, '/config', ['methods' => 'GET', 'callback' => [self::class, 'config'], 'permission_callback' => $public]);
+		register_rest_route(self::NS, '/delivery-options', ['methods' => 'GET', 'callback' => ['Locappci_Delivery', 'options'], 'permission_callback' => $public]);
 		register_rest_route(self::NS, '/rental-requests', ['methods' => 'POST', 'callback' => ['Locappci_Rental_Requests', 'send'], 'permission_callback' => $public]);
 
 		// Accounts. "Public" here means "no WordPress cookie": each callback checks the password or the app session itself.
@@ -49,6 +50,7 @@ final class Locappci_Routes {
 				'rental'      => class_exists('RedQ_Rental_And_Bookings') || post_type_exists('inventory') || term_exists('redq_rental', 'product_type') !== null,
 				'accounts'    => true,
 				'rentalRequests' => true,
+				'delivery'    => true,
 				'jwt'         => defined('SIMPLE_JWT_LOGIN_PLUGIN_PATH') || class_exists('SimpleJWTLogin\\Modules\\SimpleJWTLoginSettings'),
 			],
 		], 200));

@@ -37,6 +37,14 @@ final class Locappci_Admin {
 			}
 		}
 
+		if (isset($_POST['locappci_delivery_base']) && check_admin_referer('locappci_delivery')) {
+			$base = (int) preg_replace('/\D+/', '', sanitize_text_field(wp_unslash($_POST['locappci_delivery_base'])));
+			$per_km = (int) preg_replace('/\D+/', '', sanitize_text_field(wp_unslash($_POST['locappci_delivery_per_km'] ?? '')));
+			update_option('locappci_delivery_base', $base);
+			update_option('locappci_delivery_per_km', $per_km);
+			echo '<div class="notice notice-success"><p>Tarif de livraison enregistré.</p></div>';
+		}
+
 		$health = Locappci_Routes::health()->get_data();
 		$cities = array_column(Locappci_Catalogue::cities(), 'name');
 		echo '<div class="wrap"><h1>LOCAPPCI API</h1>';
@@ -111,6 +119,19 @@ final class Locappci_Admin {
 		echo '<p><label>Une commune par ligne<br><textarea name="locappci_cities" rows="10" cols="40">' . esc_textarea(implode("\n", $cities)) . '</textarea></label></p>';
 		echo '<p><label>Région <input name="locappci_region" value="' . esc_attr(get_option('locappci_region', 'Abidjan')) . '"></label></p>';
 		submit_button('Enregistrer les communes');
+		echo '</form>';
+
+		$t = Locappci_Delivery::tariff();
+		echo '<h2>4. Livraison à domicile (tarif)</h2>';
+		echo '<p>Prix = prise en charge + prix par km, arrondi à 100 FCFA. Distance estimée entre la commune de la boutique et celle du client. '
+			. 'Hors des communes connues (ex. boutique à Londres) : « Prix à confirmer », la boutique fixe le prix avec le client.</p>';
+		echo '<form method="post">';
+		wp_nonce_field('locappci_delivery');
+		echo '<p><label>Prise en charge (FCFA) <input type="number" min="0" step="100" name="locappci_delivery_base" value="' . esc_attr((string) $t['base']) . '"></label></p>';
+		echo '<p><label>Prix par km (FCFA) <input type="number" min="0" step="10" name="locappci_delivery_per_km" value="' . esc_attr((string) $t['perKm']) . '"></label></p>';
+		echo '<p>Exemple : Cocody → Yopougon ≈ ' . esc_html((string) Locappci_Delivery::road_km('cocody', 'yopougon')) . ' km = '
+			. esc_html(number_format(Locappci_Delivery::price((int) Locappci_Delivery::road_km('cocody', 'yopougon')), 0, ',', ' ')) . ' FCFA.</p>';
+		submit_button('Enregistrer le tarif');
 		echo '</form></div>';
 	}
 

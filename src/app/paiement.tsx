@@ -133,6 +133,8 @@ export default function PaiementScreen() {
   const chosen = (delivery.data ?? []).map((s) => s.options.find((o) => o.id === choices[s.shopId]));
   const homeDelivery = chosen.some((o) => o?.kind === 'home');
   const deliveryTotal = chosen.reduce((sum, o) => sum + (o?.price ?? 0), 0);
+  // A home delivery whose price the shop confirms later: never say « gratuite ».
+  const deliveryToConfirm = chosen.some((o) => o?.toConfirm);
   const totals = cartTotals(items);
   const total = totals.total + deliveryTotal;
   const count = totals.saleUnits;
@@ -356,7 +358,7 @@ export default function PaiementScreen() {
                         key={o.id}
                         label={o.label}
                         // Price and detail on two lines: two cards side by side are narrow on a 360 phone.
-                        hint={`${o.price > 0 ? formatFcfa(o.price) : 'Gratuit'}\n${o.detail}`}
+                        hint={`${o.toConfirm ? 'Prix à confirmer' : o.price > 0 ? formatFcfa(o.price) : 'Gratuit'}\n${o.detail}`}
                         hideRadio
                         selected={choices[s.shopId] === o.id}
                         onSelect={() => setChoices((c) => ({ ...c, [s.shopId]: o.id }))}
@@ -386,7 +388,18 @@ export default function PaiementScreen() {
 
           <SectionCard title="Récapitulatif">
             <Row label={`Articles (${count})`} value={formatFcfa(totals.total)} />
-            <Row label="Livraison" value={deliveryTotal ? formatFcfa(deliveryTotal) : 'Gratuite'} />
+            <Row
+              label="Livraison"
+              value={
+                deliveryToConfirm
+                  ? deliveryTotal
+                    ? `${formatFcfa(deliveryTotal)} + à confirmer`
+                    : 'À confirmer'
+                  : deliveryTotal
+                    ? formatFcfa(deliveryTotal)
+                    : 'Gratuite'
+              }
+            />
             <View style={styles.divider} />
             <Row label="Total" value={formatFcfa(total)} strong />
           </SectionCard>
@@ -395,7 +408,7 @@ export default function PaiementScreen() {
         <BottomActionBar
           summary={
             online
-              ? `${count} article${count > 1 ? 's' : ''} · livraison ${deliveryTotal ? 'incluse' : 'gratuite'}`
+              ? `${count} article${count > 1 ? 's' : ''} · livraison ${deliveryToConfirm ? 'à confirmer' : deliveryTotal ? 'incluse' : 'gratuite'}`
               : 'Connexion nécessaire pour payer'
           }
           total={formatFcfa(total)}>

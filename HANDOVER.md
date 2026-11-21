@@ -208,7 +208,7 @@ on mock data. Each PR description (#2 to #16) lists exactly what was tested.
    already built against the contract.
    Since 0.5.1 the forms also accept **phone numbers from other countries** (`+33…`, `+44…`): the app needs a
    new build for that.
-6. **Orders:** `GET /v1/delivery-options`, `POST /v1/orders` (idempotent, re-checks the cart, `409 cart_changed`),
+6. **Orders:** ✅ `GET /v1/delivery-options` (0.6.0, PR `feature/24-options-livraison`), then `POST /v1/orders` (idempotent, re-checks the cart, `409 cart_changed`),
    `GET /v1/orders/{id}`, `POST /v1/orders/{id}/payment-reference`. The team validates transfers in WordPress.
 7. **Reports:** `POST /v1/products/{id}/reports` (email to the admin is enough at first).
 8. Later and blocked on the client: **Feature 15** Wave / Orange Money hand-off (needs merchant accounts),

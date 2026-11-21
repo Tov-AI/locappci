@@ -216,6 +216,11 @@ export type DeliveryOption = {
   price: Fcfa;
   /** Short, shown under the price: "24–48 h", "Yopougon". */
   detail: string;
+  /**
+   * The distance can't be worked out (shop or address outside the known communes, e.g. a London shop):
+   * `price` is 0 and the shop confirms the price with the customer. Shown « Prix à confirmer », never « Gratuit ».
+   */
+  toConfirm?: boolean;
 };
 
 /** Delivery choices of one shop (each shop delivers or hands over its own items). */
