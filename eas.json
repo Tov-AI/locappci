@@ -10,13 +10,15 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://locappci.fr/wp-json/locappci"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://locappci.fr/wp-json/locappci"
-      }
+      },
+      "channel": "production"
     }
   }
 }
