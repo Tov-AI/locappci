@@ -119,13 +119,16 @@ export const useCartCheck = () =>
     networkMode: 'online',
   });
 
-/** Delivery choices for the shops in the cart, priced for the commune `cityId`. Keeps the last prices while the commune changes. */
+/**
+ * Delivery choices for the shops in the cart, priced for the commune `cityId`. Keeps the last prices while the commune changes.
+ * Always asked again when Paiement opens: the tariff or a shop's commune can change in WordPress at any time.
+ */
 export const useDeliveryOptions = (shopIds: string[], cityId?: string) =>
   useQuery({
     queryKey: keys.deliveryOptions(shopIds, cityId),
     queryFn: () => api.getDeliveryOptions(shopIds, cityId),
     enabled: shopIds.length > 0,
-    staleTime: 10 * 60_000,
+    staleTime: 0,
     placeholderData: (previous) => previous,
   });
 
