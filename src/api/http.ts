@@ -95,6 +95,10 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     deleteAccount: (req) => request('POST', '/v1/accounts/delete', undefined, req, true),
     createAccount: (req) => request('POST', '/v1/accounts', undefined, req),
     getOrder: (id) => get(`/v1/orders/${encodeURIComponent(id)}`),
+    createContactUnlock: (req) => request('POST', '/v1/contact-unlocks', undefined, req),
+    getContactUnlock: (id) => get(`/v1/contact-unlocks/${encodeURIComponent(id)}`),
+    submitContactUnlockReference: (id, reference) =>
+      request('POST', `/v1/contact-unlocks/${encodeURIComponent(id)}/payment-reference`, undefined, { reference }),
     checkCart: (lines) => request('POST', '/v1/cart/check', undefined, { lines }),
     reportProduct: (productId, report) =>
       request('POST', `/v1/products/${encodeURIComponent(productId)}/reports`, undefined, report),

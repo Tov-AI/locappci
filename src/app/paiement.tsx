@@ -444,6 +444,7 @@ export default function PaiementScreen() {
             showNotice({ text: 'Paiement non terminé. Votre commande vous attend : appuyez à nouveau sur le bouton pour payer.' });
           }}
           order={pending}
+          note={`Commande ${pending.number}. LOCAPPCI vérifie le transfert puis confirme votre commande.`}
           onSubmit={submitReference}
         />
       ) : null}

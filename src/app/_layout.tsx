@@ -22,6 +22,7 @@ import { loadCustomer } from '@/data/customer';
 import { loadRentalRequest } from '@/data/rentalRequest';
 import { loadFavourites } from '@/data/favourites';
 import { loadNotificationAnswer } from '@/data/notifications';
+import { loadContactUnlocks } from '@/data/contactUnlocks';
 import { loadOrders } from '@/data/orders';
 import { startOnlineTracking } from '@/data/online';
 import { loadRecentSearches } from '@/data/recentSearches';
@@ -41,6 +42,7 @@ loadAccount();
 loadRentalRequest();
 loadNotificationAnswer();
 loadOrders();
+loadContactUnlocks();
 
 /** Expo Router shows this when any screen throws while rendering. */
 export function ErrorBoundary(props: ErrorBoundaryProps) {

@@ -221,7 +221,8 @@ final class Locappci_Orders {
 	// ---------------------------------------------------------------- read
 
 	/** "<id>-<order key>" → the order, or null (wrong key looks the same as no order). */
-	private static function from_app_id(string $app_id): ?WC_Order {
+	/** Also used by class-contacts.php (contact unlocks are small orders too). */
+	public static function from_app_id(string $app_id): ?WC_Order {
 		if (!preg_match('/^(\d+)-(wc_order_[A-Za-z0-9]+)$/', $app_id, $m)) {
 			return null;
 		}

@@ -226,7 +226,7 @@ final class Locappci_Admin {
 		echo '<h2>8. Commission et coordonnées des vendeurs</h2>';
 		echo '<p>La commission est gardée par LOCAPPCI sur le prix des articles de chaque commande payée dans l’appli (le taux du jour est noté dans la commande). '
 			. 'Les coordonnées (téléphone, WhatsApp) des vendeurs ne sont pas affichées gratuitement : l’acheteur les voit après une commande payée chez ce vendeur, '
-			. 'ou en payant le prix ci-dessous (bientôt dans l’appli).</p>';
+			. 'ou en payant le prix ci-dessous (« Obtenir les coordonnées » dans l’appli ; à valider comme une commande : « En attente » → « En cours »).</p>';
 		echo '<form method="post">';
 		wp_nonce_field('locappci_marketplace');
 		echo '<p><label>Commission LOCAPPCI (%) <input type="number" min="0" max="100" step="0.5" name="locappci_commission_rate" value="' . esc_attr((string) $rate) . '"></label></p>';

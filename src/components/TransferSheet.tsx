@@ -13,7 +13,10 @@ import { formatPhone } from '@/utils/phone';
 type Props = {
   visible: boolean;
   onClose: () => void;
-  order: Order;
+  /** What to pay: an order, or a contact unlock (same three fields). */
+  order: Pick<Order, 'paymentMethod' | 'total' | 'transferTo'>;
+  /** Line under the field, e.g. « Commande LOC-123. LOCAPPCI vérifie… ». */
+  note: string;
   /** Sends the reference; resolves with an error message, or undefined on success. */
   onSubmit: (reference: string) => Promise<string | undefined>;
 };
@@ -25,7 +28,7 @@ const PROVIDER = { wave: 'Wave', orange_money: 'Orange Money', cash: '' } as con
  * to the LOCAPPCI number, then type the transaction reference received by SMS.
  * The team checks the transfer and confirms the order.
  */
-export function TransferSheet({ visible, onClose, order, onSubmit }: Props) {
+export function TransferSheet({ visible, onClose, order, note, onSubmit }: Props) {
   const [reference, setReference] = useState('');
   const [error, setError] = useState<string | undefined>();
   const [sending, setSending] = useState(false);
@@ -86,7 +89,7 @@ export function TransferSheet({ visible, onClose, order, onSubmit }: Props) {
         error={error}
       />
       <AppText variant="meta" color={colors.text.muted}>
-        {`Commande ${order.number}. LOCAPPCI vérifie le transfert puis confirme votre commande.`}
+        {note}
       </AppText>
     </BottomSheet>
   );

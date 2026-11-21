@@ -110,3 +110,16 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - **`GET /v1/config`** also returns `contactFee` (FCFA to get a seller's contacts, `null` until set). The paid unlock itself comes next.
 - **Commission**: LOCAPPCI's % (Outils → LOCAPPCI API, section 8) is applied to the items total of each app order and frozen in the order (`_locappci_commission`: rate + amount, also in the order note).
 - **Delivery**: no platform price any more. `delivery-options` returns, for every shop, « À domicile » (`price: 0`, `toConfirm: true`, « À convenir avec le vendeur ») and « Retrait en boutique » (the shop's commune, or « Adresse donnée par le vendeur »). The distance tariff of 0.6.0 is no longer used.
+
+## Paid seller contacts (gateway 0.11.0)
+
+| Method | Path | Body | Answer |
+| --- | --- | --- | --- |
+| POST | `/v1/contact-unlocks` | `ContactUnlockRequest`: `{ idempotencyKey, shopId, customer: { name, phone }, paymentMethod: "wave" \| "orange_money" }` | `201 ContactUnlock` |
+| GET | `/v1/contact-unlocks/{id}` | — | `ContactUnlock` |
+| POST | `/v1/contact-unlocks/{id}/payment-reference` | `{ reference }` | `ContactUnlock` |
+
+- Each unlock is a small WooCommerce order (`_locappci_kind = contact`, one fee line « Coordonnées du vendeur – <shop> ») at the fee of the day (section 8). The team validates it like an order: « En attente » → « En cours ».
+- `contact.whatsapp` is filled only once paid (read live, so a new seller number shows). `id` = `<order id>-<order key>`, readable only by the phone that asked.
+- `503 unavailable` while the fee (section 8) or the transfer number (section 5) is not set; `404` unknown shop; `400` shop without a number. Idempotent; 10 per hour per network.
+- App: « Obtenir les coordonnées · 2 000 FCFA » under the seller row (sale and rental pages), hidden until `config.contactFee` is set. Unlocks are kept on the phone (`locappci.contactUnlocks.v1`).
