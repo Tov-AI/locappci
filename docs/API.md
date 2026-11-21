@@ -6,7 +6,7 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 ## Basics
 
 - **Base URL:** set in the app with `EXPO_PUBLIC_API_URL`. The gateway is the WordPress plugin in `gateway/locappci-api`, so the value is `https://locappci.fr/wp-json/locappci` (the app adds `/v1/…`). With no value, the app uses the mock in `src/api/mock/`.
-- **Implementation status:** plugin 0.7.0 implements `health`, `config`, `cities`, `categories`, `products` (list, `ids`, detail, `stock`), `shops`, `cart/check` and **accounts** (`session`, `session/logout`, `account`, `accounts`, `accounts/delete`). **`rental-requests`** (signed in; writes the website's own `locappci_loc_req` records). **`delivery-options`** (0.6.0). **`orders`**, **`orders/{id}`**, **`orders/{id}/payment-reference`** (0.7.0, real WooCommerce orders). **`products/{id}/reports`** (0.8.0).
+- **Implementation status:** plugin 0.7.0 implements `health`, `config`, `cities`, `categories`, `products` (list, `ids`, detail, `stock`), `shops`, `cart/check` and **accounts** (`session`, `session/logout`, `account`, `accounts`, `accounts/delete`). **`rental-requests`** (signed in; writes the website's own `locappci_loc_req` records). **`delivery-options`** (0.6.0). **`orders`**, **`orders/{id}`**, **`orders/{id}/payment-reference`** (0.7.0, real WooCommerce orders). **`products/{id}/reports`** (0.8.0). **0.10.0 marketplace rules** (see below).
 - **Format:** JSON, UTF-8. Field names in camelCase, exactly as in `contract.ts`.
 - **Money:** whole FCFA as integers (`18500`, never `"18 500"` or `18500.00`).
 - **Dates:** ISO 8601 UTC strings.
@@ -103,3 +103,10 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 2. Update the mock (`src/api/mock/`) so the app still runs without the gateway.
 3. If a field's shape changes, bump `buster` in `src/data/queryClient.ts` so phones drop old cached data.
 4. Both the app owner and the gateway owner approve.
+
+## Marketplace rules (gateway 0.10.0, client 21 Nov 2026)
+
+- **Seller contacts are paid.** `GET /v1/shops/{id}` always returns `whatsapp: null`. In an order, each shop's `whatsapp` is filled only once the order is paid (WooCommerce « En cours » or « Terminée »). The app's WhatsApp button on product pages writes to LOCAPPCI instead.
+- **`GET /v1/config`** also returns `contactFee` (FCFA to get a seller's contacts, `null` until set). The paid unlock itself comes next.
+- **Commission**: LOCAPPCI's % (Outils → LOCAPPCI API, section 8) is applied to the items total of each app order and frozen in the order (`_locappci_commission`: rate + amount, also in the order note).
+- **Delivery**: no platform price any more. `delivery-options` returns, for every shop, « À domicile » (`price: 0`, `toConfirm: true`, « À convenir avec le vendeur ») and « Retrait en boutique » (the shop's commune, or « Adresse donnée par le vendeur »). The distance tariff of 0.6.0 is no longer used.

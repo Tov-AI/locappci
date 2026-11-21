@@ -21,7 +21,7 @@ import { clearToast, showToast } from '@/components/Toast';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { addToCart, useCartQuantity } from '@/data/cart';
 import { useOnline } from '@/data/online';
-import { keys, useCategories, useCities, useShop, useSimilarProducts, useStockCheck } from '@/data/queries';
+import { keys, useCategories, useCities, useLocappciWhatsapp, useShop, useSimilarProducts, useStockCheck } from '@/data/queries';
 import { colors, space } from '@/theme';
 import { formatFcfa, formatTime } from '@/utils/format';
 import { useGoBack } from '@/utils/navigation';
@@ -37,6 +37,7 @@ export function SaleDetail({ product: p, savedAt }: { product: SaleProduct; save
   const queryClient = useQueryClient();
   const online = useOnline();
   const shop = useShop(p.shopId);
+  const locappciWhatsapp = useLocappciWhatsapp();
   const cities = useCities();
   const categories = useCategories();
   const similar = useSimilarProducts(p.id, p.universe, p.categoryId);
@@ -187,13 +188,14 @@ export function SaleDetail({ product: p, savedAt }: { product: SaleProduct; save
       </ScrollView>
 
       <BottomActionBar summary={inCart > 0 ? `Déjà ${inCart} dans votre panier` : undefined}>
-        {shop.data?.whatsapp ? (
+        {/* Seller contacts are paid (client, 21 Nov): questions go to LOCAPPCI, who knows the seller. */}
+        {locappciWhatsapp ? (
           <WhatsAppButton
-            number={shop.data.whatsapp}
-            name={shop.data.name}
+            number={locappciWhatsapp}
+            name="LOCAPPCI"
             message={
-              `Bonjour ${shop.data.name}, je suis intéressé(e) par « ${p.name} » à ${price} sur LOCAPPCI. ` +
-              `Est-il toujours disponible ?\n${p.webUrl}`
+              `Bonjour LOCAPPCI, je suis intéressé(e) par « ${p.name} » à ${price}` +
+              `${shop.data ? ` (boutique ${shop.data.name})` : ''}. Est-il toujours disponible ?\n${p.webUrl}`
             }
           />
         ) : null}

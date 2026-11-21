@@ -23,6 +23,7 @@ final class Locappci_Orders {
 	const META_TRANSFER = '_locappci_transfer_to';
 	const META_METHOD = '_locappci_payment_method';
 	const META_REFERENCE = '_locappci_payment_reference';
+	const META_COMMISSION = '_locappci_commission';
 	const REFERENCE = '/^[A-Za-z0-9._-]{6,40}$/';
 	const MAX_PER_HOUR = 10;
 	const METHODS = ['wave' => 'Wave (transfert)', 'orange_money' => 'Orange Money (transfert)'];
@@ -193,7 +194,12 @@ final class Locappci_Orders {
 		$order->update_meta_data(self::META_CUSTOMER, ['name' => $name, 'phone' => $phone, 'address' => $address]);
 		$order->update_meta_data(self::META_TRANSFER, $transfer);
 		$order->calculate_totals(false);
-		$order->set_status('pending', 'Commande passée depuis l’appli LOCAPPCI. En attente du transfert ' . self::METHODS[$method] . '.');
+		// LOCAPPCI's share, frozen at the rate of the day (section 8): a later change does not touch old orders.
+		$items_total = (int) round((float) $order->get_subtotal());
+		$commission = ['rate' => Locappci_Marketplace::commission_rate(), 'amount' => Locappci_Marketplace::commission($items_total)];
+		$order->update_meta_data(self::META_COMMISSION, $commission);
+		$order->set_status('pending', 'Commande passée depuis l’appli LOCAPPCI. En attente du transfert ' . self::METHODS[$method] . '. '
+			. 'Commission LOCAPPCI : ' . $commission['rate'] . ' % = ' . number_format($commission['amount'], 0, ',', ' ') . ' FCFA.');
 		$order->save();
 		// WCFM builds each shop's order list from this hook, as for an order placed on the website.
 		do_action('woocommerce_checkout_order_processed', $order->get_id(), [], $order);
@@ -280,8 +286,13 @@ final class Locappci_Orders {
 		[$status, $step] = self::status($o);
 		$shipping = (int) round((float) $o->get_shipping_total());
 		$total = (int) round((float) $o->get_total());
-		$shops = array_map(function ($s) {
+		// Client: the seller's WhatsApp is shown once the buyer has paid (« En cours » or « Terminée »), not before.
+		$paid = $status === 'paid';
+		$shops = array_map(function ($s) use ($paid) {
 			unset($s['delivery']['price'], $s['delivery']['toConfirm']);
+			if (!$paid) {
+				$s['whatsapp'] = null;
+			}
 			return $s;
 		}, (array) $o->get_meta(self::META_SHOPS));
 		$transfer = $o->get_meta(self::META_TRANSFER);

@@ -6,11 +6,8 @@ if (!defined('ABSPATH')) {
 /**
  * GET /v1/delivery-options: each shop's delivery choices for the checkout (contract: ShopDelivery[]).
  *
- * - « À domicile »: priced by distance between the shop's commune and the delivery commune,
- *   base + price per km (Outils → LOCAPPCI API, section 4), rounded up to 100 FCFA.
- *   When a distance can't be worked out (shop or delivery place outside the known communes, e.g. a
- *   London shop), the option is still offered with `toConfirm: true`: the shop confirms the price.
- * - « Retrait en boutique »: free, only for shops in a known commune.
+ * Since 0.10.0 (client, 21 Nov): « À domicile » = « à convenir avec le vendeur » (toConfirm, no platform price);
+ * « Retrait en boutique » always offered. The distance tariff below (0.6.0) is kept but no longer used.
  * Read-only: nothing is written.
  */
 final class Locappci_Delivery {
@@ -75,22 +72,18 @@ final class Locappci_Delivery {
 		return Locappci_Errors::no_cache(new WP_REST_Response($out, 200));
 	}
 
-	/** @param array<string, string> $known city id → name */
+	/**
+	 * Client (21 Nov): the buyer chooses home delivery or pickup, and the seller arranges it.
+	 * LOCAPPCI no longer prices delivery: home delivery is always « à convenir avec le vendeur » (toConfirm).
+	 * Pickup is always offered; the shop's commune when known, otherwise the seller gives the address.
+	 * @param array<string, string> $known city id → name
+	 */
 	public static function for_shop(string $from, string $to, array $known): array {
-		$km = self::road_km($from, $to);
-		$home = ['id' => 'home', 'kind' => 'home', 'label' => 'À domicile'];
-		if ($km !== null) {
-			$home += ['price' => self::price($km), 'detail' => '≈ ' . $km . ' km · 24–48 h'];
-		} else {
-			// No commune yet for the customer: ask for it; otherwise the place is out of reach of the estimate.
-			$detail = ($to === '' && isset(self::POINTS[$from])) ? 'Indiquez votre commune' : 'La boutique vous contacte';
-			$home += ['price' => 0, 'detail' => $detail, 'toConfirm' => true];
-		}
-		$options = [$home];
-		if ($from !== '' && isset($known[$from])) {
-			$options[] = ['id' => 'pickup', 'kind' => 'pickup', 'label' => 'Retrait en boutique', 'price' => 0, 'detail' => $known[$from]];
-		}
-		return $options;
+		return [
+			['id' => 'home', 'kind' => 'home', 'label' => 'À domicile', 'price' => 0, 'detail' => 'À convenir avec le vendeur', 'toConfirm' => true],
+			['id' => 'pickup', 'kind' => 'pickup', 'label' => 'Retrait en boutique', 'price' => 0,
+				'detail' => ($from !== '' && isset($known[$from])) ? $known[$from] : 'Adresse donnée par le vendeur'],
+		];
 	}
 
 	/** Road kilometres between two communes: straight line × 1.3, at least 3 km. null when either place has no point. */

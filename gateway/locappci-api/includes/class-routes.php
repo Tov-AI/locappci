@@ -40,7 +40,11 @@ final class Locappci_Routes {
 	/** Settings LOCAPPCI changes in Outils → LOCAPPCI API, read by the app (WhatsApp number). */
 	public static function config(): WP_REST_Response {
 		$wa = preg_replace('/\D+/', '', (string) get_option('locappci_whatsapp', Locappci_Admin::DEFAULT_WHATSAPP));
-		return Locappci_Errors::no_cache(new WP_REST_Response(['whatsapp' => $wa !== '' ? $wa : null], 200));
+		$fee = Locappci_Marketplace::contact_fee();
+		return Locappci_Errors::no_cache(new WP_REST_Response([
+			'whatsapp'   => $wa !== '' ? $wa : null,
+			'contactFee' => $fee > 0 ? $fee : null,
+		], 200));
 	}
 
 	/** Quick check that the plugin answers and which plugins it found. */
@@ -97,7 +101,8 @@ final class Locappci_Routes {
 	}
 
 	public static function shop(WP_REST_Request $r): WP_REST_Response {
-		$shop = Locappci_Catalogue::shop((int) $r['id']);
+		// Seller contacts are paid (client): never in the public shop.
+		$shop = Locappci_Marketplace::public_shop(Locappci_Catalogue::shop((int) $r['id']));
 		return $shop ? new WP_REST_Response($shop, 200) : Locappci_Errors::response('not_found', "Cette boutique n'existe plus.");
 	}
 
