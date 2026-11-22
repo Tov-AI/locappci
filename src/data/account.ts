@@ -33,7 +33,7 @@ export async function loadAccount() {
     const saved = raw ? (JSON.parse(raw) as Partial<Account>) : null;
     // An account saved by an older version has no session: it must sign in again.
     if (saved?.name && token) {
-      account = { name: saved.name, phone: saved.phone ?? '', email: saved.email ?? null };
+      account = { name: saved.name, phone: saved.phone ?? '', email: saved.email ?? null, manager: saved.manager === true };
       setSessionToken(token);
     } else {
       account = null;

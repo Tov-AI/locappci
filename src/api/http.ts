@@ -99,6 +99,12 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     getSellerApplication: () => request('GET', '/v1/seller-application', undefined, undefined, true),
     sendSellerApplication: (req) => request('POST', '/v1/seller-application', undefined, req, true),
     listSellerProducts: () => request('GET', '/v1/seller/products', undefined, undefined, true),
+    getManagerDashboard: () => request('GET', '/v1/manager/dashboard', undefined, undefined, true),
+    getManagerQueue: () => request('GET', '/v1/manager/queue', undefined, undefined, true),
+    decidePayment: (id, d) => request('POST', `/v1/manager/payments/${encodeURIComponent(id)}`, undefined, d, true),
+    decideSeller: (id, d) => request('POST', `/v1/manager/sellers/${encodeURIComponent(id)}`, undefined, d, true),
+    getSellerPhoto: (id) => request('GET', `/v1/manager/sellers/${encodeURIComponent(id)}/photo`, undefined, undefined, true),
+    decideArticle: (id, d) => request('POST', `/v1/manager/articles/${encodeURIComponent(id)}`, undefined, d, true),
     createSellerProduct: (p) => request('POST', '/v1/seller/products', undefined, p, true),
     updateSellerProduct: (id, changes) =>
       request('POST', `/v1/seller/products/${encodeURIComponent(id)}`, undefined, changes, true),

@@ -218,17 +218,12 @@ final class Locappci_Sellers {
 		exit;
 	}
 
-	/** Valider / Refuser (admin-post.php?action=locappci_seller_decision). */
-	public static function decide(): void {
-		$id = (int) ($_POST['id'] ?? 0);
-		if (!current_user_can('manage_options') || !check_admin_referer('locappci_seller_' . $id)) {
-			wp_die('Accès refusé.', 403);
-		}
+	/** Valider / Refuser a request; shared by section 9 and the owner's dashboard in the app. @return string|null message, null if not found */
+	public static function apply_decision(int $id, string $decision, string $reason = ''): ?string {
 		$post = get_post($id);
 		if (!$post || $post->post_type !== 'locappci_boutique' || !get_post_meta($id, self::APP_META, true)) {
-			wp_die('Demande introuvable.', 404);
+			return null;
 		}
-		$decision = sanitize_key((string) ($_POST['decision'] ?? ''));
 		$user = get_user_by('id', (int) $post->post_author);
 		if ($decision === 'approve' && $user) {
 			wp_update_post(['ID' => $id, 'post_status' => 'publish']);
@@ -247,16 +242,29 @@ final class Locappci_Sellers {
 			self::delete_file($id);
 			$msg = 'Boutique validée.';
 		} elseif ($decision === 'refuse') {
-			$reason = trim(sanitize_textarea_field(wp_unslash((string) ($_POST['reason'] ?? ''))));
 			update_post_meta($id, '_locappci_boutique_statut', 'refusee');
 			update_post_meta($id, '_locappci_boutique_motif_refus', $reason !== '' ? $reason : 'Informations incomplètes.');
 			wp_update_post(['ID' => $id, 'post_status' => 'draft']);
 			self::delete_file($id);
 			$msg = 'Demande refusée.';
 		} else {
-			wp_die('Décision inconnue.', 400);
+			return null;
 		}
 		Locappci_Catalogue::flush_cache();
+		return $msg;
+	}
+
+	/** Valider / Refuser (admin-post.php?action=locappci_seller_decision). */
+	public static function decide(): void {
+		$id = (int) ($_POST['id'] ?? 0);
+		if (!current_user_can('manage_options') || !check_admin_referer('locappci_seller_' . $id)) {
+			wp_die('Accès refusé.', 403);
+		}
+		$reason = trim(sanitize_textarea_field(wp_unslash((string) ($_POST['reason'] ?? ''))));
+		$msg = self::apply_decision($id, sanitize_key((string) ($_POST['decision'] ?? '')), $reason);
+		if ($msg === null) {
+			wp_die('Demande ou décision introuvable.', 404);
+		}
 		wp_safe_redirect(add_query_arg('locappci_msg', rawurlencode($msg), admin_url('tools.php?page=locappci-api')) . '#vendeurs');
 		exit;
 	}
