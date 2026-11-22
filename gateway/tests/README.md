@@ -29,3 +29,20 @@ Needs PHP 8 with `pdo_sqlite`, Node 20+, git.
 The seed is tiny, so a slow query still passes. Before shipping a change to a product query, add ~150 products with
 ~70 extra fields each (`add_post_meta`) and time `Locappci_Catalogue::list()` and the admin page with `wp eval`.
 Both should answer in well under a second (0.2.2 took 24 s here and hung on the live site).
+
+## Orders, paid contacts, sellers (0.10.0 – 0.12.0)
+
+After `reset.sh` (fresh install + seed, prints the ids) and the server:
+
+```
+wp option update locappci_transfer_number 2250700000099
+wp option update locappci_contact_fee 2000
+wp option update locappci_commission_rate 10
+SEED_IDS='…' node orders.test.js        # order, idempotency, reference, contact unlock → PART 1 OK
+# the team validates: wp eval 'foreach ([<order>, <unlock>] as $i) { $o = wc_get_order($i); $o->set_status("processing"); $o->save(); }'
+node orders-paid.test.js                # « payée », seller WhatsApp visible → PART 2 OK
+node sellers.test.js 1                  # « Devenir vendeur »: request, checks, correction → SELLERS PART 1 OK
+# the owner validates in section 9 (or Locappci_Sellers::decide() with a nonce), then:
+node sellers.test.js approved           # SELLERS PART approved OK
+SEED_IDS='…' wp eval-file shops-internal.php   # how the seller's WhatsApp is found (hidden from the public API since 0.10.0)
+```

@@ -123,3 +123,15 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - `contact.whatsapp` is filled only once paid (read live, so a new seller number shows). `id` = `<order id>-<order key>`, readable only by the phone that asked.
 - `503 unavailable` while the fee (section 8) or the transfer number (section 5) is not set; `404` unknown shop; `400` shop without a number. Idempotent; 10 per hour per network.
 - App: « Obtenir les coordonnées · 2 000 FCFA » under the seller row (sale and rental pages), hidden until `config.contactFee` is set. Unlocks are kept on the phone (`locappci.contactUnlocks.v1`).
+
+## Devenir vendeur (gateway 0.12.0)
+
+| Method | Path | Body | Answer |
+| --- | --- | --- | --- |
+| GET | `/v1/seller-application` | — (signed in) | `SellerApplication` |
+| POST | `/v1/seller-application` | `SellerApplicationSend`: `{ shopName, cityId, whatsapp, description?, idPhoto? }` (signed in) | `SellerApplication` |
+
+- Creates or corrects the customer's own `locappci_boutique` record (post « pending », `statut` « en_attente », `commune`, `whatsapp`, `telephone`, `verified` « non »), one per seller. `status`: none / pending / approved / refused (+ `refusalReason`). A customer who already is a vendor gets `approved`.
+- `idPhoto`: base64 JPEG/PNG, 5 MB max, required for a new or refused request. Stored in `uploads/locappci-private/` (deny-all `.htaccess`, random name), shown to administrators only, **deleted after the decision**.
+- WhatsApp check without SMS: a 4-digit `verifyCode` that the seller sends to LOCAPPCI on WhatsApp; the owner checks it came from the number given.
+- Owner: Outils → LOCAPPCI API section 9: Valider (record published, `statut` validee, `verified` oui, role `wcfm_vendor` added, WCFM store name and phone, commune) or Refuser with a reason. The admin e-mail (section 6) gets each new request.

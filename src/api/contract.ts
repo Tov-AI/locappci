@@ -231,6 +231,32 @@ export type ShopDelivery = { shopId: string; options: DeliveryOption[] };
 /** 'cash' stays in the contract for later; the client said no cash on delivery for v1. */
 export type PaymentMethod = 'wave' | 'orange_money' | 'cash';
 
+/** « Devenir vendeur » (gateway 0.12.0): one shop per seller, checked by the owner. */
+export type SellerApplicationStatus = 'none' | 'pending' | 'approved' | 'refused';
+
+export type SellerApplication = {
+  status: SellerApplicationStatus;
+  shopName: string | null;
+  cityId: string | null;
+  /** Digits with country code. */
+  whatsapp: string | null;
+  description: string | null;
+  /** Why the owner refused, shown so the seller can correct and send again. */
+  refusalReason: string | null;
+  /** While pending: the code to send to LOCAPPCI on WhatsApp, which proves the number is the seller's. */
+  verifyCode: string | null;
+  submittedAt: string | null;
+};
+
+export type SellerApplicationSend = {
+  shopName: string;
+  cityId: string;
+  whatsapp: string;
+  description?: string;
+  /** Base64 JPEG of the ID document. Optional when correcting a pending request that already has one. */
+  idPhoto?: string;
+};
+
 /** « Obtenir les coordonnées » (gateway 0.11.0): pay the fee to see one seller's WhatsApp. */
 export type ContactUnlockRequest = {
   idempotencyKey: string;
@@ -369,6 +395,10 @@ export interface LocappciApi {
   createOrder(request: OrderRequest): Promise<Order>;
   getOrder(id: string): Promise<Order>;
   createContactUnlock(request: ContactUnlockRequest): Promise<ContactUnlock>;
+  /** Signed in only. */
+  getSellerApplication(): Promise<SellerApplication>;
+  /** Signed in only. Sends or corrects the request. */
+  sendSellerApplication(request: SellerApplicationSend): Promise<SellerApplication>;
   getContactUnlock(id: string): Promise<ContactUnlock>;
   submitContactUnlockReference(id: string, reference: string): Promise<ContactUnlock>;
   createAccount(request: AccountRequest): Promise<Session>;
