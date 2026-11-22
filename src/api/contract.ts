@@ -257,6 +257,57 @@ export type SellerApplicationSend = {
   idPhoto?: string;
 };
 
+/** The owner's dashboard (gateway 0.14.0). Amounts in FCFA. */
+export type ManagerPeriod = {
+  days: number;
+  newBuyers: number;
+  newShops: number;
+  sales: { count: number; total: number; commission: number };
+  contacts: { count: number; total: number };
+  /** Commission on sales + paid contact fees. */
+  earnings: number;
+};
+
+export type ManagerDashboard = {
+  totals: { buyers: number; sellers: number };
+  week: ManagerPeriod;
+  month: ManagerPeriod;
+  toValidate: { payments: number; sellers: number; articles: number; reports: number };
+  commissionRate: number;
+  contactFee: number;
+};
+
+export type ManagerQueue = {
+  payments: {
+    id: string;
+    kind: 'order' | 'contact';
+    number: string;
+    total: number;
+    method: string;
+    reference: string;
+    customerName: string;
+    customerPhone: string;
+    label: string;
+    createdAt: string | null;
+  }[];
+  sellers: {
+    id: string;
+    shopName: string;
+    cityId: string | null;
+    commune: string;
+    whatsapp: string | null;
+    verifyCode: string;
+    accountName: string;
+    description: string;
+    hasPhoto: boolean;
+    submittedAt: string | null;
+  }[];
+  articles: { id: string; name: string; price: number; description: string; photos: string[]; shopName: string }[];
+  reports: { at: string; productId: string; product: string; reason: string; details: string }[];
+};
+
+export type ManagerDecision = { decision: 'approve' | 'refuse'; reason?: string };
+
 /** « Mes articles » of a validated seller (gateway 0.13.0). Sale articles only; rentals stay on the website. */
 export type SellerProduct = {
   id: string;
@@ -383,7 +434,13 @@ export type Order = {
  */
 export type AccountRequest = { name: string; phone: string; password: string; email?: string; orderId?: string };
 /** `phone` is "" when a website account has no number with a country code; `email` is null when it has none. */
-export type Account = { name: string; phone: string; email: string | null };
+export type Account = {
+  name: string;
+  phone: string;
+  email: string | null;
+  /** Set only for the accounts the owner named (section 11): shows « Tableau de bord ». */
+  manager?: boolean;
+};
 
 /** Sign in with the website's account: `identifier` is a phone number or an e-mail address. */
 export type LoginRequest = { identifier: string; password: string };
@@ -427,6 +484,13 @@ export interface LocappciApi {
   getSellerApplication(): Promise<SellerApplication>;
   /** Signed in only. Sends or corrects the request. */
   sendSellerApplication(request: SellerApplicationSend): Promise<SellerApplication>;
+  /** Owner's accounts only (section 11). */
+  getManagerDashboard(): Promise<ManagerDashboard>;
+  getManagerQueue(): Promise<ManagerQueue>;
+  decidePayment(orderId: string, decision: ManagerDecision): Promise<{ ok: true }>;
+  decideSeller(id: string, decision: ManagerDecision): Promise<{ ok: true; message: string }>;
+  getSellerPhoto(id: string): Promise<{ base64: string; mime: string }>;
+  decideArticle(id: string, decision: ManagerDecision): Promise<{ ok: true; message: string }>;
   /** Validated sellers only. */
   listSellerProducts(): Promise<SellerProduct[]>;
   createSellerProduct(product: SellerProductSend): Promise<SellerProduct>;

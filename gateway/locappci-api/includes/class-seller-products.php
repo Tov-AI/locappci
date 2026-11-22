@@ -282,29 +282,37 @@ final class Locappci_Seller_Products {
 			'suppress_filters' => true]);
 	}
 
+	/** Valider / Refuser an article; shared by section 10 and the owner's dashboard. @return string|null message, null if not found */
+	public static function apply_decision(int $id, string $decision, string $reason = ''): ?string {
+		if (get_post_type($id) !== 'product') {
+			return null;
+		}
+		if ($decision === 'approve') {
+			update_post_meta($id, self::STATUS, 'validee');
+			delete_post_meta($id, self::REASON);
+			$msg = 'Article validé : il est visible dans l’appli et sur le site.';
+		} elseif ($decision === 'refuse') {
+			update_post_meta($id, self::STATUS, 'refusee');
+			update_post_meta($id, self::REASON, $reason !== '' ? $reason : 'Article non conforme.');
+			$msg = 'Article refusé.';
+		} else {
+			return null;
+		}
+		Locappci_Catalogue::flush_cache();
+		return $msg;
+	}
+
 	/** Valider / Refuser an article (admin-post.php?action=locappci_product_decision). */
 	public static function decide(): void {
 		$id = (int) ($_POST['id'] ?? 0);
 		if (!current_user_can('manage_options') || !check_admin_referer('locappci_product_' . $id)) {
 			wp_die('Accès refusé.', 403);
 		}
-		if (get_post_type($id) !== 'product') {
-			wp_die('Article introuvable.', 404);
+		$reason = trim(sanitize_textarea_field(wp_unslash((string) ($_POST['reason'] ?? ''))));
+		$msg = self::apply_decision($id, sanitize_key((string) ($_POST['decision'] ?? '')), $reason);
+		if ($msg === null) {
+			wp_die('Article ou décision introuvable.', 404);
 		}
-		$decision = sanitize_key((string) ($_POST['decision'] ?? ''));
-		if ($decision === 'approve') {
-			update_post_meta($id, self::STATUS, 'validee');
-			delete_post_meta($id, self::REASON);
-			$msg = 'Article validé : il est visible dans l’appli et sur le site.';
-		} elseif ($decision === 'refuse') {
-			$reason = trim(sanitize_textarea_field(wp_unslash((string) ($_POST['reason'] ?? ''))));
-			update_post_meta($id, self::STATUS, 'refusee');
-			update_post_meta($id, self::REASON, $reason !== '' ? $reason : 'Article non conforme.');
-			$msg = 'Article refusé.';
-		} else {
-			wp_die('Décision inconnue.', 400);
-		}
-		Locappci_Catalogue::flush_cache();
 		wp_safe_redirect(add_query_arg('locappci_msg', rawurlencode($msg), admin_url('tools.php?page=locappci-api')) . '#articles');
 		exit;
 	}

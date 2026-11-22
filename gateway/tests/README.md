@@ -50,3 +50,6 @@ SEED_IDS='…' wp eval-file shops-internal.php   # how the seller's WhatsApp is 
 `WP_DIR=<folder with wp-cli.phar and site/> ./seller-flow.sh` runs the whole seller path (0.12.0 + 0.13.0): sign-up, approval,
 « Mes articles » (checks, photos, not public before validation, price change stays online, name change goes back for
 checking, hide, someone else's article refused).
+
+Owner's dashboard (0.14.0): after `reset.sh`, the three options, `orders.test.js` and `sellers.test.js 1`, run
+`wp user meta update <id of uk@example.com> _locappci_app_manager 1` then `node manager.test.js` → `MANAGER OK`.

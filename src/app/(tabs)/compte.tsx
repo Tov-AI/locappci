@@ -137,6 +137,17 @@ export default function CompteScreen() {
         />
       </SectionCard>
 
+      {account?.manager ? (
+        <SectionCard title="LOCAPPCI">
+          <ListRow
+            icon="bar-chart-2"
+            label="Tableau de bord"
+            hint="Chiffres et validations"
+            onPress={() => router.push('/tableau-de-bord')}
+          />
+        </SectionCard>
+      ) : null}
+
       <SectionCard title="Vendre">
         <ListRow icon="shopping-bag" label="Vendre sur LOCAPPCI" hint="Ouvrir ma boutique" onPress={() => router.push('/vendeur')} />
       </SectionCard>

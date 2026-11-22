@@ -124,7 +124,8 @@ final class Locappci_Accounts {
 	}
 
 	/** The account behind "phone or e-mail", or null (unknown, or two accounts share the number). */
-	private static function find_user(string $identifier): ?WP_User {
+	/** Also used by section 11 (who sees the owner's dashboard). */
+	public static function find_user(string $identifier): ?WP_User {
 		$identifier = trim($identifier);
 		if ($identifier === '') {
 			return null;
@@ -143,7 +144,7 @@ final class Locappci_Accounts {
 	}
 
 	/** Site staff never sign in through the app. */
-	private static function is_staff(WP_User $u): bool {
+	public static function is_staff(WP_User $u): bool {
 		foreach (['manage_options', 'manage_woocommerce', 'edit_others_posts', 'edit_users'] as $cap) {
 			if (user_can($u, $cap)) {
 				return true;
@@ -154,11 +155,16 @@ final class Locappci_Accounts {
 
 	private static function account(WP_User $u): array {
 		$name = trim((string) $u->display_name) ?: trim($u->first_name . ' ' . $u->last_name) ?: 'Client LOCAPPCI';
-		return [
+		$out = [
 			'name'  => html_entity_decode(wp_strip_all_tags($name), ENT_QUOTES, 'UTF-8'),
 			'phone' => self::app_phone($u->ID),
 			'email' => $u->user_email !== '' ? $u->user_email : null,
 		];
+		// The owner's dashboard in the app (section 11): only for accounts the owner named, never staff accounts.
+		if (Locappci_Manager::is_manager($u)) {
+			$out['manager'] = true;
+		}
+		return $out;
 	}
 
 	/* ---------- Sessions ---------- */

@@ -148,3 +148,16 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - New articles get `_locappci_validation_status = en_attente`: hidden from the app and the site until the owner validates (section 10 of Outils → LOCAPPCI API, or the site's own screen). Refused: `refusee` + `_locappci_validation_motif`, shown to the seller.
 - A change of **price or stock** stays online; a change of **name, description, category or photos** (or a refused article changed) goes back to `en_attente`. `hidden` takes the article offline (draft) and back.
 - Not a validated seller → `400 validation`; someone else's article → `404`. Photos: JPEG/PNG ≤ 5 MB each, into the media library. 30 new articles per seller per day.
+
+## Owner's dashboard (gateway 0.14.0)
+
+Only for the accounts named in Outils → LOCAPPCI API, section 11 (user meta `_locappci_app_manager`; WordPress staff accounts are refused there, they never sign in through the app). Their `Account` carries `manager: true`. Others get `400 validation`.
+
+| Method | Path | Answer |
+| --- | --- | --- |
+| GET | `/v1/manager/dashboard` | `ManagerDashboard`: totals (buyers = customer role, sellers = wcfm_vendor role), last 7 / 30 days (paid app sales: count, total, commission; paid contact fees; earnings = commission + contact fees; new customers; shops published), counts to validate |
+| GET | `/v1/manager/queue` | `ManagerQueue`: app orders and contact unlocks « En attente » (with reference), seller requests, articles waiting, last 20 reports |
+| POST | `/v1/manager/payments/{orderId}` | `{ decision }`: approve → « En cours » (paid), refuse → « Échouée »; only from « En attente » |
+| POST | `/v1/manager/sellers/{id}` | `{ decision, reason? }`: same as section 9 |
+| GET | `/v1/manager/sellers/{id}/photo` | `{ base64, mime }` until the decision |
+| POST | `/v1/manager/articles/{id}` | `{ decision, reason? }`: same as section 10 |

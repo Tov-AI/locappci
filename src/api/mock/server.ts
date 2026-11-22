@@ -287,6 +287,32 @@ export const mockApi: LocappciApi = {
       return next;
     }),
 
+  // Mock owner's dashboard: sample figures, nothing to validate.
+  getManagerDashboard: () =>
+    respond(() => {
+      const period = (days: number) => ({
+        days,
+        newBuyers: days === 7 ? 4 : 15,
+        newShops: days === 7 ? 1 : 3,
+        sales: { count: days === 7 ? 6 : 21, total: days === 7 ? 142000 : 498000, commission: days === 7 ? 14200 : 49800 },
+        contacts: { count: days === 7 ? 3 : 9, total: days === 7 ? 6000 : 18000 },
+        earnings: days === 7 ? 20200 : 67800,
+      });
+      return {
+        totals: { buyers: 38, sellers: 7 },
+        week: period(7),
+        month: period(30),
+        toValidate: { payments: 0, sellers: 0, articles: 0, reports: reports.length },
+        commissionRate: 10,
+        contactFee: 2000,
+      };
+    }),
+  getManagerQueue: () => respond(() => ({ payments: [], sellers: [], articles: [], reports: [] })),
+  decidePayment: () => respond(() => ({ ok: true as const })),
+  decideSeller: () => respond(() => ({ ok: true as const, message: 'Boutique validée.' })),
+  getSellerPhoto: () => respond(() => { throw new ApiError('not_found', 'Photo introuvable.'); }),
+  decideArticle: () => respond(() => ({ ok: true as const, message: 'Article validé.' })),
+
   // Mock: the « team » validates the transfer as soon as the reference is sent, to test the whole flow.
   getContactUnlock: (id) =>
     respond(() => {

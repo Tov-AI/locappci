@@ -37,6 +37,21 @@ final class Locappci_Admin {
 			}
 		}
 
+		if (!empty($_POST['locappci_manager_add']) && empty($_POST['locappci_manager_remove']) && check_admin_referer('locappci_managers')) {
+			$who = Locappci_Accounts::find_user(sanitize_text_field(wp_unslash($_POST['locappci_manager_add'])));
+			if (!$who) {
+				echo '<div class="notice notice-error"><p>Compte introuvable : indiquez l’e-mail ou le téléphone d’un compte client existant.</p></div>';
+			} elseif (Locappci_Accounts::is_staff($who)) {
+				echo '<div class="notice notice-error"><p>Les comptes administrateurs ne se connectent pas à l’appli : utilisez un compte client (créé dans l’appli par exemple).</p></div>';
+			} else {
+				update_user_meta($who->ID, Locappci_Manager::META, '1');
+				echo '<div class="notice notice-success"><p>' . esc_html($who->display_name) . ' voit maintenant le tableau de bord dans l’appli.</p></div>';
+			}
+		}
+		if (isset($_POST['locappci_manager_remove']) && check_admin_referer('locappci_managers')) {
+			delete_user_meta((int) $_POST['locappci_manager_remove'], Locappci_Manager::META);
+			echo '<div class="notice notice-success"><p>Accès au tableau de bord retiré.</p></div>';
+		}
 		if (isset($_GET['locappci_msg'])) {
 			echo '<div class="notice notice-success"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['locappci_msg']))) . '</p></div>';
 		}
@@ -305,6 +320,26 @@ final class Locappci_Admin {
 			}
 			echo '</tbody></table>';
 		}
+
+		echo '<h2 id="proprietaire">11. Tableau de bord dans l’appli</h2>';
+		echo '<p>Ces comptes voient dans l’appli (Compte → Tableau de bord) les chiffres de LOCAPPCI et peuvent valider les paiements, '
+			. 'les demandes vendeur et les articles. Les comptes administrateurs WordPress ne se connectent jamais à l’appli : '
+			. 'utilisez un compte client à vous (par exemple créé dans l’appli avec votre numéro).</p>';
+		$managers = get_users(['meta_key' => Locappci_Manager::META, 'meta_value' => '1', 'number' => 20]);
+		echo '<form method="post">';
+		wp_nonce_field('locappci_managers');
+		if ($managers) {
+			echo '<ul>';
+			foreach ($managers as $m) {
+				echo '<li>' . esc_html($m->display_name . ' (' . ($m->user_email ?: 'sans e-mail') . ')')
+					. ' <button class="button-link" name="locappci_manager_remove" value="' . (int) $m->ID . '">Retirer</button></li>';
+			}
+			echo '</ul>';
+		} else {
+			echo '<p>Aucun compte pour l’instant.</p>';
+		}
+		echo '<p><label>Ajouter un compte (e-mail ou téléphone) <input name="locappci_manager_add" placeholder="+225 07 00 00 00 00"></label> ';
+		echo '<button class="button">Ajouter</button></p></form>';
 		echo '</div>';
 	}
 

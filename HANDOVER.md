@@ -212,6 +212,8 @@ on mock data. Each PR description (#2 to #16) lists exactly what was tested.
    `GET /v1/orders/{id}`, `POST /v1/orders/{id}/payment-reference` (0.7.0, PR `feature/25-commandes`). The team validates transfers in
    WooCommerce → Commandes (« En attente » → « En cours » → « Terminée »). **Set the transfer number first** (Outils → LOCAPPCI API, section 5).
    To check on the live site: that each order shows in the right seller's WCFM dashboard.
+7f. ✅ **Owner's dashboard (0.14.0, PR `feature/33-tableau-de-bord`):** Compte → Tableau de bord for the accounts named in section 11:
+   figures (7/30 days), payments to check, seller requests (with ID photo), articles, reports, Valider/Refuser.
 7e. ✅ **Mes articles (0.13.0, PR `feature/32-articles-vendeur`):** validated sellers add/change sale articles with photos;
    owner validates new or reworded ones in section 10; price/stock changes show at once. Rentals from the app: later.
 7d. ✅ **Devenir vendeur (0.12.0, PR `feature/31-inscription-vendeur`):** Compte → Vendre sur LOCAPPCI → form + ID photo →
