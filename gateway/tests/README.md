@@ -46,3 +46,7 @@ node sellers.test.js 1                  # « Devenir vendeur »: request, checks
 node sellers.test.js approved           # SELLERS PART approved OK
 SEED_IDS='…' wp eval-file shops-internal.php   # how the seller's WhatsApp is found (hidden from the public API since 0.10.0)
 ```
+
+`WP_DIR=<folder with wp-cli.phar and site/> ./seller-flow.sh` runs the whole seller path (0.12.0 + 0.13.0): sign-up, approval,
+« Mes articles » (checks, photos, not public before validation, price change stays online, name change goes back for
+checking, hide, someone else's article refused).

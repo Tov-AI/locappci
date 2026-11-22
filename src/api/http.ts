@@ -98,6 +98,10 @@ export function createHttpApi(baseUrl: string): LocappciApi {
     createContactUnlock: (req) => request('POST', '/v1/contact-unlocks', undefined, req),
     getSellerApplication: () => request('GET', '/v1/seller-application', undefined, undefined, true),
     sendSellerApplication: (req) => request('POST', '/v1/seller-application', undefined, req, true),
+    listSellerProducts: () => request('GET', '/v1/seller/products', undefined, undefined, true),
+    createSellerProduct: (p) => request('POST', '/v1/seller/products', undefined, p, true),
+    updateSellerProduct: (id, changes) =>
+      request('POST', `/v1/seller/products/${encodeURIComponent(id)}`, undefined, changes, true),
     getContactUnlock: (id) => get(`/v1/contact-unlocks/${encodeURIComponent(id)}`),
     submitContactUnlockReference: (id, reference) =>
       request('POST', `/v1/contact-unlocks/${encodeURIComponent(id)}/payment-reference`, undefined, { reference }),

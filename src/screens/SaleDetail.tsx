@@ -1,27 +1,27 @@
-import Feather from "@expo/vector-icons/Feather";
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Feather from '@expo/vector-icons/Feather';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { api, type SaleProduct } from "@/api";
-import { AppText } from "@/components/AppText";
-import { Tag } from "@/components/Badge";
-import { BottomActionBar } from "@/components/BottomActionBar";
-import { Button } from "@/components/Button";
-import { Description } from "@/components/Description";
-import { InfoBlock } from "@/components/InfoBlock";
-import { OfflineBanner } from "@/components/OfflineBanner";
-import { PhotoHeader } from "@/components/PhotoHeader";
-import { ProductCard } from "@/components/ProductCard";
-import { ReportSheet } from "@/components/ReportSheet";
-import { SellerContact } from "@/components/SellerContact";
-import { SellerRow } from "@/components/SellerRow";
-import { clearToast, showToast } from "@/components/Toast";
-import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { addToCart, useCartQuantity } from "@/data/cart";
-import { useOnline } from "@/data/online";
+import { api, type SaleProduct } from '@/api';
+import { AppText } from '@/components/AppText';
+import { Tag } from '@/components/Badge';
+import { BottomActionBar } from '@/components/BottomActionBar';
+import { Button } from '@/components/Button';
+import { Description } from '@/components/Description';
+import { InfoBlock } from '@/components/InfoBlock';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { PhotoHeader } from '@/components/PhotoHeader';
+import { ProductCard } from '@/components/ProductCard';
+import { ReportSheet } from '@/components/ReportSheet';
+import { SellerContact } from '@/components/SellerContact';
+import { SellerRow } from '@/components/SellerRow';
+import { clearToast, showToast } from '@/components/Toast';
+import { WhatsAppButton } from '@/components/WhatsAppButton';
+import { addToCart, useCartQuantity } from '@/data/cart';
+import { useOnline } from '@/data/online';
 import {
   keys,
   useCategories,
@@ -30,21 +30,15 @@ import {
   useShop,
   useSimilarProducts,
   useStockCheck,
-} from "@/data/queries";
-import { colors, space } from "@/theme";
-import { formatFcfa, formatTime } from "@/utils/format";
-import { useGoBack } from "@/utils/navigation";
+} from '@/data/queries';
+import { colors, space } from '@/theme';
+import { formatFcfa, formatTime } from '@/utils/format';
+import { useGoBack } from '@/utils/navigation';
 
 const SIMILAR_CARD_WIDTH = 168;
 
 /** Produit (Feature 6): one product for sale. */
-export function SaleDetail({
-  product: p,
-  savedAt,
-}: {
-  product: SaleProduct;
-  savedAt: number;
-}) {
+export function SaleDetail({ product: p, savedAt }: { product: SaleProduct; savedAt: number }) {
   // The photo starts below the status bar (time, battery), never under it.
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -63,20 +57,15 @@ export function SaleDetail({
   // A message about this product shouldn't follow the person to the next screen.
   useEffect(() => clearToast, []);
 
-  const cityNames = useMemo(
-    () => new Map((cities.data ?? []).map((c) => [c.id, c.name])),
-    [cities.data],
-  );
-  const categoryName = categories.data?.find(
-    (c) => c.id === p.categoryId,
-  )?.name;
+  const cityNames = useMemo(() => new Map((cities.data ?? []).map((c) => [c.id, c.name])), [cities.data]);
+  const categoryName = categories.data?.find((c) => c.id === p.categoryId)?.name;
   const cityName = cityNames.get(p.cityId);
   const price = formatFcfa(p.price);
-  const soldOut = p.stock.status === "out_of_stock";
+  const soldOut = p.stock.status === 'out_of_stock';
 
   const add = () => {
     if (!online) {
-      showToast("Connexion nécessaire pour vérifier le stock avant l’ajout.");
+      showToast('Connexion nécessaire pour vérifier le stock avant l’ajout.');
       return;
     }
     stockCheck.mutate(
@@ -98,7 +87,7 @@ export function SaleDetail({
           );
 
           if (!check.available) {
-            showToast("Désolé, ce produit vient d’être épuisé.");
+            showToast('Désolé, ce produit vient d’être épuisé.');
             return;
           }
 
@@ -111,7 +100,7 @@ export function SaleDetail({
                 queryFn: () => api.getShop(p.shopId),
               })
               .then((s) => s.name)
-              .catch(() => ""));
+              .catch(() => ''));
 
           const result = addToCart({
             productId: p.id,
@@ -123,18 +112,16 @@ export function SaleDetail({
             maxQuantity: p.stock.quantity,
           });
 
-          const priceNote = check.priceChanged
-            ? `Le prix a changé : ${formatFcfa(check.price)}. `
-            : "";
+          const priceNote = check.priceChanged ? `Le prix a changé : ${formatFcfa(check.price)}. ` : '';
           const message =
-            result.outcome === "added"
-              ? "Ajouté au panier."
-              : result.outcome === "increased"
+            result.outcome === 'added'
+              ? 'Ajouté au panier.'
+              : result.outcome === 'increased'
                 ? `Ajouté au panier (${result.quantity} au total).`
                 : `Vous avez déjà tout le stock disponible (${result.quantity}) dans votre panier.`;
           showToast(priceNote + message, {
-            label: "Voir le panier",
-            onPress: () => router.dismissTo("/panier"),
+            label: 'Voir le panier',
+            onPress: () => router.dismissTo('/panier'),
           });
         },
         onError: (error) => showToast(error.message),
@@ -153,9 +140,7 @@ export function SaleDetail({
           onBack={goBack}
         />
 
-        {!online ? (
-          <OfflineBanner savedAt={savedAt ? formatTime(savedAt) : undefined} />
-        ) : null}
+        {!online ? <OfflineBanner savedAt={savedAt ? formatTime(savedAt) : undefined} /> : null}
 
         <View style={styles.body}>
           <View style={styles.titleBlock}>
@@ -185,7 +170,7 @@ export function SaleDetail({
 
           <SellerRow
             shop={shop.data}
-            loading={shop.isPending && shop.fetchStatus !== "paused"}
+            loading={shop.isPending && shop.fetchStatus !== 'paused'}
             cityName={shop.data ? cityNames.get(shop.data.cityId) : undefined}
           />
 
@@ -203,8 +188,8 @@ export function SaleDetail({
             text="Payez dans l’appli ou à la remise du produit. N’envoyez jamais d’argent à l’avance à un inconnu."
             links={[
               {
-                icon: "flag",
-                label: "Signaler cette annonce",
+                icon: 'flag',
+                label: 'Signaler cette annonce',
                 onPress: () => setReportOpen(true),
               },
             ]}
@@ -213,26 +198,18 @@ export function SaleDetail({
 
         {similar.data && similar.data.length > 0 ? (
           <View style={styles.similar}>
-            <AppText
-              variant="cardTitle"
-              accessibilityRole="header"
-              style={styles.similarTitle}
-            >
+            <AppText variant="cardTitle" accessibilityRole="header" style={styles.similarTitle}>
               Articles similaires
             </AppText>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.similarList}
-            >
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.similarList}>
               {similar.data.map((item) => (
                 <View key={item.id} style={{ width: SIMILAR_CARD_WIDTH }}>
                   <ProductCard
                     item={item}
-                    cityName={cityNames.get(item.cityId) ?? ""}
+                    cityName={cityNames.get(item.cityId) ?? ''}
                     onPress={() =>
                       router.push({
-                        pathname: "/produit/[id]",
+                        pathname: '/produit/[id]',
                         params: { id: item.id },
                       })
                     }
@@ -244,9 +221,7 @@ export function SaleDetail({
         ) : null}
       </ScrollView>
 
-      <BottomActionBar
-        summary={inCart > 0 ? `Déjà ${inCart} dans votre panier` : undefined}
-      >
+      <BottomActionBar summary={inCart > 0 ? `Déjà ${inCart} dans votre panier` : undefined}>
         {/* Seller contacts are paid (client, 21 Nov): questions go to LOCAPPCI, who knows the seller. */}
         {locappciWhatsapp ? (
           <WhatsAppButton
@@ -254,13 +229,13 @@ export function SaleDetail({
             name="LOCAPPCI"
             message={
               `Bonjour LOCAPPCI, je suis intéressé(e) par « ${p.name} » à ${price}` +
-              `${shop.data ? ` (boutique ${shop.data.name})` : ""}. Est-il toujours disponible ?\n${p.webUrl}`
+              `${shop.data ? ` (boutique ${shop.data.name})` : ''}. Est-il toujours disponible ?\n${p.webUrl}`
             }
           />
         ) : null}
         <Button
-          label={soldOut ? "Épuisé" : "Ajouter au panier"}
-          icon={soldOut ? undefined : "shopping-cart"}
+          label={soldOut ? 'Épuisé' : 'Ajouter au panier'}
+          icon={soldOut ? undefined : 'shopping-cart'}
           disabled={soldOut}
           loading={stockCheck.isPending}
           onPress={add}
@@ -268,28 +243,15 @@ export function SaleDetail({
         />
       </BottomActionBar>
 
-      <ReportSheet
-        visible={reportOpen}
-        onClose={() => setReportOpen(false)}
-        productId={p.id}
-      />
+      <ReportSheet visible={reportOpen} onClose={() => setReportOpen(false)} productId={p.id} />
     </View>
   );
 }
 
 function StockTag({ product: p }: { product: SaleProduct }) {
-  if (p.stock.status === "out_of_stock")
-    return <Tag label="Épuisé" tone="neutral" />;
-  if (p.stock.status === "low_stock") {
-    return (
-      <Tag
-        label={
-          p.stock.quantity
-            ? `Plus que ${p.stock.quantity}`
-            : "Plus que quelques-uns"
-        }
-      />
-    );
+  if (p.stock.status === 'out_of_stock') return <Tag label="Épuisé" tone="neutral" />;
+  if (p.stock.status === 'low_stock') {
+    return <Tag label={p.stock.quantity ? `Plus que ${p.stock.quantity}` : 'Plus que quelques-uns'} />;
   }
   return <Tag label="En stock" tone="green" />;
 }
@@ -298,8 +260,8 @@ const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.surface.card },
   flex: { flex: 1 },
   scroll: { paddingBottom: space.xxl },
-  row: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  wrapRow: { flexWrap: "wrap", gap: space.md },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  wrapRow: { flexWrap: 'wrap', gap: space.md },
   body: { padding: space.gutter, gap: space.xl },
   titleBlock: { gap: space.sm },
   similar: { gap: space.md, paddingTop: space.sm },

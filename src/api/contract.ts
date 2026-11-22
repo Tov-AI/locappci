@@ -257,6 +257,34 @@ export type SellerApplicationSend = {
   idPhoto?: string;
 };
 
+/** « Mes articles » of a validated seller (gateway 0.13.0). Sale articles only; rentals stay on the website. */
+export type SellerProduct = {
+  id: string;
+  name: string;
+  price: number;
+  categoryId: string;
+  description: string;
+  /** null = stock not counted (always available). */
+  stockQuantity: number | null;
+  photos: string[];
+  /** pending: waiting for LOCAPPCI; approved: visible; refused: see refusalReason; hidden: taken offline by the seller. */
+  status: 'pending' | 'approved' | 'refused' | 'hidden';
+  refusalReason: string | null;
+  webUrl: string;
+};
+
+export type SellerProductSend = {
+  name?: string;
+  price?: number;
+  categoryId?: string;
+  description?: string;
+  stockQuantity?: number | null;
+  /** Base64 JPEG, 1 to 5. On a change, replaces all the photos. */
+  photos?: string[];
+  /** Change only: take offline / put back online. */
+  hidden?: boolean;
+};
+
 /** « Obtenir les coordonnées » (gateway 0.11.0): pay the fee to see one seller's WhatsApp. */
 export type ContactUnlockRequest = {
   idempotencyKey: string;
@@ -399,6 +427,10 @@ export interface LocappciApi {
   getSellerApplication(): Promise<SellerApplication>;
   /** Signed in only. Sends or corrects the request. */
   sendSellerApplication(request: SellerApplicationSend): Promise<SellerApplication>;
+  /** Validated sellers only. */
+  listSellerProducts(): Promise<SellerProduct[]>;
+  createSellerProduct(product: SellerProductSend): Promise<SellerProduct>;
+  updateSellerProduct(id: string, changes: SellerProductSend): Promise<SellerProduct>;
   getContactUnlock(id: string): Promise<ContactUnlock>;
   submitContactUnlockReference(id: string, reference: string): Promise<ContactUnlock>;
   createAccount(request: AccountRequest): Promise<Session>;

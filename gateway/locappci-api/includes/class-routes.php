@@ -35,6 +35,11 @@ final class Locappci_Routes {
 			['methods' => 'GET', 'callback' => ['Locappci_Sellers', 'get'], 'permission_callback' => $public],
 			['methods' => 'POST', 'callback' => ['Locappci_Sellers', 'submit'], 'permission_callback' => $public],
 		]);
+		register_rest_route(self::NS, '/seller/products', [
+			['methods' => 'GET', 'callback' => ['Locappci_Seller_Products', 'list'], 'permission_callback' => $public],
+			['methods' => 'POST', 'callback' => ['Locappci_Seller_Products', 'create'], 'permission_callback' => $public],
+		]);
+		register_rest_route(self::NS, '/seller/products/(?P<id>\d+)', ['methods' => 'POST', 'callback' => ['Locappci_Seller_Products', 'update'], 'permission_callback' => $public]);
 		register_rest_route(self::NS, '/rental-requests', ['methods' => 'POST', 'callback' => ['Locappci_Rental_Requests', 'send'], 'permission_callback' => $public]);
 
 		// Accounts. "Public" here means "no WordPress cookie": each callback checks the password or the app session itself.
