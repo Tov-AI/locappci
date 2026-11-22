@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       LOCAPPCI API
  * Description:       Passerelle entre l'appli mobile LOCAPPCI et le site (WooCommerce, WCFM, location). Lecture seule, sauf les comptes clients et les demandes de location envoyées aux loueurs.
- * Version:           0.12.0
+ * Version:           0.13.0
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            LOCAPPCI
@@ -32,6 +32,7 @@
  *         commission % and contact fee in section 8, delivery « à convenir avec le vendeur » or pickup.
  * 0.11.0: « Obtenir les coordonnées »: POST /v1/contact-unlocks (+ GET, payment-reference), fee of section 8.
  * 0.12.0: « Devenir vendeur »: GET/POST /v1/seller-application (signed in), owner validates in section 9.
+ * 0.13.0: « Mes articles » for validated sellers: GET/POST /v1/seller/products (+ /{id}), owner validates in section 10.
  * Next: Wave / Orange Money hand-off and push notifications (waiting on the client).
  */
 
@@ -39,7 +40,7 @@ if (!defined('ABSPATH')) {
 	exit; // Never run outside WordPress.
 }
 
-define('LOCAPPCI_API_VERSION', '0.12.0');
+define('LOCAPPCI_API_VERSION', '0.13.0');
 define('LOCAPPCI_API_DIR', __DIR__);
 
 require_once __DIR__ . '/includes/class-errors.php';
@@ -52,6 +53,7 @@ require_once __DIR__ . '/includes/class-reports.php';
 require_once __DIR__ . '/includes/class-marketplace.php';
 require_once __DIR__ . '/includes/class-contacts.php';
 require_once __DIR__ . '/includes/class-sellers.php';
+require_once __DIR__ . '/includes/class-seller-products.php';
 require_once __DIR__ . '/includes/class-routes.php';
 require_once __DIR__ . '/includes/class-admin.php';
 
@@ -59,6 +61,7 @@ add_action('rest_api_init', ['Locappci_Routes', 'register']);
 add_action('admin_menu', ['Locappci_Admin', 'menu']);
 add_action('admin_post_locappci_id_photo', ['Locappci_Sellers', 'stream_photo']);
 add_action('admin_post_locappci_seller_decision', ['Locappci_Sellers', 'decide']);
+add_action('admin_post_locappci_product_decision', ['Locappci_Seller_Products', 'decide']);
 
 // A new password (reset or changed) ends the app sessions of that account.
 add_action('after_password_reset', ['Locappci_Accounts', 'forget_sessions']);

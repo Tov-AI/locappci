@@ -135,3 +135,16 @@ The source of truth is `src/api/contract.ts`; this page explains it for whoever 
 - `idPhoto`: base64 JPEG/PNG, 5 MB max, required for a new or refused request. Stored in `uploads/locappci-private/` (deny-all `.htaccess`, random name), shown to administrators only, **deleted after the decision**.
 - WhatsApp check without SMS: a 4-digit `verifyCode` that the seller sends to LOCAPPCI on WhatsApp; the owner checks it came from the number given.
 - Owner: Outils → LOCAPPCI API section 9: Valider (record published, `statut` validee, `verified` oui, role `wcfm_vendor` added, WCFM store name and phone, commune) or Refuser with a reason. The admin e-mail (section 6) gets each new request.
+
+## Mes articles (gateway 0.13.0)
+
+| Method | Path | Body | Answer |
+| --- | --- | --- | --- |
+| GET | `/v1/seller/products` | — (validated seller) | `SellerProduct[]` |
+| POST | `/v1/seller/products` | `SellerProductSend`: `{ name, price, categoryId, description?, stockQuantity?, photos: base64[1–5] }` | `201 SellerProduct` |
+| POST | `/v1/seller/products/{id}` | any of the same fields, `hidden?: boolean` | `SellerProduct` |
+
+- Sale articles only (rentals stay on the website for now). WooCommerce simple products, author = the seller, with the site's fields (`_locappci_module` vente, `_locappci_vendor_id`, `_wcfm_product_author`, `_locappci_boutique_id`) and `_locappci_from_app`.
+- New articles get `_locappci_validation_status = en_attente`: hidden from the app and the site until the owner validates (section 10 of Outils → LOCAPPCI API, or the site's own screen). Refused: `refusee` + `_locappci_validation_motif`, shown to the seller.
+- A change of **price or stock** stays online; a change of **name, description, category or photos** (or a refused article changed) goes back to `en_attente`. `hidden` takes the article offline (draft) and back.
+- Not a validated seller → `400 validation`; someone else's article → `404`. Photos: JPEG/PNG ≤ 5 MB each, into the media library. 30 new articles per seller per day.

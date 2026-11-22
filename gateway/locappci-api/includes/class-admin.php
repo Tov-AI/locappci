@@ -273,6 +273,38 @@ final class Locappci_Admin {
 			}
 			echo '</tbody></table>';
 		}
+
+		echo '<h2 id="articles">10. Articles envoyés depuis l’appli</h2>';
+		echo '<p>Un article ajouté ou modifié (nom, description, catégorie, photos) par un vendeur dans l’appli attend votre validation avant d’être visible. '
+			. 'Un changement de prix ou de stock reste visible sans nouvelle validation.</p>';
+		$articles = Locappci_Seller_Products::pending();
+		if (!$articles) {
+			echo '<p>Aucun article en attente.</p>';
+		} else {
+			echo '<table class="widefat striped"><thead><tr><th>Photo</th><th>Article</th><th>Boutique</th><th>Prix</th><th>Décision</th></tr></thead><tbody>';
+			foreach ($articles as $post) {
+				$prod = wc_get_product($post->ID);
+				$thumb = get_the_post_thumbnail_url($post->ID, 'thumbnail');
+				$shop = Locappci_Catalogue::shop((int) $post->post_author);
+				echo '<tr><td>' . ($thumb ? '<img src="' . esc_url($thumb) . '" width="60" height="60" style="object-fit:cover">' : '—') . '</td>';
+				echo '<td><a href="' . esc_url(get_edit_post_link($post->ID)) . '"><strong>' . esc_html($post->post_title) . '</strong></a><br><small>'
+					. esc_html(wp_trim_words(wp_strip_all_tags($post->post_content), 25)) . '</small></td>';
+				echo '<td>' . esc_html($shop['name'] ?? '—') . '</td>';
+				echo '<td>' . esc_html(number_format((float) ($prod ? $prod->get_regular_price() : 0), 0, ',', ' ')) . ' FCFA</td><td>';
+				foreach (['approve' => 'Valider', 'refuse' => 'Refuser'] as $decision => $label) {
+					echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;margin-right:8px">';
+					wp_nonce_field('locappci_product_' . $post->ID);
+					echo '<input type="hidden" name="action" value="locappci_product_decision"><input type="hidden" name="id" value="' . (int) $post->ID . '">';
+					echo '<input type="hidden" name="decision" value="' . esc_attr($decision) . '">';
+					if ($decision === 'refuse') {
+						echo '<input name="reason" placeholder="Motif du refus" style="width:150px"> ';
+					}
+					echo '<button class="button' . ($decision === 'approve' ? ' button-primary' : '') . '">' . esc_html($label) . '</button></form>';
+				}
+				echo '</td></tr>';
+			}
+			echo '</tbody></table>';
+		}
 		echo '</div>';
 	}
 
