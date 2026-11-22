@@ -31,6 +31,10 @@ final class Locappci_Routes {
 		register_rest_route(self::NS, '/contact-unlocks', ['methods' => 'POST', 'callback' => ['Locappci_Contacts', 'create'], 'permission_callback' => $public]);
 		register_rest_route(self::NS, $unlock, ['methods' => 'GET', 'callback' => ['Locappci_Contacts', 'get'], 'permission_callback' => $public]);
 		register_rest_route(self::NS, $unlock . '/payment-reference', ['methods' => 'POST', 'callback' => ['Locappci_Contacts', 'payment_reference'], 'permission_callback' => $public]);
+		register_rest_route(self::NS, '/seller-application', [
+			['methods' => 'GET', 'callback' => ['Locappci_Sellers', 'get'], 'permission_callback' => $public],
+			['methods' => 'POST', 'callback' => ['Locappci_Sellers', 'submit'], 'permission_callback' => $public],
+		]);
 		register_rest_route(self::NS, '/rental-requests', ['methods' => 'POST', 'callback' => ['Locappci_Rental_Requests', 'send'], 'permission_callback' => $public]);
 
 		// Accounts. "Public" here means "no WordPress cookie": each callback checks the password or the app session itself.
@@ -64,6 +68,7 @@ final class Locappci_Routes {
 				'rentalRequests' => true,
 				'delivery'    => true,
 				'reports'     => true,
+				'sellers'     => true,
 				'contacts'    => Locappci_Marketplace::contact_fee() > 0 && Locappci_Orders::transfer_to() !== null,
 				'orders'      => Locappci_Orders::transfer_to() !== null, // false until the transfer number is set (section 5)
 				'jwt'         => defined('SIMPLE_JWT_LOGIN_PLUGIN_PATH') || class_exists('SimpleJWTLogin\\Modules\\SimpleJWTLoginSettings'),

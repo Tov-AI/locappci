@@ -34,7 +34,15 @@
         }
       ],
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LOCAPPCI utilise vos photos pour la pièce d’identité de votre boutique.",
+          "cameraPermission": "LOCAPPCI utilise l’appareil photo pour photographier la pièce d’identité de votre boutique.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

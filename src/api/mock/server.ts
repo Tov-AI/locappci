@@ -1,6 +1,7 @@
 import type {
   Account,
   ContactUnlock,
+  SellerApplication,
   CartCheckResult,
   OrderShop,
   DeliveryOption,
@@ -218,6 +219,60 @@ export const mockApi: LocappciApi = {
       };
       unlocks.set(u.id, u);
       return u;
+    }),
+
+  getSellerApplication: () =>
+    respond(() => {
+      if (!getSessionToken())
+        throw new ApiError(
+          "unauthorized",
+          "Connectez-vous pour ouvrir votre boutique.",
+        );
+      return sellerApplication;
+    }),
+
+  sendSellerApplication: (req) =>
+    respond(() => {
+      if (!getSessionToken())
+        throw new ApiError(
+          "unauthorized",
+          "Connectez-vous pour ouvrir votre boutique.",
+        );
+      if (req.shopName.trim().length < 2)
+        throw new ApiError(
+          "validation",
+          "Indiquez le nom de la boutique (2 à 60 caractères).",
+        );
+      if (!cities.some((c) => c.id === req.cityId))
+        throw new ApiError(
+          "validation",
+          "Choisissez la commune de la boutique.",
+        );
+      const wa = normalizePhone(req.whatsapp);
+      if (!wa)
+        throw new ApiError(
+          "validation",
+          "Numéro WhatsApp invalide (ex. 07 00 00 00 00 ou +33 6…).",
+        );
+      if (!req.idPhoto && sellerApplication.status !== "pending") {
+        throw new ApiError(
+          "validation",
+          "Ajoutez une photo de votre pièce d’identité.",
+        );
+      }
+      sellerApplication = {
+        status: "pending",
+        shopName: req.shopName.trim(),
+        cityId: req.cityId,
+        whatsapp: wa,
+        description: req.description?.trim() || null,
+        refusalReason: null,
+        verifyCode:
+          sellerApplication.verifyCode ??
+          String(1000 + Math.floor(Math.random() * 9000)),
+        submittedAt: new Date().toISOString(),
+      };
+      return sellerApplication;
     }),
 
   // Mock: the « team » validates the transfer as soon as the reference is sent, to test the whole flow.
@@ -663,6 +718,16 @@ const TRANSFER_TO = { number: "2250700000099", name: "LOCAPPCI (exemple)" };
 /** Orders made in the mock, and which idempotency key created which order. */
 const orders = new Map<string, Order>();
 const unlocks = new Map<string, ContactUnlock>();
+let sellerApplication: SellerApplication = {
+  status: "none",
+  shopName: null,
+  cityId: null,
+  whatsapp: null,
+  description: null,
+  refusalReason: null,
+  verifyCode: null,
+  submittedAt: null,
+};
 const orderByKey = new Map<string, string>();
 let nextOrderNumber = 24817;
 

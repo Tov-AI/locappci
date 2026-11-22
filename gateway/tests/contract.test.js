@@ -46,9 +46,9 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   await assert.rejects(api.getProduct('99999'), e => e.code === 'not_found' && /plus disponible/.test(e.message));
   // shop
   const shop = await api.getShop(sale.shopId);
-  assert.deepStrictEqual([shop.name, shop.initials, shop.cityId, shop.whatsapp, shop.role], ['Boutique Koné Électro', 'BK', 'yopougon', '2250700000001', 'vendeur']);
+  assert.deepStrictEqual([shop.name, shop.initials, shop.cityId, shop.whatsapp, shop.role], ['Boutique Koné Électro', 'BK', 'yopougon', null, 'vendeur'], 'public shop: no WhatsApp (0.10.0, paid contacts); resolution checked in shops-internal.php');
   const loueur = await api.getShop(rent.shopId); assert.deepStrictEqual([loueur.role, loueur.whatsapp], ['loueur', null]);
-  assert.strictEqual((await api.getShop((await api.getProduct(ID.pagne)).shopId)).whatsapp, '2250700000002');
+  assert.strictEqual((await api.getShop((await api.getProduct(ID.pagne)).shopId)).whatsapp, null);
   // stock + cart
   let c = await api.checkStock(ID.vent16, 18500); assert.deepStrictEqual([c.available, c.priceChanged], [true, false]);
   c = await api.checkStock(ID.mix, 12000); assert.strictEqual(c.available, false);
@@ -85,14 +85,14 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   assert.strictEqual((await api.getShop(ID.newLoueur)).role, 'vendeur', 'an unapproved rental does not make a loueur');
   // shops: the site's own boutique record first, and what the seller hides stays hidden
   const bazar = await api.getShop(ID.bazar);
-  assert.deepStrictEqual([bazar.name, bazar.cityId, bazar.whatsapp], ['Bazar Ivoire Market', 'treichville', '2250722222222'], 'record linked from a product');
+  assert.deepStrictEqual([bazar.name, bazar.cityId, bazar.whatsapp], ['Bazar Ivoire Market', 'treichville', null], 'record linked from a product');
   assert.ok(/logo-bazar\.png$/.test(bazar.logoUrl), 'logo from the record');
   assert.strictEqual((await api.getProduct(ID.savon)).cityId, 'treichville', 'product town follows the record');
   assert.strictEqual((await api.listProducts({ cityId: 'treichville', sort: 'nearest' })).items[0].id, ID.savon, 'nearest uses the record town');
   const auteur = await api.getShop(ID.auteur);
-  assert.deepStrictEqual([auteur.cityId, auteur.whatsapp, auteur.logoUrl], ['adjame', '2250733333333', null], 'record found by its author, telephone as WhatsApp');
+  assert.deepStrictEqual([auteur.cityId, auteur.whatsapp, auteur.logoUrl], ['adjame', null, null], 'record found by its author, telephone as WhatsApp');
   const att = await api.getShop(ID.attenteb);
-  assert.deepStrictEqual([att.cityId, att.whatsapp], ['koumassi', '2250700000004'], 'record not validated: WCFM settings');
+  assert.deepStrictEqual([att.cityId, att.whatsapp], ['koumassi', null], 'record not validated: WCFM settings');
   const dis = await api.getShop(ID.discret);
   assert.deepStrictEqual([dis.cityId, dis.whatsapp], ['', null], 'hidden phone and address');
   const dis2 = await api.getShop(ID.discret2);
@@ -105,7 +105,7 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   assert.deepStrictEqual((await api.checkCart([{ productId: ID.sansprix, quantity: 1, shownPrice: 0 }])).lines.map(l => l.problem), ['gone']);
   assert.strictEqual((await api.getProduct(ID.locsansprix)).universe, 'location', 'rental without a price is still listed');
   // settings and requests
-  assert.deepStrictEqual(await api.getConfig(), { whatsapp: '447748039794' });
+  assert.deepStrictEqual(await api.getConfig(), { whatsapp: '447748039794', contactFee: null });
   await assert.rejects(api.sendRentalRequest({ idempotencyKey: 'k', items: [], contact: { name: 'A', phone: '1' } }), e => e.code === 'unauthorized' && /WhatsApp/.test(e.message));
 
   // ---- accounts: sign in with the website's account, create, sign out, delete ----
@@ -159,7 +159,7 @@ const ID = Object.fromEntries(Object.entries(JSON.parse(process.env.SEED_IDS || 
   await assert.rejects(send('v10', [line(ID.chaises, { cityId: 'paris' })]), refused(/commune/));
   await assert.rejects(send('v11', [line(ID.vent16), line(ID.pendingRental), line(999999)]), refused(/plus proposés/), 'a sale product, an unapproved rental and an unknown id');
   // a refused list writes nothing, even when its first item was valid
-  await assert.rejects(send('v12', [line(ID.chaises), line(ID.tente, { quantity: 100 })]), refused(/quantité/));
+  await assert.rejects(send('v12', [line(ID.chaises), line(ID.tente, { quantity: 20000 })]), refused(/quantité/));
   const receipt = await send('ok-1', [line(ID.chaises), line(ID.groupe, { days: 5, quantity: 1, cityId: 'marcory' }), line(ID.vent16)]);
   assert.ok(/^LOCREQ-\d+-[A-Za-z0-9]{6}$/.test(receipt.reference));
   assert.deepStrictEqual(receipt.sent.map(s => s.productId), [String(ID.chaises), String(ID.groupe)]);

@@ -137,6 +137,10 @@ export default function CompteScreen() {
         />
       </SectionCard>
 
+      <SectionCard title="Vendre">
+        <ListRow icon="shopping-bag" label="Vendre sur LOCAPPCI" hint="Ouvrir ma boutique" onPress={() => router.push('/vendeur')} />
+      </SectionCard>
+
       <SectionCard title="Paramètres">
         <ListRow
           icon="bell"

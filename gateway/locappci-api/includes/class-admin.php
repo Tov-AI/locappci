@@ -37,6 +37,9 @@ final class Locappci_Admin {
 			}
 		}
 
+		if (isset($_GET['locappci_msg'])) {
+			echo '<div class="notice notice-success"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['locappci_msg']))) . '</p></div>';
+		}
 		if (isset($_POST['locappci_commission_rate']) && check_admin_referer('locappci_marketplace')) {
 			$rate = (float) str_replace(',', '.', sanitize_text_field(wp_unslash($_POST['locappci_commission_rate'])));
 			$fee = (int) preg_replace('/\D+/', '', sanitize_text_field(wp_unslash($_POST['locappci_contact_fee'] ?? '')));
@@ -235,6 +238,41 @@ final class Locappci_Admin {
 			. esc_html(number_format(10000 - Locappci_Marketplace::commission(10000), 0, ',', ' ')) . ' FCFA.</p>';
 		submit_button('Enregistrer la commission et le prix');
 		echo '</form>';
+
+		echo '<h2 id="vendeurs">9. Demandes vendeur depuis l’appli</h2>';
+		echo '<p>Pour chaque demande : 1) vérifiez la pièce d’identité ; 2) vérifiez que vous avez reçu sur le WhatsApp de LOCAPPCI '
+			. 'le code ci-dessous, envoyé depuis le numéro indiqué ; 3) Valider (la boutique devient vendeur WCFM) ou Refuser avec un motif '
+			. '(le vendeur le voit dans l’appli et peut corriger). La photo de la pièce est supprimée après la décision.</p>';
+		$requests = Locappci_Sellers::pending();
+		if (!$requests) {
+			echo '<p>Aucune demande en attente.</p>';
+		} else {
+			echo '<table class="widefat striped"><thead><tr><th>Boutique</th><th>Compte</th><th>Commune</th><th>WhatsApp et code</th><th>Pièce</th><th>Décision</th></tr></thead><tbody>';
+			foreach ($requests as $req) {
+				$owner = get_user_by('id', (int) $req->post_author);
+				$wa = (string) get_post_meta($req->ID, '_locappci_boutique_whatsapp', true);
+				$code = (string) get_post_meta($req->ID, Locappci_Sellers::CODE_META, true);
+				$digits = preg_replace('/\D+/', '', $wa);
+				$photo = Locappci_Sellers::file_path($req->ID)
+					? '<a target="_blank" rel="noopener" href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=locappci_id_photo&id=' . $req->ID), 'locappci_id_photo_' . $req->ID)) . '">Voir la photo</a>'
+					: '—';
+				echo '<tr><td><strong>' . esc_html($req->post_title) . '</strong><br><small>' . esc_html(wp_trim_words($req->post_content, 20)) . '</small></td>';
+				echo '<td>' . esc_html($owner ? $owner->display_name : '?') . '<br><small>' . esc_html($owner ? $owner->user_email : '') . '</small></td>';
+				echo '<td>' . esc_html((string) get_post_meta($req->ID, '_locappci_boutique_commune', true)) . '</td>';
+				echo '<td>' . esc_html($wa) . ' <a target="_blank" rel="noopener" href="https://wa.me/' . esc_attr($digits) . '">WhatsApp</a><br>Code attendu : <strong>' . esc_html($code) . '</strong></td>';
+				echo '<td>' . $photo . '</td><td>';
+				echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;margin-right:8px">';
+				wp_nonce_field('locappci_seller_' . $req->ID);
+				echo '<input type="hidden" name="action" value="locappci_seller_decision"><input type="hidden" name="id" value="' . (int) $req->ID . '">';
+				echo '<input type="hidden" name="decision" value="approve"><button class="button button-primary">Valider</button></form>';
+				echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
+				wp_nonce_field('locappci_seller_' . $req->ID);
+				echo '<input type="hidden" name="action" value="locappci_seller_decision"><input type="hidden" name="id" value="' . (int) $req->ID . '">';
+				echo '<input type="hidden" name="decision" value="refuse"><input name="reason" placeholder="Motif du refus" style="width:160px"> <button class="button">Refuser</button></form>';
+				echo '</td></tr>';
+			}
+			echo '</tbody></table>';
+		}
 		echo '</div>';
 	}
 
